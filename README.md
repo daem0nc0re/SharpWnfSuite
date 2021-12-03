@@ -207,7 +207,7 @@ C:\dev>SharpWnfNameDumper.exe -d perf_nt_c.dll -o result.txt
 
 
 C:\dev>type result.txt
-∩╗┐public enum WELL_KNOWN_WNF_NAME : ulong
+public enum WELL_KNOWN_WNF_NAME : ulong
 {
     WNF_9P_REDIRECTOR_STARTED = 0x41C61E54A3BC1075UL,
     WNF_9P_UNKNOWN_DISTRO_NAME = 0x41C61E54A3BC0875UL,
@@ -258,7 +258,7 @@ C:\dev>SharpWnfClient.exe WNF_SHEL_APPLICATION_STARTED
                 00000060 | 2E 00 65 00 78 00 65 00-00 00                   | ..e.x.e. ..
 ```
 
-After executed, if you start Slack application, should see following result:
+Then, if you start Slack application, should see following result:
 
 ```
 [>] Received data from server.

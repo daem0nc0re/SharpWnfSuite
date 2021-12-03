@@ -200,7 +200,7 @@ namespace SharpWnfNameDumper.Library
 
             if (fullPath != string.Empty)
             {
-                File.WriteAllText(fullPath, string.Empty, Encoding.UTF8);
+                File.WriteAllText(fullPath, string.Empty);
             }
 
             if (added.Count > 0)
@@ -209,9 +209,9 @@ namespace SharpWnfNameDumper.Library
 
                 if (fullPath != string.Empty)
                 {
-                    File.WriteAllText(fullPath, output.ToString(), Encoding.UTF8);
+                    File.WriteAllText(fullPath, output.ToString());
                     WriteWnfNamesToFile(added, fullPath, true, verbose, format);
-                    File.AppendAllText(fullPath, "\n", Encoding.UTF8);
+                    File.AppendAllText(fullPath, "\n");
                 }
                 else
                 {
@@ -229,9 +229,9 @@ namespace SharpWnfNameDumper.Library
 
                 if (fullPath != string.Empty)
                 {
-                    File.AppendAllText(fullPath, output.ToString(), Encoding.UTF8);
+                    File.AppendAllText(fullPath, output.ToString());
                     WriteWnfNamesToFile(deleted, fullPath, true, verbose, format);
-                    File.AppendAllText(fullPath, "\n", Encoding.UTF8);
+                    File.AppendAllText(fullPath, "\n");
                 }
                 else
                 {
@@ -249,9 +249,9 @@ namespace SharpWnfNameDumper.Library
 
                 if (fullPath != string.Empty)
                 {
-                    File.AppendAllText(fullPath, output.ToString(), Encoding.UTF8);
+                    File.AppendAllText(fullPath, output.ToString());
                     WriteWnfNamesToFile(modified, fullPath, true, verbose, format);
-                    File.AppendAllText(fullPath, "\n\n", Encoding.UTF8);
+                    File.AppendAllText(fullPath, "\n\n");
                 }
                 else
                 {
@@ -357,11 +357,11 @@ namespace SharpWnfNameDumper.Library
 
             if ((fullPath != string.Empty) && !append)
             {
-                File.WriteAllText(fullPath, output.ToString(), Encoding.UTF8);
+                File.WriteAllText(fullPath, output.ToString());
             }
             else if ((fullPath != string.Empty) && append)
             {
-                File.AppendAllText(fullPath, output.ToString(), Encoding.UTF8);
+                File.AppendAllText(fullPath, output.ToString());
             }
             else
             {
