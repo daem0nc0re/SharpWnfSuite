@@ -41,7 +41,7 @@ C:\dev>SharpWnfDump.exe -d -s
 If you want to retrieve buffer data, set `-v` (`--value`) or `-r` (`--read`) flag:
 
 ```
-C:\dev>SharpWnfDump.exe -v
+C:\dev>SharpWnfDump.exe -d -v
 
 | WNF State Name [WnfWellKnownStateName Lifetime]                 | S | L | P | AC | N | CurSize | MaxSize | Changes |
 ----------------------------------------------------------------------------------------------------------------------
