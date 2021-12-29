@@ -1,8 +1,18 @@
-# C# Utilities for Windows Notification Facility
+# SharpWnfSuite
 
 This is the repository for Windows Notification Facility (WNF) tools.
 Currently, a C# port of the tools in [wnfun](https://github.com/ionescu007/wnfun) developed by Alex Ionescu ([@aionescu](https://twitter.com/aionescu)) and Gabrielle Viala ([@pwissenlit](https://twitter.com/pwissenlit)) has been uploaded.
 When I develop additional tools for Windows Notification Facility, they will be uploaded here.
+
+## Table Of Contents
++ [SharpWnfSuite](#sharpwnfsuite)
+    + [Usage](#usage)
+        + [SharpWnfDump](#sharpwnfdump)
+        + [SharpWnfNameDumper](#sharpwnfnamedumper)
+        + [SharpWnfClient](#sharpwnfclient)
+        + [SharpWnfServer](#sharpwnfserver)
+    + [Reference](#reference)
+    + [Acknowledgments](#acknowledgments)
 
 ## Usage
 ### SharpWnfDump
@@ -325,6 +335,12 @@ Then, you should see the message in the terminal for `SharpWnfClient.exe` as fol
                 00000000 | 54 68 69 73 20 69 73 20-77 6E 66 20 74 65 73 74 | This.is. wnf.test
 
 ```
+
+## Reference
++ [Windows Notification Facility: Peeling the Onion of the Most Undocumented Kernel Attack Surface Yet](https://www.youtube.com/watch?v=MybmgE95weo)
++ [Playing with the Windows Notification Facility (WNF)](https://blog.quarkslab.com/playing-with-the-windows-notification-facility-wnf.html)
++ [wnfun](https://github.com/ionescu007/wnfun)
++ [Windows Process Injection : Windows Notification Facility](https://modexp.wordpress.com/2019/06/15/4083/)
 
 ## Acknowledgments
 + Alex Ionescu ([@aionescu](https://twitter.com/aionescu))
