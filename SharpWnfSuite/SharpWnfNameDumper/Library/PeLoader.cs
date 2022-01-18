@@ -224,10 +224,10 @@ namespace SharpWnfNameDumper.Library
                     if (Marshal.ReadInt16(lpTerminator) == 0)
                         break;
                     else
-                        count++;
+                        count += 2;
                 }
-                bytesString = new byte[count + 1];
-                Marshal.Copy(lpBuffer, bytesString, 0, count + 1);
+                bytesString = new byte[count];
+                Marshal.Copy(lpBuffer, bytesString, 0, count);
                 return Encoding.Unicode.GetString(bytesString);
             }
             catch
@@ -253,10 +253,10 @@ namespace SharpWnfNameDumper.Library
                     if (Marshal.ReadInt16(lpTerminator) == 0)
                         break;
                     else
-                        count++;
+                        count += 2;
                 }
-                bytesString = new byte[count + 1];
-                Marshal.Copy(lpBuffer, bytesString, 0, count + 1);
+                bytesString = new byte[count];
+                Marshal.Copy(lpBuffer, bytesString, 0, count);
                 return Encoding.Unicode.GetString(bytesString);
             }
             catch
