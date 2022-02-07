@@ -40,7 +40,7 @@ namespace SharpWnfNameDumper.Handler
             }
             else if (options.GetFlag("diff"))
             {
-                if (options.GetValue("FILE_NAME_2") == string.Empty)
+                if (string.IsNullOrEmpty(options.GetValue("FILE_NAME_2")))
                 {
                     Console.WriteLine("\n[!] Missing newer DLL for diffing.\n");
                     return;

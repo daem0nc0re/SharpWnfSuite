@@ -70,7 +70,7 @@ namespace SharpWnfNameDumper.Library
             }
             catch
             {
-                return string.Empty;
+                return null;
             }
 
             if (arch == 0x8664)
@@ -87,7 +87,7 @@ namespace SharpWnfNameDumper.Library
             }
             else
             {
-                return string.Empty;
+                return null;
             }
         }
 
@@ -232,7 +232,7 @@ namespace SharpWnfNameDumper.Library
             }
             catch
             {
-                return string.Empty;
+                return null;
             }
         }
 
@@ -261,7 +261,7 @@ namespace SharpWnfNameDumper.Library
             }
             catch
             {
-                return string.Empty;
+                return null;
             }
         }
 

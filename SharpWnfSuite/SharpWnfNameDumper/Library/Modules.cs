@@ -171,10 +171,10 @@ namespace SharpWnfNameDumper.Library
             StringBuilder headerDeleted = new StringBuilder();
             StringBuilder headerModified = new StringBuilder();
 
-            string fullPath = string.Empty;
+            string fullPath = null;
             string dirPath;
 
-            if (filename != string.Empty)
+            if (!string.IsNullOrEmpty(filename))
             {
                 fullPath = Path.GetFullPath(filename);
                 dirPath = Path.GetDirectoryName(fullPath);
@@ -182,7 +182,7 @@ namespace SharpWnfNameDumper.Library
                 if (!Directory.Exists(dirPath))
                 {
                     Console.WriteLine("\n[!] Target directory does not exist.\n");
-                    fullPath = string.Empty;
+                    fullPath = null;
                 }
             }
 
@@ -198,16 +198,16 @@ namespace SharpWnfNameDumper.Library
             headerModified.Append("#                 MODIFIED KEYS                #\n");
             headerModified.Append("################################################\n\n");
 
-            if (fullPath != string.Empty)
+            if (!string.IsNullOrEmpty(fullPath))
             {
-                File.WriteAllText(fullPath, string.Empty);
+                File.WriteAllText(fullPath, null);
             }
 
             if (added.Count > 0)
             {
                 output.Append(headerAdded);
 
-                if (fullPath != string.Empty)
+                if (!string.IsNullOrEmpty(fullPath))
                 {
                     File.WriteAllText(fullPath, output.ToString());
                     WriteWnfNamesToFile(added, fullPath, true, verbose, format);
@@ -216,7 +216,7 @@ namespace SharpWnfNameDumper.Library
                 else
                 {
                     Console.WriteLine(output);
-                    WriteWnfNamesToFile(added, string.Empty, true, verbose, format);
+                    WriteWnfNamesToFile(added, null, true, verbose, format);
                     Console.WriteLine("\n");
                 }
             }
@@ -227,7 +227,7 @@ namespace SharpWnfNameDumper.Library
             {
                 output.Append(headerDeleted);
 
-                if (fullPath != string.Empty)
+                if (!string.IsNullOrEmpty(fullPath))
                 {
                     File.AppendAllText(fullPath, output.ToString());
                     WriteWnfNamesToFile(deleted, fullPath, true, verbose, format);
@@ -236,7 +236,7 @@ namespace SharpWnfNameDumper.Library
                 else
                 {
                     Console.WriteLine(output);
-                    WriteWnfNamesToFile(deleted, string.Empty, true, verbose, format);
+                    WriteWnfNamesToFile(deleted, null, true, verbose, format);
                     Console.WriteLine("\n");
                 }
             }
@@ -247,7 +247,7 @@ namespace SharpWnfNameDumper.Library
             {
                 output.Append(headerModified);
 
-                if (fullPath != string.Empty)
+                if (!string.IsNullOrEmpty(fullPath))
                 {
                     File.AppendAllText(fullPath, output.ToString());
                     WriteWnfNamesToFile(modified, fullPath, true, verbose, format);
@@ -256,7 +256,7 @@ namespace SharpWnfNameDumper.Library
                 else
                 {
                     Console.WriteLine(output);
-                    WriteWnfNamesToFile(modified, string.Empty, true, verbose, format);
+                    WriteWnfNamesToFile(modified, null, true, verbose, format);
                     Console.WriteLine("\n\n");
                 }
             }
@@ -280,10 +280,10 @@ namespace SharpWnfNameDumper.Library
             string formatterFooter;
             int count = 0;
             int sizeStateNames = stateNames.Count;
-            string fullPath = string.Empty;
+            string fullPath = null;
             string dirPath;
 
-            if (filename != string.Empty)
+            if (!string.IsNullOrEmpty(filename))
             {
                 fullPath = Path.GetFullPath(filename);
                 dirPath = Path.GetDirectoryName(fullPath);
@@ -291,7 +291,7 @@ namespace SharpWnfNameDumper.Library
                 if (!Directory.Exists(dirPath))
                 {
                     Console.WriteLine("\n[!] Target directory does not exist.\n");
-                    fullPath = string.Empty;
+                    fullPath = null;
                 }
             }
 
@@ -355,11 +355,11 @@ namespace SharpWnfNameDumper.Library
 
             output.Append(formatterFooter);
 
-            if ((fullPath != string.Empty) && !append)
+            if (!string.IsNullOrEmpty(fullPath) && !append)
             {
                 File.WriteAllText(fullPath, output.ToString());
             }
-            else if ((fullPath != string.Empty) && append)
+            else if (!string.IsNullOrEmpty(fullPath) && append)
             {
                 File.AppendAllText(fullPath, output.ToString());
             }

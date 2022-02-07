@@ -1,4 +1,5 @@
-﻿using SharpWnfDump.Handler;
+﻿using System;
+using SharpWnfDump.Handler;
 
 namespace SharpWnfDump
 {
@@ -7,20 +8,40 @@ namespace SharpWnfDump
         static void Main(string[] args)
         {
             CommandLineParser options = new CommandLineParser();
-            options.SetTitle("SharpWnfDump - Diagnostics Tool for Windows Notification Facility");
-            options.Add(false, "h", "help", false, "Displays this help message.");
-            options.Add(false, "i", "info", false, "Displays given state name. Can use with -s, -r or -v option.");
-            options.Add(false, "d", "dump", false, "Displays information on all non-temporary state names. Can use with -s, -r or -v option.");
-            options.Add(false, "b", "brut", false, "Displays information on all temporary state names. Can use with -r or -v option.");
-            options.Add(false, "r", "read", false, "Reads the current data stored in the given state name.");
-            options.Add(false, "w", "write", false, "Writes data into the given state name.");
-            options.Add(false, "v", "value", false, "Dump the value of each name.");
-            options.Add(false, "s", "sid", false, "Show the security descriptor for each name.");
-            options.Add(false, "WNF_NAME", "WNF State Name. Use with -i, -r or -w option.");
-            options.Add(false, "FILE_NAME", "Data source file path. Use with -w option.");
-            options.Parse(args);
 
-            Execute.Run(options);
+            try
+            {
+                options.SetTitle("SharpWnfDump - Diagnostics Tool for Windows Notification Facility");
+                options.AddFlag(false, "h", "help", "Displays this help message.");
+                options.AddFlag(false, "i", "info", "Displays given state name. Can use with -s, -r or -v option.");
+                options.AddFlag(false, "d", "dump", "Displays information on all non-temporary state names. Can use with -s, -r or -v option.");
+                options.AddFlag(false, "b", "brut", "Displays information on all temporary state names. Can use with -r or -v option.");
+                options.AddFlag(false, "r", "read", "Reads the current data stored in the given state name.");
+                options.AddFlag(false, "w", "write", "Writes data into the given state name.");
+                options.AddFlag(false, "v", "value", "Dump the value of each name.");
+                options.AddFlag(false, "s", "sid", "Show the security descriptor for each name.");
+                options.AddArgument(false, "WNF_NAME", "WNF State Name. Use with -i, -r or -w option.");
+                options.AddArgument(false, "FILE_NAME", "Data source file path. Use with -w option.");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine(ex.Message);
+
+                return;
+            }
+
+            try
+            {
+                options.Parse(args);
+                Execute.Run(options);
+            }
+            catch (ArgumentException ex)
+            {
+                options.GetHelp();
+                Console.WriteLine(ex.Message);
+
+                return;
+            }
         }
     }
 }

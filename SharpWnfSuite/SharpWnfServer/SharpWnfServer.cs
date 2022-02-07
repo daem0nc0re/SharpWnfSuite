@@ -1,4 +1,5 @@
-﻿using SharpWnfServer.Handler;
+﻿using System;
+using SharpWnfServer.Handler;
 
 namespace SharpWnfServer
 {
@@ -7,11 +8,31 @@ namespace SharpWnfServer
         static void Main(string[] args)
         {
             CommandLineParser options = new CommandLineParser();
-            options.SetTitle("SharpWnfServer - Server Tool for Windows Notification Facility");
-            options.Add(false, "h", "help", false, "Displays this help message.");
-            options.Parse(args);
 
-            Execute.Run(options);
+            try
+            {
+                options.SetTitle("SharpWnfServer - Server Tool for Windows Notification Facility");
+                options.AddFlag(false, "h", "help", "Displays this help message.");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine(ex.Message);
+
+                return;
+            }
+            
+            try
+            {
+                options.Parse(args);
+                Execute.Run(options);
+            }
+            catch (ArgumentException ex)
+            {
+                options.GetHelp();
+                Console.WriteLine(ex.Message);
+
+                return;
+            }
         }
     }
 }

@@ -21,7 +21,7 @@ namespace SharpWnfDump.Handler
             {
                 wnfName = options.GetValue("WNF_NAME");
 
-                if (wnfName == string.Empty)
+                if (string.IsNullOrEmpty(wnfName))
                 {
                     Console.WriteLine("\n[!] Missing WNF State Name.\n");
                     return;
@@ -53,7 +53,7 @@ namespace SharpWnfDump.Handler
                 {
                     wnfName = options.GetValue("WNF_NAME");
 
-                    if (wnfName == string.Empty)
+                    if (string.IsNullOrEmpty(wnfName))
                     {
                         Console.WriteLine("\n[!] Missing WNF State Name.\n");
                         return;
@@ -83,13 +83,13 @@ namespace SharpWnfDump.Handler
                     wnfName = options.GetValue("WNF_NAME");
                     fileName = options.GetValue("FILE_NAME");
 
-                    if (wnfName == string.Empty)
+                    if (string.IsNullOrEmpty(wnfName))
                     {
                         Console.WriteLine("\n[!] Missing WNF State Name.\n");
                         return;
                     }
 
-                    if (fileName == string.Empty)
+                    if (string.IsNullOrEmpty(fileName))
                     {
                         Console.WriteLine("\n[!] Missing data source file.\n");
                         return;
