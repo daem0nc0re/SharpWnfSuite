@@ -20,18 +20,14 @@ namespace SharpWnfNameDumper
                 options.AddParameter(false, "o", "output", null, "Specify output file (e.g. \"-o result.txt\").");
                 options.AddArgument(true, "FILE_NAME_1", "A PE file contains WNF State Name (typically perf_nt_c.dll).");
                 options.AddArgument(false, "FILE_NAME_2", "Another PE file contains WNF State Name for diffing. Newer one specify here.");
+                options.Parse(args);
+                Execute.Run(options);
             }
             catch (InvalidOperationException ex)
             {
                 Console.WriteLine(ex.Message);
 
                 return;
-            }
-            
-            try
-            {
-                options.Parse(args);
-                Execute.Run(options);
             }
             catch (ArgumentException ex)
             {

@@ -126,6 +126,7 @@ namespace SharpWnfClient.Handler
         }
 
         private string g_Title = null;
+        private string g_OptionName = null;
         private readonly List<CommandLineOption> g_Options =
             new List<CommandLineOption>();
         private readonly List<List<string>> g_Exclusive = new List<List<string>>();
@@ -253,18 +254,29 @@ namespace SharpWnfClient.Handler
         public void GetHelp()
         {
             StringBuilder usage = new StringBuilder();
-            if (!string.IsNullOrEmpty(g_Title))
+            if (g_Title != null)
             {
                 Console.WriteLine("\n{0}", g_Title);
             }
 
-            usage.Append(string.Format(
-                "\nUsage: {0} [Options]",
-                AppDomain.CurrentDomain.FriendlyName));
+            if (g_OptionName != null)
+            {
+                usage.Append(string.Format(
+                    "\nUsage: {0} {1} [Options]",
+                    AppDomain.CurrentDomain.FriendlyName,
+                    g_OptionName));
+            }
+            else
+            {
+                usage.Append(string.Format(
+                    "\nUsage: {0} [Options]",
+                    AppDomain.CurrentDomain.FriendlyName));
+            }
+
 
             foreach (var opt in g_Options)
             {
-                if (opt.GetBriefName() == opt.GetFullName())
+                if (opt.GetOptionType() == OptionType.Argument)
                 {
                     if (opt.GetIsRequired())
                     {
@@ -460,17 +472,23 @@ namespace SharpWnfClient.Handler
                 if (exclusiveCounter > 1)
                 {
                     exceptionMessage.Append("[!] Following options should not be set at a time:\n");
-                    
+
                     foreach (var exclusive in exclusiveList)
                     {
                         fullName = string.Format("--{0}", exclusive.TrimStart('-'));
-                        
+
                         exceptionMessage.Append(string.Format("    + {0} option\n", fullName));
                     }
 
                     throw new ArgumentException(exceptionMessage.ToString());
                 }
             }
+        }
+
+
+        public void SetOptionName(string optionName)
+        {
+            g_OptionName = optionName;
         }
 
 

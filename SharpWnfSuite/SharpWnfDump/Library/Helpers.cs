@@ -110,7 +110,7 @@ namespace SharpWnfDump.Library
 
             wnfName = Enum.GetName(typeof(Win32Const.WELL_KNOWN_WNF_NAME), stateName);
 
-            if (wnfName == null)
+            if (string.IsNullOrEmpty(wnfName))
             {
                 if (isWellKnown)
                 {

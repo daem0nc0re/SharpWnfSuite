@@ -22,18 +22,14 @@ namespace SharpWnfDump
                 options.AddFlag(false, "s", "sid", "Show the security descriptor for each name.");
                 options.AddArgument(false, "WNF_NAME", "WNF State Name. Use with -i, -r or -w option.");
                 options.AddArgument(false, "FILE_NAME", "Data source file path. Use with -w option.");
+                options.Parse(args);
+                Execute.Run(options);
             }
             catch (InvalidOperationException ex)
             {
                 Console.WriteLine(ex.Message);
 
                 return;
-            }
-
-            try
-            {
-                options.Parse(args);
-                Execute.Run(options);
             }
             catch (ArgumentException ex)
             {

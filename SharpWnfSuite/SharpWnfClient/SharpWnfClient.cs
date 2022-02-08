@@ -14,18 +14,14 @@ namespace SharpWnfClient
                 options.SetTitle("SharpWnfClient - Client Tool for Windows Notification Facility");
                 options.AddFlag(false, "h", "help", "Displays this help message.");
                 options.AddArgument(true, "WNF_NAME", "WNF State Name.");
+                options.Parse(args);
+                Execute.Run(options);
             }
             catch (InvalidOperationException ex)
             {
                 Console.WriteLine(ex.Message);
 
                 return;
-            }
-
-            try
-            {
-                options.Parse(args);
-                Execute.Run(options);
             }
             catch (ArgumentException ex)
             {

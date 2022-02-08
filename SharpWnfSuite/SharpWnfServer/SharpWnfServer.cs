@@ -13,18 +13,14 @@ namespace SharpWnfServer
             {
                 options.SetTitle("SharpWnfServer - Server Tool for Windows Notification Facility");
                 options.AddFlag(false, "h", "help", "Displays this help message.");
+                options.Parse(args);
+                Execute.Run(options);
             }
             catch (InvalidOperationException ex)
             {
                 Console.WriteLine(ex.Message);
 
                 return;
-            }
-            
-            try
-            {
-                options.Parse(args);
-                Execute.Run(options);
             }
             catch (ArgumentException ex)
             {
