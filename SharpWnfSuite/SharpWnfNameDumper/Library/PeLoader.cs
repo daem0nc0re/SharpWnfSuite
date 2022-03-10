@@ -211,24 +211,10 @@ namespace SharpWnfNameDumper.Library
                 this.CurrentSectionHeader.PointerToRawData +
                 lpUnicodeString.ToInt64() - 
                 GetSectionVirtualAddress().ToInt64());
-            IntPtr lpTerminator;
-            byte[] bytesString;
-            int count = 0;
 
             try
             {
-                while (true)
-                {
-                    lpTerminator = new IntPtr(lpBuffer.ToInt64() + count);
-
-                    if (Marshal.ReadInt16(lpTerminator) == 0)
-                        break;
-                    else
-                        count += 2;
-                }
-                bytesString = new byte[count];
-                Marshal.Copy(lpBuffer, bytesString, 0, count);
-                return Encoding.Unicode.GetString(bytesString);
+                return Marshal.PtrToStringUni(lpBuffer);
             }
             catch
             {
@@ -240,24 +226,10 @@ namespace SharpWnfNameDumper.Library
         {
             IntPtr lpBuffer = new IntPtr(
                 this.Buffer.ToInt64() + this.CurrentSectionHeader.PointerToRawData + offset);
-            IntPtr lpTerminator;
-            byte[] bytesString;
-            int count = 0;
 
             try
             {
-                while (true)
-                {
-                    lpTerminator = new IntPtr(lpBuffer.ToInt64() + count);
-
-                    if (Marshal.ReadInt16(lpTerminator) == 0)
-                        break;
-                    else
-                        count += 2;
-                }
-                bytesString = new byte[count];
-                Marshal.Copy(lpBuffer, bytesString, 0, count);
-                return Encoding.Unicode.GetString(bytesString);
+                return Marshal.PtrToStringUni(lpBuffer);
             }
             catch
             {
