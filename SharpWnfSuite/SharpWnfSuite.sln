@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpWnfServer", "SharpWnfS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpWnfClient", "SharpWnfClient\SharpWnfClient.csproj", "{D54619AE-5065-427F-8F0C-608CD0CDD9EC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpWnfScan", "SharpWnfScan\SharpWnfScan.csproj", "{7C010515-C5EA-4D4C-BF0C-AB1EB5C8766E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{D54619AE-5065-427F-8F0C-608CD0CDD9EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D54619AE-5065-427F-8F0C-608CD0CDD9EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D54619AE-5065-427F-8F0C-608CD0CDD9EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C010515-C5EA-4D4C-BF0C-AB1EB5C8766E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C010515-C5EA-4D4C-BF0C-AB1EB5C8766E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C010515-C5EA-4D4C-BF0C-AB1EB5C8766E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C010515-C5EA-4D4C-BF0C-AB1EB5C8766E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -11,6 +11,7 @@ When I develop additional tools for Windows Notification Facility, they will be 
         + [SharpWnfNameDumper](#sharpwnfnamedumper)
         + [SharpWnfClient](#sharpwnfclient)
         + [SharpWnfServer](#sharpwnfserver)
+        + [SharpWnfScan](#sharpwnfscan)
     + [Reference](#reference)
     + [Acknowledgments](#acknowledgments)
 
@@ -336,6 +337,179 @@ Then, you should see the message in the terminal for `SharpWnfClient.exe` as fol
 
 ```
 
+
+### SharpWnfDump
+This tool is based on modexp's wnfscan, and dumps WNF subscription information from process.
+
+```
+C:\dev>SharpWnfScan.exe
+
+SharpWnfScan - Tool for dumping WNF information from process.
+
+Usage: SharpWnfScan.exe [Options]
+
+        -h, --help      : Displays this help message.
+        -p, --pid       : Specifies the target PID.
+        -n, --name      : Specifies the target process name.
+        -s, --statename : Specifies a wnf state name for filtering.
+        -a, --all       : Flag to dump information from all process.
+        -d, --debug     : Flag to enable SeDebugPrivilege. Administrative privilege is required.
+```
+
+To dump a specific process, set `-p` option as follows:
+
+```
+C:\dev>SharpWnfScan.exe -p 9236
+
+Process Name : explorer.exe
+Process ID   : 9236
+Architecture : x64
+
+WNF_SUBSCRIPTION_TABLE @ 0x0000000000F6EEB0
+
+        WNF_NAME_SUBSCRIPTION @ 0x00000000157D79C0
+        StateName : 0x41C61439A3BC1075 (WNF_TZ_STORE_CHANGED)
+
+                WNF_USER_SUBSCRIPTION @ 0x00000000156B3E50
+                Callback @ 0x00007FFAC69ECD40 (Windows.Globalization.dll!DllCanUnloadNow)
+                Context  @ 0x00007FFAC6B41840 (Windows.Globalization.dll!DllCanUnloadNow)
+
+        WNF_NAME_SUBSCRIPTION @ 0x00000000157D65C0
+        StateName : 0x41C61439A3BC0875 (WNF_TZ_LEGACY_STORE_CHANGED)
+
+                WNF_USER_SUBSCRIPTION @ 0x00000000156B3CF0
+                Callback @ 0x00007FFAC69ECD40 (Windows.Globalization.dll!DllCanUnloadNow)
+                Context  @ 0x00007FFAC6B41840 (Windows.Globalization.dll!DllCanUnloadNow)
+
+--snip--
+```
+
+You can specifies target processes by name with `-n` option:
+
+```
+C:\dev>SharpWnfScan.exe -n notepad
+
+Process Name : notepad.exe
+Process ID   : 6812
+Architecture : x86
+Warning      : To get detailed symbol information of WOW64 process, should be built as 32 bit binary.
+
+WNF_SUBSCRIPTION_TABLE @ 0x02960F08
+
+        WNF_NAME_SUBSCRIPTION @ 0x02986DC8
+        StateName : 0x7851E3FA3BC0875 (WNF_RPCF_FWMAN_RUNNING)
+
+                WNF_USER_SUBSCRIPTION @ 0x02992778
+                Callback @ 0x766DFDB0 (rpcrt4.dll)
+                Context  @ 0x00000000 (N/A)
+
+--snip--
+```
+
+To filter with state name, set hex or well know wnf name string to `-s` option as follows:
+
+```
+C:\dev>SharpWnfScan.exe -n notepad -s WNF_RPCF_FWMAN_RUNNING
+
+Process Name : notepad.exe
+Process ID   : 10676
+Architecture : x64
+
+WNF_SUBSCRIPTION_TABLE @ 0x000002AB85EF08F0
+
+        WNF_NAME_SUBSCRIPTION @ 0x000002AB85F2DF70
+        StateName : 0x07851E3FA3BC0875 (WNF_RPCF_FWMAN_RUNNING)
+
+                WNF_USER_SUBSCRIPTION @ 0x000002AB85F1E220
+                Callback @ 0x00007FFADA9673B0 (rpcrt4.dll!I_RpcBindingSetPrivateOption)
+                Context  @ 0x0000000000000000 (N/A)
+
+
+
+C:\dev>SharpWnfScan.exe -n notepad -s 0x7851E3FA3BC0875
+
+Process Name : notepad.exe
+Process ID   : 10676
+Architecture : x64
+
+WNF_SUBSCRIPTION_TABLE @ 0x000002AB85EF08F0
+
+        WNF_NAME_SUBSCRIPTION @ 0x000002AB85F2DF70
+        StateName : 0x07851E3FA3BC0875 (WNF_RPCF_FWMAN_RUNNING)
+
+                WNF_USER_SUBSCRIPTION @ 0x000002AB85F1E220
+                Callback @ 0x00007FFADA9673B0 (rpcrt4.dll!I_RpcBindingSetPrivateOption)
+                Context  @ 0x0000000000000000 (N/A)
+```
+
+To dump all processes at a time, use `-a` option:
+
+```
+C:\dev>SharpWnfScan.exe -a
+
+Process Name  : gamingservices
+Process ID    : 5600
+Architecture  : N/A
+Error Message : Access is denied
+
+--snip--
+
+Process Name : chrome.exe
+Process ID   : 10248
+Architecture : x64
+
+WNF_SUBSCRIPTION_TABLE @ 0x0000019D34FA6930
+
+        WNF_NAME_SUBSCRIPTION @ 0x0000019D34FC5A70
+        StateName : 0x418A073AA3BC88F5 (WNF_WIL_USER_FEATURE_STORE)
+
+                WNF_USER_SUBSCRIPTION @ 0x0000019D34FC59C0
+                Callback @ 0x00007FFADA72F720 (combase.dll!ObjectStublessClient32)
+                Context  @ 0x00007FFADA8A3F10 (combase.dll!Ordinal183essClient32)
+
+        WNF_NAME_SUBSCRIPTION @ 0x0000019D34FC5920
+        StateName : 0x418A073AA3BC7C75 (WNF_WIL_MACHINE_FEATURE_STORE)
+
+                WNF_USER_SUBSCRIPTION @ 0x0000019D34FC5870
+                Callback @ 0x00007FFADA72F720 (combase.dll!ObjectStublessClient32)
+                Context  @ 0x00007FFADA8A3F10 (combase.dll!Ordinal183essClient32)
+
+--snip--
+```
+
+To enable `SeDebugPrivilege`, set `-d` flag as follows.
+This option requires administrative privilege:
+
+```
+C:\dev>SharpWnfScan.exe -d -n lsass
+
+[>] Trying to enable SeDebugPrivilege.
+[+] SeDebugPrivilege is enabled successfully.
+
+Process Name : lsass.exe
+Process ID   : 1212
+Architecture : x64
+
+WNF_SUBSCRIPTION_TABLE @ 0x0000022C22A13B30
+
+        WNF_NAME_SUBSCRIPTION @ 0x0000022C2320AAF0
+        StateName : 0x418F1D23A3BC0875 (WNF_NSI_SERVICE_STATUS)
+
+                WNF_USER_SUBSCRIPTION @ 0x0000022C23508260
+                Callback @ 0x00007FFAD12C3C00 (winnsi.dll!NsiRpcSetParameterEx)
+                Context  @ 0x0000000000000000 (N/A)
+
+        WNF_NAME_SUBSCRIPTION @ 0x0000022C2340B1D0
+        StateName : 0x17951A3BA3BC0875 (WNF_VTSV_CDS_SYNC)
+
+                WNF_USER_SUBSCRIPTION @ 0x0000022C22AC9700
+                Callback @ 0x00007FFAA08FFCE0 (vaultsvc.dll!ServiceMainameterEx)
+                Context  @ 0x0000000000000000 (N/A)
+
+--snip--
+```
+
+
 ## Reference
 + [Windows Notification Facility: Peeling the Onion of the Most Undocumented Kernel Attack Surface Yet](https://www.youtube.com/watch?v=MybmgE95weo)
 + [Playing with the Windows Notification Facility (WNF)](https://blog.quarkslab.com/playing-with-the-windows-notification-facility-wnf.html)
@@ -343,5 +517,7 @@ Then, you should see the message in the terminal for `SharpWnfClient.exe` as fol
 + [Windows Process Injection : Windows Notification Facility](https://modexp.wordpress.com/2019/06/15/4083/)
 
 ## Acknowledgments
+Thanks for your research:
+
 + Alex Ionescu ([@aionescu](https://twitter.com/aionescu))
 + Gabrielle Viala ([@pwissenlit](https://twitter.com/pwissenlit))
