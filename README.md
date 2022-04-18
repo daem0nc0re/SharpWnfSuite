@@ -338,8 +338,8 @@ Then, you should see the message in the terminal for `SharpWnfClient.exe` as fol
 ```
 
 
-### SharpWnfDump
-This tool is based on modexp's wnfscan, and dumps WNF subscription information from process.
+### SharpWnfScan
+This tool is based on [modexp](https://twitter.com/modexpblog)'s [wnfscan](https://github.com/odzhan/injection/blob/master/wnf/wnfscan.c), and dumps WNF subscription information from process.
 
 ```
 C:\dev>SharpWnfScan.exe
@@ -521,3 +521,4 @@ Thanks for your research:
 
 + Alex Ionescu ([@aionescu](https://twitter.com/aionescu))
 + Gabrielle Viala ([@pwissenlit](https://twitter.com/pwissenlit))
++ odzhan ([@modexpblog](https://twitter.com/modexpblog))
