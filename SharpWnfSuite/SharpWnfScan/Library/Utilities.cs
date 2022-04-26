@@ -41,6 +41,7 @@ namespace SharpWnfScan.Library
             uint nSubscriptionsListEntryOffset;
             symbolInfo.SizeOfStruct = (uint)Marshal.SizeOf(typeof(Win32Struct.SYMBOL_INFO)) - Win32Const.MAX_SYM_NAME;
             symbolInfo.MaxNameLen = Win32Const.MAX_SYM_NAME;
+            symbolInfo.Name = new byte[Win32Const.MAX_SYM_NAME];
 
             pSubscriptionTable = proc.ReadIntPtr(pSubscriptionTablePointer);
 
@@ -169,6 +170,7 @@ namespace SharpWnfScan.Library
 
                         pathBuilder.Clear();
                         pathBuilder.Capacity = (int)Win32Const.MAX_PATH;
+                        Helpers.ZeroMemory(ref symbolInfo.Name, (int)Win32Const.MAX_PATH);
                         Win32Api.GetMappedFileName(
                             proc.GetProcessHandle(),
                             pCallback,
@@ -184,7 +186,7 @@ namespace SharpWnfScan.Library
                             symCallback = string.Format(
                                 "{0}!{1}",
                                 Path.GetFileName(pathBuilder.ToString()),
-                                Encoding.ASCII.GetString(symbolInfo.Name));
+                                Encoding.ASCII.GetString(symbolInfo.Name).TrimEnd('\0'));
                         }
                         else
                         {
@@ -198,6 +200,7 @@ namespace SharpWnfScan.Library
 
                         pathBuilder.Clear();
                         pathBuilder.Capacity = (int)Win32Const.MAX_PATH;
+                        Helpers.ZeroMemory(ref symbolInfo.Name, (int)Win32Const.MAX_PATH);
                         Win32Api.GetMappedFileName(
                             proc.GetProcessHandle(),
                             pCallbackContext,
@@ -213,7 +216,7 @@ namespace SharpWnfScan.Library
                             symCallbackContext = string.Format(
                                 "{0}!{1}",
                                 Path.GetFileName(pathBuilder.ToString()),
-                                Encoding.ASCII.GetString(symbolInfo.Name));
+                                Encoding.ASCII.GetString(symbolInfo.Name).TrimEnd('\0'));
                         }
                         else
                         {

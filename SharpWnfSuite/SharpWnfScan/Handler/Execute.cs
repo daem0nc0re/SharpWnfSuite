@@ -16,6 +16,8 @@ namespace SharpWnfScan.Handler
             if (options.GetFlag("help"))
             {
                 options.GetHelp();
+
+                return;
             }
 
             if (!string.IsNullOrEmpty(options.GetValue("statename")))

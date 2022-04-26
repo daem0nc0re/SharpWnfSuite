@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using System.Runtime.InteropServices;
 using SharpWnfScan.Interop;
 
 namespace SharpWnfScan.Library
@@ -58,6 +59,20 @@ namespace SharpWnfScan.Library
             }
 
             return wnfName;
+        }
+
+
+        public static void ZeroMemory(IntPtr buffer, int size)
+        {
+            var nullBytes = new byte[size];
+            Marshal.Copy(nullBytes, 0, buffer, size);
+        }
+
+
+        public static void ZeroMemory(ref byte[] bytes, int size)
+        {
+            var nullBytes = new byte[size];
+            Buffer.BlockCopy(nullBytes, 0, bytes, 0, size);
         }
     }
 }
