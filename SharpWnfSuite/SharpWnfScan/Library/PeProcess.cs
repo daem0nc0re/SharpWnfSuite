@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -774,7 +775,7 @@ namespace SharpWnfScan.Library
 
             if (this.ImageBase == IntPtr.Zero)
                 throw new KeyNotFoundException(string.Format(
-                    "{0} module is not found",
+                    "Image base of {0} is not found",
                     this.CurrentModule));
 
             this.DosHeader = (IMAGE_DOS_HEADER)Marshal.PtrToStructure(
@@ -803,8 +804,28 @@ namespace SharpWnfScan.Library
 
             this.Architecture = Environment.Is64BitProcess ? "x64" : "x86";
             this.SectionHeaders = this.GetSectionHeaders();
+
+            if (this.SectionHeaders.Count == 0)
+                throw new ArgumentException(string.Format(
+                    "{0} (PID: {1}) has no section headers.",
+                    this.CurrentModule,
+                    this.ProcessId));
+
             this.Peb = this.ResolvePebAddress();
+
+            if (this.Peb == IntPtr.Zero)
+                throw new Win32Exception(string.Format(
+                    "Failed to find PEB for {0} (PID: {1}).",
+                    this.CurrentModule,
+                    this.ProcessId));
+
             this.Modules = ResolveModuleBases();
+
+            if (this.Modules.Count == 0)
+                throw new ArgumentException(string.Format(
+                    "{0} (PID: {1}) has no modules.",
+                    this.CurrentModule,
+                    this.ProcessId));
         }
 
 
@@ -836,7 +857,7 @@ namespace SharpWnfScan.Library
 
             if (this.ImageBase == IntPtr.Zero)
                 throw new KeyNotFoundException(string.Format(
-                    "{0} module is not found",
+                    "Image base of {0} is not found.",
                     this.CurrentModule));
 
             var sizeDosHeader = (uint)Marshal.SizeOf(typeof(IMAGE_DOS_HEADER));
@@ -867,7 +888,7 @@ namespace SharpWnfScan.Library
             {
                 this.Architecture = "x86";
                 sizeNtHeader = (uint)Marshal.SizeOf(typeof(IMAGE_NT_HEADERS32));
-                buffer = ReadMemory(lpNtHeader, sizeNtHeader);
+                buffer = this.ReadMemory(lpNtHeader, sizeNtHeader);
 
                 this.NtHeader32 = (IMAGE_NT_HEADERS32)Marshal.PtrToStructure(
                     buffer,
@@ -879,7 +900,7 @@ namespace SharpWnfScan.Library
             else
             {
                 throw new ArgumentException(string.Format(
-                    "{0} (PID: {1}) is not supported architecture",
+                    "{0} (PID: {1}) is not supported architecture.",
                     this.CurrentModule,
                     this.ProcessId));
             }
@@ -892,8 +913,28 @@ namespace SharpWnfScan.Library
             }
 
             this.SectionHeaders = this.GetSectionHeaders();
+
+            if (this.SectionHeaders.Count == 0)
+                throw new ArgumentException(string.Format(
+                    "{0} (PID: {1}) has no section headers.",
+                    this.CurrentModule,
+                    this.ProcessId));
+
             this.Peb = this.ResolvePebAddress();
+
+            if (this.Peb == IntPtr.Zero)
+                throw new Win32Exception(string.Format(
+                    "Failed to find PEB for {0} (PID: {1}).",
+                    this.CurrentModule,
+                    this.ProcessId));
+
             this.Modules = ResolveModuleBases();
+
+            if (this.Modules.Count == 0)
+                throw new ArgumentException(string.Format(
+                    "{0} (PID: {1}) has no modules.",
+                    this.CurrentModule,
+                    this.ProcessId));
         }
 
 
@@ -1637,7 +1678,7 @@ namespace SharpWnfScan.Library
             {
                 this.CurrentModule = moduleName;
                 this.ImageBase = imageBase;
-                
+
                 if (this.IsRemote)
                 {
                     buffer = this.ReadMemory(

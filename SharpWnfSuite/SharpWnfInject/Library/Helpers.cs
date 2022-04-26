@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using SharpWnfInject.Interop;
 
@@ -29,6 +31,52 @@ namespace SharpWnfInject.Library
             stateData.OwnerTag = ((stateName >> 32) & 0xFFFFFFFF);
 
             return stateData;
+        }
+
+
+        public static string GetSymbolPath(IntPtr hProcess, IntPtr pointer)
+        {
+            string symbol;
+            var pathBuilder = new StringBuilder((int)Win32Const.MAX_PATH);
+            var symbolInfo = new Win32Struct.SYMBOL_INFO
+            {
+                SizeOfStruct = (uint)Marshal.SizeOf(typeof(Win32Struct.SYMBOL_INFO)) - Win32Const.MAX_SYM_NAME,
+                MaxNameLen = Win32Const.MAX_SYM_NAME,
+                Name = new byte[Win32Const.MAX_SYM_NAME]
+            };
+
+            Win32Api.SymInitialize(hProcess, null, true);
+
+            Win32Api.GetMappedFileName(
+                hProcess,
+                pointer,
+                pathBuilder,
+                (uint)pathBuilder.Capacity);
+
+            if (Win32Api.SymFromAddr(
+                hProcess,
+                pointer.ToInt64(),
+                IntPtr.Zero,
+                ref symbolInfo))
+            {
+                symbol = string.Format(
+                    "{0}!{1}",
+                    Path.GetFileName(pathBuilder.ToString()),
+                    Encoding.ASCII.GetString(symbolInfo.Name).Trim('\0'));
+            }
+            else
+            {
+                symbol = Path.GetFileName(pathBuilder.ToString());
+            }
+
+            if (string.IsNullOrEmpty(symbol))
+            {
+                symbol = "N/A";
+            }
+
+            Win32Api.SymCleanup(hProcess);
+
+            return symbol;
         }
 
 

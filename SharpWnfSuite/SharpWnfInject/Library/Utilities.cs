@@ -356,49 +356,5 @@ namespace SharpWnfInject.Library
 
             return results;
         }
-
-
-        public static string GetSymbolPath(PeProcess proc, IntPtr pointer)
-        {
-            string symbol;
-            var pathBuilder = new StringBuilder((int)Win32Const.MAX_PATH);
-            var symbolInfo = new Win32Struct.SYMBOL_INFO {
-                SizeOfStruct = (uint)Marshal.SizeOf(typeof(Win32Struct.SYMBOL_INFO)) - Win32Const.MAX_SYM_NAME,
-                MaxNameLen = Win32Const.MAX_SYM_NAME
-            };
-
-            Win32Api.SymInitialize(proc.GetProcessHandle(), null, true);
-
-            Win32Api.GetMappedFileName(
-                proc.GetProcessHandle(),
-                pointer,
-                pathBuilder,
-                (uint)pathBuilder.Capacity);
-
-            if (Win32Api.SymFromAddr(
-                proc.GetProcessHandle(),
-                pointer.ToInt64(),
-                IntPtr.Zero,
-                ref symbolInfo))
-            {
-                symbol = string.Format(
-                    "{0}!{1}",
-                    Path.GetFileName(pathBuilder.ToString()),
-                    Encoding.ASCII.GetString(symbolInfo.Name));
-            }
-            else
-            {
-                symbol = Path.GetFileName(pathBuilder.ToString());
-            }
-
-            if (string.IsNullOrEmpty(symbol))
-            {
-                symbol = "N/A";
-            }
-
-            Win32Api.SymCleanup(proc.GetProcessHandle());
-
-            return symbol;
-        }
     }
 }

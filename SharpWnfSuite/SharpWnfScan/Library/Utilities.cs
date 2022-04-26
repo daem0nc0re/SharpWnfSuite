@@ -15,8 +15,6 @@ namespace SharpWnfScan.Library
             ulong filterStateName)
         {
             Win32Struct.WNF_CONTEXT_HEADER header;
-            Win32Struct.SYMBOL_INFO symbolInfo = new Win32Struct.SYMBOL_INFO();
-            StringBuilder pathBuilder = new StringBuilder();
             string symCallback;
             string symCallbackContext;
             string errorMessage;
@@ -39,9 +37,6 @@ namespace SharpWnfScan.Library
             uint nSizeUserSubscription;
             uint nNameTableEntryOffset;
             uint nSubscriptionsListEntryOffset;
-            symbolInfo.SizeOfStruct = (uint)Marshal.SizeOf(typeof(Win32Struct.SYMBOL_INFO)) - Win32Const.MAX_SYM_NAME;
-            symbolInfo.MaxNameLen = Win32Const.MAX_SYM_NAME;
-            symbolInfo.Name = new byte[Win32Const.MAX_SYM_NAME];
 
             pSubscriptionTable = proc.ReadIntPtr(pSubscriptionTablePointer);
 
@@ -167,66 +162,8 @@ namespace SharpWnfScan.Library
 
                         pCallback = new IntPtr(userSubscription.Callback);
                         pCallbackContext = new IntPtr(userSubscription.CallbackContext);
-
-                        pathBuilder.Clear();
-                        pathBuilder.Capacity = (int)Win32Const.MAX_PATH;
-                        Helpers.ZeroMemory(ref symbolInfo.Name, (int)Win32Const.MAX_PATH);
-                        Win32Api.GetMappedFileName(
-                            proc.GetProcessHandle(),
-                            pCallback,
-                            pathBuilder,
-                            (uint)pathBuilder.Capacity);
-
-                        if (Win32Api.SymFromAddr(
-                            proc.GetProcessHandle(),
-                            pCallback.ToInt64(),
-                            IntPtr.Zero,
-                            ref symbolInfo))
-                        {
-                            symCallback = string.Format(
-                                "{0}!{1}",
-                                Path.GetFileName(pathBuilder.ToString()),
-                                Encoding.ASCII.GetString(symbolInfo.Name).TrimEnd('\0'));
-                        }
-                        else
-                        {
-                            symCallback = Path.GetFileName(pathBuilder.ToString());
-                        }
-
-                        if (string.IsNullOrEmpty(symCallback))
-                        {
-                            symCallback = "N/A";
-                        }
-
-                        pathBuilder.Clear();
-                        pathBuilder.Capacity = (int)Win32Const.MAX_PATH;
-                        Helpers.ZeroMemory(ref symbolInfo.Name, (int)Win32Const.MAX_PATH);
-                        Win32Api.GetMappedFileName(
-                            proc.GetProcessHandle(),
-                            pCallbackContext,
-                            pathBuilder,
-                            (uint)pathBuilder.Capacity);
-
-                        if (Win32Api.SymFromAddr(
-                            proc.GetProcessHandle(),
-                            pCallbackContext.ToInt64(),
-                            IntPtr.Zero,
-                            ref symbolInfo))
-                        {
-                            symCallbackContext = string.Format(
-                                "{0}!{1}",
-                                Path.GetFileName(pathBuilder.ToString()),
-                                Encoding.ASCII.GetString(symbolInfo.Name).TrimEnd('\0'));
-                        }
-                        else
-                        {
-                            symCallbackContext = Path.GetFileName(pathBuilder.ToString());
-                        }
-
-                        if (string.IsNullOrEmpty(symCallbackContext))
-                        {
-                            symCallbackContext = "N/A";
-                        }
+                        symCallback = Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallback);
+                        symCallbackContext = Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallbackContext);
 
                         Console.WriteLine("\t\tWNF_USER_SUBSCRIPTION @ 0x{0}", pCurrentUser.ToString("X16"));
                         Console.WriteLine("\t\tCallback @ 0x{0} ({1})", pCallback.ToString("X16"), symCallback);
@@ -309,64 +246,8 @@ namespace SharpWnfScan.Library
 
                         pCallback = new IntPtr(userSubscription.Callback);
                         pCallbackContext = new IntPtr(userSubscription.CallbackContext);
-
-                        pathBuilder.Clear();
-                        pathBuilder.Capacity = (int)Win32Const.MAX_PATH;
-                        Win32Api.GetMappedFileName(
-                            proc.GetProcessHandle(),
-                            pCallback,
-                            pathBuilder,
-                            (uint)pathBuilder.Capacity);
-
-                        if (Win32Api.SymFromAddr(
-                            proc.GetProcessHandle(),
-                            pCallback.ToInt64(),
-                            IntPtr.Zero,
-                            ref symbolInfo))
-                        {
-                            symCallback = string.Format(
-                                "{0}!{1}",
-                                Path.GetFileName(pathBuilder.ToString()),
-                                Encoding.ASCII.GetString(symbolInfo.Name));
-                        }
-                        else
-                        {
-                            symCallback = Path.GetFileName(pathBuilder.ToString());
-                        }
-
-                        if (string.IsNullOrEmpty(symCallback))
-                        {
-                            symCallback = "N/A";
-                        }
-
-                        pathBuilder.Clear();
-                        pathBuilder.Capacity = (int)Win32Const.MAX_PATH;
-                        Win32Api.GetMappedFileName(
-                            proc.GetProcessHandle(),
-                            pCallbackContext,
-                            pathBuilder,
-                            (uint)pathBuilder.Capacity);
-
-                        if (Win32Api.SymFromAddr(
-                            proc.GetProcessHandle(),
-                            pCallbackContext.ToInt64(),
-                            IntPtr.Zero,
-                            ref symbolInfo))
-                        {
-                            symCallbackContext = string.Format(
-                                "{0}!{1}",
-                                Path.GetFileName(pathBuilder.ToString()),
-                                Encoding.ASCII.GetString(symbolInfo.Name));
-                        }
-                        else
-                        {
-                            symCallbackContext = Path.GetFileName(pathBuilder.ToString());
-                        }
-
-                        if (string.IsNullOrEmpty(symCallbackContext))
-                        {
-                            symCallbackContext = "N/A";
-                        }
+                        symCallback = Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallback);
+                        symCallbackContext = Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallbackContext);
 
                         Console.WriteLine("\t\tWNF_USER_SUBSCRIPTION @ 0x{0}", pCurrentUser.ToString("X8"));
                         Console.WriteLine("\t\tCallback @ 0x{0} ({1})", pCallback.ToString("X8"), symCallback);

@@ -267,7 +267,7 @@ namespace SharpWnfInject.Library
                 Console.WriteLine(
                     "    |-> Callback : 0x{0} ({1})",
                     pCallback.ToString("X16"),
-                    Utilities.GetSymbolPath(proc, pCallback));
+                    Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallback));
             }
             else
             {
@@ -281,7 +281,7 @@ namespace SharpWnfInject.Library
                 Console.WriteLine(
                     "    |-> Callback : 0x{0} ({1})",
                     pCallback.ToString("X8"),
-                    Utilities.GetSymbolPath(proc, pCallback));
+                    Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallback));
 
                 if (Environment.Is64BitProcess)
                     Console.WriteLine("    |-> Warning  : To get detailed symbol information of WOW64 process, should be built as 32bit binary.");
