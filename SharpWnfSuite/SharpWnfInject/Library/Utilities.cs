@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
-using System.Text;
 using SharpWnfInject.Interop;
 
 namespace SharpWnfInject.Library
@@ -230,7 +228,7 @@ namespace SharpWnfInject.Library
         }
 
 
-        public static Dictionary<IntPtr, IntPtr> GetUserSubscriptions(
+        public static Dictionary<IntPtr, Dictionary<IntPtr, IntPtr>> GetUserSubscriptions(
             PeProcess proc,
             IntPtr pNameSubscription)
         {
@@ -241,7 +239,8 @@ namespace SharpWnfInject.Library
             uint nSizeNameSubscription;
             uint nSizeUserSubscription;
             uint nSubscriptionsListEntryOffset;
-            var results = new Dictionary<IntPtr, IntPtr>();
+            Dictionary<IntPtr, IntPtr> callback;
+            var results = new Dictionary<IntPtr, Dictionary<IntPtr, IntPtr>> ();
 
             if (proc.GetArchitecture() == "x64")
             {
@@ -288,7 +287,13 @@ namespace SharpWnfInject.Library
                         if (pUserSubscription == pFirstUserSubscription)
                             break;
 
-                        results.Add(pCurrentUserSubscription, new IntPtr(userSubscription.Callback));
+                        callback = new Dictionary<IntPtr, IntPtr> {
+                            { new IntPtr(userSubscription.Callback), new IntPtr(userSubscription.CallbackContext) }
+                        };
+
+                        results.Add(
+                            pCurrentUserSubscription,
+                            callback);
                     }
                 }
                 else
@@ -341,7 +346,13 @@ namespace SharpWnfInject.Library
                         if (pUserSubscription == pFirstUserSubscription)
                             break;
 
-                        results.Add(pCurrentUserSubscription, new IntPtr(userSubscription.Callback));
+                        callback = new Dictionary<IntPtr, IntPtr> {
+                            { new IntPtr(userSubscription.Callback), new IntPtr(userSubscription.CallbackContext) }
+                        };
+
+                        results.Add(
+                            pCurrentUserSubscription,
+                            callback);
                     }
                 }
                 else

