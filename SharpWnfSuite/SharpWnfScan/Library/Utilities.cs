@@ -77,6 +77,10 @@ namespace SharpWnfScan.Library
                 return;
             }
 
+            Console.WriteLine(
+                "WNF_SUBSCRIPTION_TABLE @ 0x{0}\n",
+                pSubscriptionTable.ToString(is64bit ? "X16" : "X8"));
+
             nameSubscriptions = GetNameSubscriptions(proc, pSubscriptionTable);
 
             foreach (var nameEntry in nameSubscriptions)
