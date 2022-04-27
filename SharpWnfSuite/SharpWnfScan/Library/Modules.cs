@@ -19,6 +19,7 @@ namespace SharpWnfScan.Library
                 DumpWnfSubscriptionInformation(procs[idx].Id, stateName);
         }
 
+
         public static void DumpWnfSubscriptionInformation(ulong stateName)
         {
             PeProcess proc;
@@ -104,11 +105,11 @@ namespace SharpWnfScan.Library
                 Console.WriteLine("Process ID    : {0}", Process.GetCurrentProcess().Id);
                 Console.WriteLine("Architecture  : {0}", Environment.Is64BitProcess ? "x64" : "x86");
                 Console.WriteLine("Error Message : {0}\n", errorMessage);
+                proc.Dispose();
 
                 return;
             }
 
-            Win32Api.SymSetOptions(Win32Const.SYM_OPTIONS.SYMOPT_DEFERRED_LOADS);
             Utilities.DumpWnfSubscriptionTable(proc, pSubscriptionTable, stateName);
             proc.Dispose();
 
@@ -174,6 +175,7 @@ namespace SharpWnfScan.Library
                             Console.WriteLine("Process ID    : {0}", proc.GetProcessId());
                             Console.WriteLine("Architecture  : {0}", proc.GetArchitecture());
                             Console.WriteLine("Error Message : {0}\n", errorMessage);
+                            proc.Dispose();
 
                             return;
                         }
@@ -194,6 +196,7 @@ namespace SharpWnfScan.Library
                             Console.WriteLine("Process ID    : {0}", proc.GetProcessId());
                             Console.WriteLine("Architecture  : {0}", proc.GetArchitecture());
                             Console.WriteLine("Error Message : {0}\n", errorMessage);
+                            proc.Dispose();
 
                             return;
                         }

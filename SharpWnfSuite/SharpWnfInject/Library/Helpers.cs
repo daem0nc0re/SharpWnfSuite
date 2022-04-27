@@ -166,5 +166,16 @@ namespace SharpWnfInject.Library
             }
         }
 
+        public static bool IsWin11()
+        {
+            int MajorVersion = 0;
+            int MinorVersion = 0;
+            int BuildNumber = 0;
+
+            Win32Api.RtlGetNtVersionNumbers(ref MajorVersion, ref MinorVersion, ref BuildNumber);
+            BuildNumber &= 0xFFFF;
+
+            return ((MajorVersion >= 10) && (BuildNumber >= 22000));
+        }
     }
 }

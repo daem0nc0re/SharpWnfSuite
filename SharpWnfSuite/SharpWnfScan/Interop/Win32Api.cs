@@ -109,5 +109,11 @@ namespace SharpWnfScan.Interop
             IntPtr ExplicitScope,
             int MatchingChangeScope,
             int CheckStamp);
+
+        [DllImport("ntdll.dll")]
+        public static extern void RtlGetNtVersionNumbers(
+            ref int MajorVersion,
+            ref int MinorVersion,
+            ref int BuildNumber);
     }
 }
