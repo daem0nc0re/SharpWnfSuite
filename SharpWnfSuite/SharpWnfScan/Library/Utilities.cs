@@ -1,139 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Security.Principal;
 using System.Runtime.InteropServices;
-using System.Text;
 using SharpWnfScan.Interop;
 
 namespace SharpWnfScan.Library
 {
     class Utilities
     {
-        public static void DumpWnfSubscriptionTable(
-            PeProcess proc,
-            IntPtr pSubscriptionTablePointer,
-            ulong filterStateName)
-        {
-            Win32Struct.WNF_CONTEXT_HEADER header;
-            string errorMessage;
-            IntPtr buffer;
-            IntPtr pSubscriptionTable;
-            bool is64bit;
-            Dictionary<ulong, IntPtr> nameSubscriptions;
-            Dictionary<IntPtr, Dictionary<IntPtr, IntPtr>> userSubscriptions;
-            Dictionary<IntPtr, IntPtr> callbackInfo;
-            IntPtr pNameSubscription;
-            IntPtr pUserSubscription;
-            IntPtr pCallback;
-            IntPtr pCallbackContext;
-            ulong stateName;
-
-            is64bit = (proc.GetArchitecture() == "x64");
-            pSubscriptionTable = proc.ReadIntPtr(pSubscriptionTablePointer);
-
-            if (proc.IsHeapAddress(pSubscriptionTable))
-            {
-                buffer = proc.ReadMemory(pSubscriptionTable, 4);
-                header = (Win32Struct.WNF_CONTEXT_HEADER)Marshal.PtrToStructure(
-                    buffer,
-                    typeof(Win32Struct.WNF_CONTEXT_HEADER));
-                Win32Api.LocalFree(buffer);
-
-                if (header.NodeTypeCode == Win32Const.WNF_NODE_SUBSCRIPTION_TABLE ||
-                    header.NodeByteSize == Marshal.SizeOf(typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE64)))
-                {
-                    Console.WriteLine("Process Name : {0}", proc.GetProcessName());
-                    Console.WriteLine("Process ID   : {0}", proc.GetProcessId());
-                    Console.WriteLine("Architecture : {0}", proc.GetArchitecture());
-
-                    if (proc.GetArchitecture() == "x86" && Environment.Is64BitProcess)
-                    {
-                        errorMessage = "To get detailed symbol information of WOW64 process, should be built as 32 bit binary.";
-                        Console.WriteLine("Warning      : {0}", errorMessage);
-                    }
-
-                    Console.WriteLine();
-                }
-                else
-                {
-                    errorMessage = "Failed to get valid WNF_SUBSCRIPTION_TABLE";
-                    Console.WriteLine("Process Name  : {0}", proc.GetProcessName());
-                    Console.WriteLine("Process ID    : {0}", proc.GetProcessId());
-                    Console.WriteLine("Architecture  : {0}", proc.GetArchitecture());
-                    Console.WriteLine("Error Message : {0}\n", errorMessage);
-
-                    return;
-                }
-            }
-            else
-            {
-                errorMessage = "Passed invalid pointer to WNF_SUBSCRIPTION_TABLE";
-                Console.WriteLine("Process Name  : {0}", proc.GetProcessName());
-                Console.WriteLine("Process ID    : {0}", proc.GetProcessId());
-                Console.WriteLine("Architecture  : {0}", proc.GetArchitecture());
-                Console.WriteLine("Error Message : {0}\n", errorMessage);
-
-                return;
-            }
-
-            Console.WriteLine(
-                "WNF_SUBSCRIPTION_TABLE @ 0x{0}\n",
-                pSubscriptionTable.ToString(is64bit ? "X16" : "X8"));
-
-            nameSubscriptions = GetNameSubscriptions(proc, pSubscriptionTable);
-
-            foreach (var nameEntry in nameSubscriptions)
-            {
-                stateName = nameEntry.Key;
-                pNameSubscription = nameEntry.Value;
-
-                if (filterStateName != 0 && stateName != filterStateName)
-                    continue;
-
-                Console.WriteLine(
-                    "\tWNF_NAME_SUBSCRIPTION @ 0x{0}",
-                    pNameSubscription.ToString(is64bit ? "X16" : "X8"));
-                Console.WriteLine(
-                    "\tStateName : 0x{0} ({1})\n",
-                    stateName.ToString("X16"),
-                    Helpers.GetWnfName(stateName));
-
-                if (Helpers.IsWin11())
-                    userSubscriptions = GetUserSubscriptionsWin11(proc, pNameSubscription);
-                else
-                    userSubscriptions = GetUserSubscriptions(proc, pNameSubscription);
-
-                foreach (var userEntry in userSubscriptions)
-                {
-                    pUserSubscription = userEntry.Key;
-                    callbackInfo = userEntry.Value;
-
-                    Console.WriteLine(
-                        "\t\tWNF_USER_SUBSCRIPTION @ 0x{0}",
-                        pUserSubscription.ToString(is64bit ? "X16" : "X8"));
-
-                    foreach (var callbackEntry in callbackInfo)
-                    {
-                        pCallback = callbackEntry.Key;
-                        pCallbackContext = callbackEntry.Value;
-
-                        Console.WriteLine(
-                            "\t\tCallback @ 0x{0} ({1})",
-                            pCallback.ToString(is64bit ? "X16" : "X8"),
-                            Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallback));
-                        Console.WriteLine(
-                            "\t\tContext  @ 0x{0} ({1})\n",
-                            pCallbackContext.ToString(is64bit ? "X16" : "X8"),
-                            Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallbackContext));
-                    }
-                }
-            }
-
-            return;
-        }
-
-
         public static bool EnableDebugPrivilege()
         {
             int error;
@@ -281,6 +155,51 @@ namespace SharpWnfScan.Library
             }
 
             return results;
+        }
+
+
+        public static IntPtr GetSubscriptionTable(
+            PeProcess proc,
+            IntPtr pSubscriptionTablePointer,
+            out string errorMessage)
+        {
+            IntPtr buffer;
+            Win32Struct.WNF_CONTEXT_HEADER header;
+            IntPtr pSubscriptionTable;
+            errorMessage = null;
+            pSubscriptionTable = proc.ReadIntPtr(pSubscriptionTablePointer);
+
+            if (proc.IsHeapAddress(pSubscriptionTable))
+            {
+                buffer = proc.ReadMemory(pSubscriptionTable, 4);
+                header = (Win32Struct.WNF_CONTEXT_HEADER)Marshal.PtrToStructure(
+                    buffer,
+                    typeof(Win32Struct.WNF_CONTEXT_HEADER));
+                Win32Api.LocalFree(buffer);
+
+                if (header.NodeTypeCode == Win32Const.WNF_NODE_SUBSCRIPTION_TABLE ||
+                    header.NodeByteSize == Marshal.SizeOf(typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE64)))
+                {
+                    if (proc.GetArchitecture() == "x86" && Environment.Is64BitProcess)
+                    {
+                        errorMessage = "To get detailed symbol information of WOW64 process, should be built as 32 bit binary.";
+                    }
+
+                    return pSubscriptionTable;
+                }
+                else
+                {
+                    errorMessage = "Failed to get valid WNF_SUBSCRIPTION_TABLE";
+
+                    return IntPtr.Zero;
+                }
+            }
+            else
+            {
+                errorMessage = "Passed invalid pointer to WNF_SUBSCRIPTION_TABLE";
+
+                return IntPtr.Zero;
+            }
         }
 
 

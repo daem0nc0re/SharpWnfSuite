@@ -122,6 +122,24 @@ namespace SharpWnfScan.Library
         }
 
 
+        public static void PrintProcessInformation(Header.PROCESS_INFORMATION processInfo)
+        {
+            if (string.IsNullOrEmpty(processInfo.ErrorMessage))
+            {
+                Console.WriteLine("Process Name  : {0}", processInfo.ProcessName);
+                Console.WriteLine("Process ID    : {0}", processInfo.ProcessId);
+                Console.WriteLine("Architecture  : {0}\n", processInfo.Architecture);
+            }
+            else
+            {
+                Console.WriteLine("Process Name  : {0}", processInfo.ProcessName);
+                Console.WriteLine("Process ID    : {0}", processInfo.ProcessId);
+                Console.WriteLine("Architecture  : {0}", processInfo.Architecture);
+                Console.WriteLine("Error Message : {0}\n", processInfo.ErrorMessage);
+            }
+        }
+
+
         public static void ZeroMemory(IntPtr buffer, int size)
         {
             var nullBytes = new byte[size];

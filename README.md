@@ -536,6 +536,31 @@ WNF_SUBSCRIPTION_TABLE @ 0x0000022C22A13B30
 --snip--
 ```
 
+To list WNF State Names used in the target system, set `-l` flag as follows:
+
+```
+C:\dev>SharpWnfScan.exe -l
+
+[>] Trying to list WNF State Names used in this system. Wait a moment.
+[+] Got 194 WNF State Names.
+    |-> 0x41C64E6DA3965045 (N/A)
+    |-> 0x41C64E6DA39F4845 (N/A)
+
+--snip--
+
+    |-> 0x0D891E2AA3BC0875 (WNF_GPOL_SYSTEM_CHANGES)
+    |-> 0x0D83063EA3BC2475 (WNF_SHEL_OOBE_USER_LOGON_COMPLETE)
+[*] Access is denied by following 106 proccesses.
+    |-> svchost (PID : 3444)
+    |-> svchost (PID : 3012)
+    
+--snip--
+
+    |-> System (PID : 4)
+    |-> Idle (PID : 0)
+[*] Done.
+```
+
 
 ### SharpWnfInject
 

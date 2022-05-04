@@ -9,7 +9,7 @@ namespace SharpWnfScan.Handler
     {
         public static void Run(CommandLineParser options)
         {
-            ulong stateName = 0;
+            ulong stateName = 0UL;
             string wellKnownName;
             Regex rgx = new Regex(@"^0x[0-9a-fA-F]+$");
 
@@ -60,6 +60,23 @@ namespace SharpWnfScan.Handler
                 }
 
                 Modules.DumpAllWnfSubscriptionInformation(stateName);
+                Console.WriteLine();
+            }
+            else if (options.GetFlag("list"))
+            {
+                Console.WriteLine();
+
+                if (options.GetFlag("debug"))
+                {
+                    Console.WriteLine("[>] Trying to enable SeDebugPrivilege.");
+
+                    if (Utilities.EnableDebugPrivilege())
+                        Console.WriteLine("[+] SeDebugPrivilege is enabled successfully.");
+                    else
+                        Console.WriteLine("[-] Failed to enable SeDebugPrivilege.");
+                }
+
+                Modules.ListStateNames(stateName);
                 Console.WriteLine();
             }
             else if (!string.IsNullOrEmpty(options.GetValue("pid")))

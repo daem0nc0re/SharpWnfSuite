@@ -665,6 +665,7 @@ namespace SharpWnfScan.Library
             public SectionFlags Characteristics;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
         public struct MEMORY_BASIC_INFORMATION
         {
             public IntPtr BaseAddress;
@@ -1496,27 +1497,58 @@ namespace SharpWnfScan.Library
 
         private IntPtr ResolvePebAddress()
         {
-            Type type = typeof(PROCESS_BASIC_INFORMATION);
-            var size = Marshal.SizeOf(type);
-            IntPtr buffer = Marshal.AllocHGlobal(size);
+            int ntstatus;
+            IntPtr buffer;
+            int nSize;
             PROCESS_BASIC_INFORMATION pbi;
-            IntPtr peb = IntPtr.Zero;
+            IntPtr peb;
 
-            int ntstatus = NtQueryInformationProcess(
-                hProcess,
+            if (Environment.Is64BitProcess)
+            {
+                IsWow64Process(this.hProcess, out bool isWow64);
+
+                if (isWow64)
+                {
+                    nSize = IntPtr.Size;
+                    buffer = Marshal.AllocHGlobal(nSize);
+
+                    ntstatus = NtQueryInformationProcess(
+                        this.hProcess,
+                        PROCESSINFOCLASS.ProcessWow64Information,
+                        buffer,
+                        (uint)nSize, IntPtr.Zero);
+
+                    if (ntstatus == 0)
+                        peb = Marshal.ReadIntPtr(buffer);
+                    else
+                        peb = IntPtr.Zero;
+
+                    Marshal.FreeHGlobal(buffer);
+
+                    return peb;
+                }
+            }
+
+            nSize = Marshal.SizeOf(typeof(PROCESS_BASIC_INFORMATION));
+            buffer = Marshal.AllocHGlobal(nSize);
+
+            ntstatus = NtQueryInformationProcess(
+                this.hProcess,
                 PROCESSINFOCLASS.ProcessBasicInformation,
                 buffer,
-                (uint)size,
+                (uint)nSize,
                 IntPtr.Zero);
 
             if (ntstatus == 0)
             {
-                pbi = (PROCESS_BASIC_INFORMATION)Marshal.PtrToStructure(buffer, type);
-
-                if (this.Architecture == "x86" && Environment.Is64BitProcess)
-                    peb = new IntPtr(pbi.PebAddress.ToInt64() + 0x1000);
-                else
-                    peb = pbi.PebAddress;
+                pbi = (PROCESS_BASIC_INFORMATION)Marshal.PtrToStructure(
+                    buffer,
+                    typeof(PROCESS_BASIC_INFORMATION));
+                peb = pbi.PebAddress;
+            }
+            else
+            {
+                peb = IntPtr.Zero;
             }
 
             Marshal.FreeHGlobal(buffer);

@@ -9,7 +9,7 @@ namespace SharpWnfScan
         static void Main(string[] args)
         {
             CommandLineParser options = new CommandLineParser();
-            var exclusive = new List<string> { "all", "pid", "name" };
+            var exclusive = new List<string> { "all", "pid", "name", "list" };
 
             try
             {
@@ -19,6 +19,7 @@ namespace SharpWnfScan
                 options.AddParameter(false, "n", "name", null, "Specifies the target process name.");
                 options.AddParameter(false, "s", "statename", null, "Specifies a wnf state name for filtering.");
                 options.AddFlag(false, "a", "all", "Flag to dump information from all process.");
+                options.AddFlag(false, "l", "list", "Flag to list WNF State Name on this system.");
                 options.AddFlag(false, "d", "debug", "Flag to enable SeDebugPrivilege. Administrative privilege is required.");
                 options.AddExclusive(exclusive);
                 options.Parse(args);
