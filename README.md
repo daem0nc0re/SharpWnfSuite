@@ -380,6 +380,7 @@ Usage: SharpWnfScan.exe [Options]
         -n, --name      : Specifies the target process name.
         -s, --statename : Specifies a wnf state name for filtering.
         -a, --all       : Flag to dump information from all process.
+        -l, --list      : Flag to list WNF State Name on this system.
         -d, --debug     : Flag to enable SeDebugPrivilege. Administrative privilege is required.
 ```
 
