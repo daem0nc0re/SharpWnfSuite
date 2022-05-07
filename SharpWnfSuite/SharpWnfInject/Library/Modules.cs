@@ -122,6 +122,7 @@ namespace SharpWnfInject.Library
             Dictionary<ulong, IntPtr> nameSubscriptions;
             Dictionary<IntPtr, Dictionary<IntPtr, IntPtr>> userSubscriptions;
             Dictionary<IntPtr, IntPtr> callback;
+            IntPtr pUserSubscription;
             IntPtr pCallbackPointer;
             IntPtr pShellcode;
             IntPtr pCallbackOrigin;
@@ -250,6 +251,7 @@ namespace SharpWnfInject.Library
 
             if (userSubscriptions.Count == 0)
             {
+                Console.WriteLine("[-] No WNF_USER_SUBSCRIPTION.");
                 proc.Dispose();
 
                 return false;
@@ -259,7 +261,8 @@ namespace SharpWnfInject.Library
                 Console.WriteLine("[+] Got {0} WNF_USER_SUBSCRIPTION(s).", userSubscriptions.Count);
             }
 
-            callback = userSubscriptions[userSubscriptions.Keys.First()];
+            pUserSubscription = userSubscriptions.Keys.First();
+            callback = userSubscriptions[pUserSubscription];
             pCallbackOrigin = callback.Keys.First();
 
             if (is64bit)
@@ -267,40 +270,31 @@ namespace SharpWnfInject.Library
                 nOffsetCallback = (uint)Marshal.OffsetOf(
                     typeof(Win32Struct.WNF_USER_SUBSCRIPTION64),
                     "Callback");
-                pCallbackPointer = new IntPtr(userSubscriptions.Keys.First().ToInt64() + nOffsetCallback);
-
-                Console.WriteLine("[>] Trying to inject shellccode to the following WNF_USER_SUBSCRIPTION.");
-                Console.WriteLine("    |-> Address  : 0x{0}", userSubscriptions.Keys.First().ToString("X16"));
-                Console.WriteLine(
-                    "    |-> Callback : 0x{0} ({1})",
-                    pCallbackOrigin.ToString("X16"),
-                    Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallbackOrigin));
-                Console.WriteLine(
-                    "    |-> Context  : 0x{0} ({1})",
-                    callback[pCallbackOrigin].ToString("X16"),
-                    Helpers.GetSymbolPath(proc.GetProcessHandle(), callback[pCallbackOrigin]));
             }
             else
             {
                 nOffsetCallback = (uint)Marshal.OffsetOf(
                     typeof(Win32Struct.WNF_USER_SUBSCRIPTION32),
                     "Callback");
-                pCallbackPointer = new IntPtr(userSubscriptions.Keys.First().ToInt64() + nOffsetCallback);
-
-                Console.WriteLine("[>] Trying to inject shellccode to the following WNF_USER_SUBSCRIPTION.");
-                Console.WriteLine("    |-> Address  : 0x{0}", userSubscriptions.Keys.First().ToString("X8"));
-                Console.WriteLine(
-                    "    |-> Callback : 0x{0} ({1})",
-                    pCallbackOrigin.ToString("X8"),
-                    Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallbackOrigin));
-                Console.WriteLine(
-                    "    |-> Context  : 0x{0} ({1})",
-                    callback[pCallbackOrigin].ToString("X8"),
-                    Helpers.GetSymbolPath(proc.GetProcessHandle(), callback[pCallbackOrigin]));
-
-                if (Environment.Is64BitProcess)
-                    Console.WriteLine("    |-> Warning  : To get detailed symbol information of WOW64 process, should be built as 32bit binary.");
             }
+
+            pCallbackPointer = new IntPtr(userSubscriptions.Keys.First().ToInt64() + nOffsetCallback);
+
+            Console.WriteLine("[>] Trying to inject shellccode to the following WNF_USER_SUBSCRIPTION.");
+            Console.WriteLine(
+                "    |-> Address  : 0x{0}",
+                pUserSubscription.ToString(is64bit ? "X16" : "X8"));
+            Console.WriteLine(
+                "    |-> Callback : 0x{0} ({1})",
+                pCallbackOrigin.ToString(is64bit ? "X16" : "X8"),
+                Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallbackOrigin));
+            Console.WriteLine(
+                "    |-> Context  : 0x{0} ({1})",
+                callback[pCallbackOrigin].ToString(is64bit ? "X16" : "X8"),
+                Helpers.GetSymbolPath(proc.GetProcessHandle(), callback[pCallbackOrigin]));
+
+            if (Environment.Is64BitProcess && !is64bit)
+                Console.WriteLine("    |-> Warning  : To get detailed symbol information of WOW64 process, should be built as 32bit binary.");
 
             Console.WriteLine("[>] Trying to allocate shellcode buffer in remote process.");
 
