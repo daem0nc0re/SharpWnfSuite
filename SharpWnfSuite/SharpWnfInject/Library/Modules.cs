@@ -221,9 +221,9 @@ namespace SharpWnfInject.Library
                 {
                     Console.WriteLine("[-] The target process does not use the specified WNF State Name.");
                     Console.WriteLine(
-                        "    |-> WNF State Name : {0} (0x{1})",
-                        Helpers.GetWnfName(stateName),
-                        stateName.ToString("X16"));
+                        "    |-> WNF State Name : 0x{0} ({1})",
+                        stateName.ToString("X16"),
+                        Helpers.GetWnfName(stateName));
 
                     proc.Dispose();
 
@@ -377,7 +377,7 @@ namespace SharpWnfInject.Library
                 0,
                 0);
 
-            if (ntstatus != 0)
+            if (ntstatus != Win32Const.STATUS_SUCCESS)
             {
                 Console.WriteLine("[-] Failed to update WNF State Data.");
                 Console.WriteLine("    |-> {0}", Helpers.GetWin32ErrorMessage(ntstatus, true));
@@ -405,7 +405,7 @@ namespace SharpWnfInject.Library
 
             proc.Dispose();
 
-            return (ntstatus == 0);
+            return (ntstatus == Win32Const.STATUS_SUCCESS);
         }
     }
 }
