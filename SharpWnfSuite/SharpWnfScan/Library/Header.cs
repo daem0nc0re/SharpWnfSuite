@@ -19,5 +19,6 @@ namespace SharpWnfScan.Library
         public static Dictionary<int, ulong> g_PidAndStateNames = new Dictionary<int, ulong>();
         public static IntPtr g_SubscriptionTablePointerAddressX86 = IntPtr.Zero;
         public static IntPtr g_SubscriptionTablePointerAddressX64 = IntPtr.Zero;
+        public static bool g_IsWin11 = false;
     }
 }

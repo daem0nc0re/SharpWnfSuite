@@ -380,6 +380,7 @@ Usage: SharpWnfScan.exe [Options]
         -n, --name      : Specifies the target process name.
         -s, --statename : Specifies a wnf state name for filtering.
         -a, --all       : Flag to dump information from all process.
+        -b, --brief     : Flag to exclude WNF_USER_SUBSCRIPTION information.
         -l, --list      : Flag to list WNF State Name on this system.
         -d, --debug     : Flag to enable SeDebugPrivilege. Administrative privilege is required.
 ```
@@ -468,6 +469,39 @@ WNF_SUBSCRIPTION_TABLE @ 0x000002AB85EF08F0
                 WNF_USER_SUBSCRIPTION @ 0x000002AB85F1E220
                 Callback @ 0x00007FFADA9673B0 (rpcrt4.dll!I_RpcBindingSetPrivateOption)
                 Context  @ 0x0000000000000000 (N/A)
+```
+
+To remove `WNF_USER_SUBSCRIPTION` information from output, use `-b` option:
+
+```
+C:\dev>SharpWnfScan.exe -n explorer -b
+
+Process Name  : explorer.exe
+Process ID    : 4320
+Architecture  : x64
+
+WNF_SUBSCRIPTION_TABLE @ 0x0000000000C6BA00
+
+        WNF_NAME_SUBSCRIPTION @ 0x0000000000CBB7C0
+        StateName : 0x41C6072CA3BC1075 (WNF_AI_PACKAGEINSTALL)
+
+        WNF_NAME_SUBSCRIPTION @ 0x0000000000C5D780
+        StateName : 0x418B1929A3BC3835 (WNF_DWM_DUMP_REQUEST)
+
+        WNF_NAME_SUBSCRIPTION @ 0x0000000004A30DE0
+        StateName : 0x41C61629A3BC1035 (WNF_DX_MODE_CHANGE_NOTIFICATION)
+
+        WNF_NAME_SUBSCRIPTION @ 0x00000000032BED40
+        StateName : 0x418F1E3EA3BC0835 (WNF_SPI_LOGICALDPIOVERRIDE)
+
+        WNF_NAME_SUBSCRIPTION @ 0x0000000004BC5990
+        StateName : 0x0E8A0125A3BC0835 (WNF_HOLO_USER_DISPLAY_CONTEXT)
+
+        WNF_NAME_SUBSCRIPTION @ 0x0000000004BC6490
+        StateName : 0x0F950324A3BC0835 (WNF_IMSN_MONITORMODECHANGED)
+
+        WNF_NAME_SUBSCRIPTION @ 0x0000000006FDBF40
+        StateName : 0x0D83063EA3BD0035 (WNF_SHEL_TOAST_PUBLISHED)
 ```
 
 To dump all processes at a time, use `-a` option:
@@ -587,8 +621,8 @@ Usage: SharpWnfInject.exe [Options]
 
 This tool overwrite callback function pointer in `WNF_USER_SUBSCRIPTION` for a specific WNF State Name.
 The code injection technique does not work for all WNF State Name.
-For example, this technique is known to be available for `WNF_SHEL_APPLICATION_STARTED` used in `explorer.exe`.
-To test this technique, execute this tool as following:
+For example, this technique is known to be available for `WNF_SHEL_APPLICATION_STARTED` used by `explorer.exe` in Windows 10.
+To test this technique, execute this tool as follows:
 
 ```
 C:\dev>SharpWnfInject.exe -p 3928 -n WNF_SHEL_APPLICATION_STARTED -i payload.bin
@@ -605,7 +639,7 @@ C:\dev>SharpWnfInject.exe -p 3928 -n WNF_SHEL_APPLICATION_STARTED -i payload.bin
 [+] Got 100 WNF_NAME_SUBSCRIPTION(s).
 [>] Searching the WNF_NAME_SUBSCRIPTION for the specified WNF State Name.
 [+] Got WNF_NAME_SUBSCRIPTION for the specified WNF State Name.
-    |-> WNF State Name : WNF_SHEL_APPLICATION_STARTED (0x0D83063EA3BE0075)
+    |-> WNF State Name : 0x0D83063EA3BE0075 (WNF_SHEL_APPLICATION_STARTED)
     |-> Address        : 0x0000000004832800
 [>] Trying to get WNF_USER_SUBSCRIPTION(s) for the target WNF_NAME_SUBSCRIPTION.
 [+] Got 1 WNF_USER_SUBSCRIPTION(s).

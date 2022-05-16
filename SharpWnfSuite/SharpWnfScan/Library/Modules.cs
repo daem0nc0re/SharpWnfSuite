@@ -8,23 +8,28 @@ namespace SharpWnfScan.Library
 {
     class Modules
     {
-        public static void DumpAllWnfSubscriptionInformation(ulong stateName)
+        public static void DumpAllWnfSubscriptionInformation(
+            ulong stateName,
+            bool brief)
         {
             Process[] procs = Process.GetProcesses();
 
             for (var idx = 0; idx < procs.Length; idx++)
-                DumpWnfSubscriptionInformation(procs[idx].Id, stateName);
+                DumpWnfSubscriptionInformation(procs[idx].Id, stateName, brief);
         }
 
 
-        public static void DumpWnfSubscriptionInformation(ulong stateName)
+        public static void DumpWnfSubscriptionInformation(
+            ulong stateName,
+            bool brief)
         {
-            DumpWnfSubscriptionInformation(Process.GetCurrentProcess().Id, stateName);
+            DumpWnfSubscriptionInformation(Process.GetCurrentProcess().Id, stateName, brief);
         }
 
         public static void DumpWnfSubscriptionInformation(
             int pid,
-            ulong stateNameFilter)
+            ulong stateNameFilter,
+            bool brief)
         {
             PeProcess proc;
             bool is64bit;
@@ -190,7 +195,10 @@ namespace SharpWnfScan.Library
                     stateName.ToString("X16"),
                     Helpers.GetWnfName(stateName));
 
-                if (Helpers.IsWin11())
+                if (brief)
+                    continue;
+
+                if (Header.g_IsWin11)
                     userSubscriptions = Utilities.GetUserSubscriptionsWin11(proc, pNameSubscription);
                 else
                     userSubscriptions = Utilities.GetUserSubscriptions(proc, pNameSubscription);
@@ -229,7 +237,8 @@ namespace SharpWnfScan.Library
 
         public static void DumpWnfSubscriptionInformationByName(
             string processName,
-            ulong stateName)
+            ulong stateName,
+            bool brief)
         {
             Process[] procs;
 
@@ -244,8 +253,9 @@ namespace SharpWnfScan.Library
             }
 
             for (var idx = 0; idx < procs.Length; idx++)
-                DumpWnfSubscriptionInformation(procs[idx].Id, stateName);
+                DumpWnfSubscriptionInformation(procs[idx].Id, stateName, brief);
         }
+
 
         public static void ListStateNames(ulong stateNameFilter)
         {

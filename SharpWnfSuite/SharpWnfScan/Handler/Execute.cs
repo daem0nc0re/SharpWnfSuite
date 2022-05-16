@@ -44,7 +44,9 @@ namespace SharpWnfScan.Handler
                     }
                 }
             }
-            
+
+            Header.g_IsWin11 = Helpers.IsWin11();
+
             if (options.GetFlag("all"))
             {
                 Console.WriteLine();
@@ -59,7 +61,10 @@ namespace SharpWnfScan.Handler
                         Console.WriteLine("[-] Failed to enable SeDebugPrivilege.\n");
                 }
 
-                Modules.DumpAllWnfSubscriptionInformation(stateName);
+                Modules.DumpAllWnfSubscriptionInformation(
+                    stateName,
+                    options.GetFlag("brief"));
+
                 Console.WriteLine();
             }
             else if (options.GetFlag("list"))
@@ -106,7 +111,11 @@ namespace SharpWnfScan.Handler
                     return;
                 }
 
-                Modules.DumpWnfSubscriptionInformation(pid, stateName);
+                Modules.DumpWnfSubscriptionInformation(
+                    pid,
+                    stateName,
+                    options.GetFlag("brief"));
+
                 Console.WriteLine();
             }
             else if (!string.IsNullOrEmpty(options.GetValue("name")))
@@ -125,7 +134,8 @@ namespace SharpWnfScan.Handler
 
                 Modules.DumpWnfSubscriptionInformationByName(
                     options.GetValue("name"),
-                    stateName);
+                    stateName,
+                    options.GetFlag("brief"));
                 Console.WriteLine();
             }
             else
