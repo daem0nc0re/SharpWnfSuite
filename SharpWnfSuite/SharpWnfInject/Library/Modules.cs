@@ -193,7 +193,10 @@ namespace SharpWnfInject.Library
 
             Console.WriteLine("[>] Trying to get WNF_NAME_SUBSCRIPTION(s).");
 
-            nameSubscriptions = Utilities.GetNameSubscriptions(proc, pSubscriptionTable);
+            if (Header.g_IsWin11)
+                nameSubscriptions = Utilities.GetNameSubscriptionsWin11(proc, pSubscriptionTable);
+            else
+                nameSubscriptions = Utilities.GetNameSubscriptions(proc, pSubscriptionTable);
 
             if (nameSubscriptions.Count == 0)
             {
@@ -244,7 +247,7 @@ namespace SharpWnfInject.Library
 
             Console.WriteLine("[>] Trying to get WNF_USER_SUBSCRIPTION(s) for the target WNF_NAME_SUBSCRIPTION.");
 
-            if (Helpers.IsWin11())
+            if (Header.g_IsWin11)
                 userSubscriptions = Utilities.GetUserSubscriptionsWin11(proc, nameSubscriptions[stateNameToInject]);
             else
                 userSubscriptions = Utilities.GetUserSubscriptions(proc, nameSubscriptions[stateNameToInject]);

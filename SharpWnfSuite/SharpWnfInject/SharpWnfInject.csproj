@@ -50,6 +50,7 @@
     <Compile Include="Interop\Win32Const.cs" />
     <Compile Include="Interop\Win32Delegate.cs" />
     <Compile Include="Interop\Win32Struct.cs" />
+    <Compile Include="Library\Header.cs" />
     <Compile Include="Library\Helpers.cs" />
     <Compile Include="Library\Modules.cs" />
     <Compile Include="Library\PeProcess.cs" />

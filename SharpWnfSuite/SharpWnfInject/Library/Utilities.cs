@@ -158,6 +158,71 @@ namespace SharpWnfInject.Library
         }
 
 
+        public static Dictionary<ulong, IntPtr> GetNameSubscriptionsWin11(
+            PeProcess proc,
+            IntPtr pSubscriptionTable)
+        {
+            IntPtr buffer;
+            IntPtr pNameSubscription;
+            uint nSizeSubscriptionTable;
+            uint nNameTableEntryOffset;
+            var results = new Dictionary<ulong, IntPtr>();
+
+            if (proc.GetArchitecture() == "x64")
+            {
+                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE64_WIN11));
+                nNameTableEntryOffset = (uint)Marshal.OffsetOf(
+                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11),
+                    "NamesTableEntry").ToInt32();
+                buffer = proc.ReadMemory(pSubscriptionTable, nSizeSubscriptionTable);
+
+                if (buffer == IntPtr.Zero)
+                {
+                    Console.WriteLine("[-] Failed to read WNF_SUBSCRIPTION_TABLE.");
+
+                    return results;
+                }
+
+                var subscriptionTable = (Win32Struct.WNF_SUBSCRIPTION_TABLE64_WIN11)Marshal.PtrToStructure(
+                    buffer,
+                    typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE64_WIN11));
+                Win32Api.LocalFree(buffer);
+
+                pNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Root - nNameTableEntryOffset);
+                ListWin11NameSubscriptions(proc, pNameSubscription, ref results);
+            }
+            else if (proc.GetArchitecture() == "x86")
+            {
+                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE32_WIN11));
+                nNameTableEntryOffset = (uint)Marshal.OffsetOf(
+                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11),
+                    "NamesTableEntry").ToInt32();
+                buffer = proc.ReadMemory(pSubscriptionTable, nSizeSubscriptionTable);
+
+                if (buffer == IntPtr.Zero)
+                {
+                    Console.WriteLine("[-] Failed to read WNF_SUBSCRIPTION_TABLE.");
+
+                    return results;
+                }
+
+                var subscriptionTable = (Win32Struct.WNF_SUBSCRIPTION_TABLE32_WIN11)Marshal.PtrToStructure(
+                    buffer,
+                    typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE32_WIN11));
+                Win32Api.LocalFree(buffer);
+
+                pNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Root - nNameTableEntryOffset);
+                ListWin11NameSubscriptions(proc, pNameSubscription, ref results);
+            }
+            else
+            {
+                Console.WriteLine("[-] Unsupported architecture.");
+            }
+
+            return results;
+        }
+
+
         public static IntPtr GetSubscriptionTable(PeProcess proc)
         {
             if (proc.GetCurrentModuleName() != "ntdll.dll")
@@ -507,6 +572,87 @@ namespace SharpWnfInject.Library
             }
 
             return results;
+        }
+
+
+        public static void ListWin11NameSubscriptions(
+            PeProcess proc,
+            IntPtr pNameSubscription,
+            ref Dictionary<ulong, IntPtr> nameSubscriptions)
+        {
+            uint nSizeNameSubscription;
+            uint nNameTableEntryOffset;
+            IntPtr pNameSubscriptionLeft;
+            IntPtr pNameSubscriptionRight;
+            IntPtr buffer;
+
+            if (!proc.IsHeapAddress(pNameSubscription))
+                return;
+
+            if (proc.GetArchitecture() == "x64")
+            {
+                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11));
+                nNameTableEntryOffset = (uint)Marshal.OffsetOf(
+                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11),
+                    "NamesTableEntry").ToInt32();
+                buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
+
+                if (buffer == IntPtr.Zero)
+                    return;
+
+                var entry = (Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11)Marshal.PtrToStructure(
+                    buffer,
+                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11));
+
+                if (!nameSubscriptions.ContainsKey(entry.StateName))
+                    nameSubscriptions.Add(entry.StateName, pNameSubscription);
+
+                if (entry.NamesTableEntry.Left != 0L)
+                {
+                    pNameSubscriptionLeft = new IntPtr(entry.NamesTableEntry.Left - nNameTableEntryOffset);
+                    ListWin11NameSubscriptions(proc, pNameSubscriptionLeft, ref nameSubscriptions);
+                }
+
+                if (entry.NamesTableEntry.Right != 0L)
+                {
+                    pNameSubscriptionRight = new IntPtr(entry.NamesTableEntry.Right - nNameTableEntryOffset);
+                    ListWin11NameSubscriptions(proc, pNameSubscriptionRight, ref nameSubscriptions);
+                }
+
+                Win32Api.LocalFree(buffer);
+            }
+            else if (proc.GetArchitecture() == "x86")
+            {
+                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11));
+                nNameTableEntryOffset = (uint)Marshal.OffsetOf(
+                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11),
+                    "NamesTableEntry").ToInt32();
+                buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
+
+                if (buffer == IntPtr.Zero)
+                    return;
+
+                var entry = (Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11)Marshal.PtrToStructure(
+                    buffer,
+                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11));
+
+                if (!nameSubscriptions.ContainsKey(entry.StateName))
+                    nameSubscriptions.Add(entry.StateName, pNameSubscription);
+
+                if (entry.NamesTableEntry.Left != 0)
+                {
+                    pNameSubscriptionLeft = new IntPtr(entry.NamesTableEntry.Left - nNameTableEntryOffset);
+                    ListWin11NameSubscriptions(proc, pNameSubscriptionLeft, ref nameSubscriptions);
+                }
+
+                if (entry.NamesTableEntry.Right != 0)
+                {
+                    pNameSubscriptionRight = new IntPtr(entry.NamesTableEntry.Right - nNameTableEntryOffset);
+                    ListWin11NameSubscriptions(proc, pNameSubscriptionRight, ref nameSubscriptions);
+                }
+
+                Win32Api.LocalFree(buffer);
+            }
         }
     }
 }

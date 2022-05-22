@@ -50,28 +50,6 @@ namespace SharpWnfScan.Interop
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct SYMBOL_INFO
-        {
-            public uint SizeOfStruct;
-            public uint TypeIndex;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
-            public ulong[] Reserved;
-            public uint Index;
-            public uint Size;
-            public ulong ModBase;
-            public uint Flags;
-            public ulong Value;
-            public ulong Address;
-            public uint Register;
-            public uint Scope;
-            public uint Tag;
-            public uint NameLen;
-            public uint MaxNameLen;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = (int)Win32Const.MAX_SYM_NAME)]
-            public byte[] Name;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
         public struct RTL_BALANCED_NODE32
         {
             public int /* PRTL_BALANCED_NODE */ Left;
@@ -99,6 +77,28 @@ namespace SharpWnfScan.Interop
         {
             public long /* PRTL_BALANCED_NODE */ Root;
             public long /* PRTL_BALANCED_NODE */ Min;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct SYMBOL_INFO
+        {
+            public uint SizeOfStruct;
+            public uint TypeIndex;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+            public ulong[] Reserved;
+            public uint Index;
+            public uint Size;
+            public ulong ModBase;
+            public uint Flags;
+            public ulong Value;
+            public ulong Address;
+            public uint Register;
+            public uint Scope;
+            public uint Tag;
+            public uint NameLen;
+            public uint MaxNameLen;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = (int)Win32Const.MAX_SYM_NAME)]
+            public byte[] Name;
         }
 
         [StructLayout(LayoutKind.Sequential)]

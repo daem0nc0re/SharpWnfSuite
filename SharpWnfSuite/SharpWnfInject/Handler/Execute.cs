@@ -117,6 +117,8 @@ namespace SharpWnfInject.Handler
                 return;
             }
 
+            Header.g_IsWin11 = Helpers.IsWin11();
+
             if (!string.IsNullOrEmpty(options.GetValue("input")))
             {
                 filePath = options.GetValue("input");
