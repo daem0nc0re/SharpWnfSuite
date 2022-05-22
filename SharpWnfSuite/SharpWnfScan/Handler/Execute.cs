@@ -20,15 +20,15 @@ namespace SharpWnfScan.Handler
                 return;
             }
 
-            if (!string.IsNullOrEmpty(options.GetValue("statename")))
+            if (!string.IsNullOrEmpty(options.GetValue("name")))
             {
-                if (rgx.IsMatch(options.GetValue("statename")))
+                if (rgx.IsMatch(options.GetValue("name")))
                 {
-                    stateName = (ulong)Convert.ToInt64(options.GetValue("statename"), 16);
+                    stateName = (ulong)Convert.ToInt64(options.GetValue("name"), 16);
                 }
                 else
                 {
-                    wellKnownName = options.GetValue("statename").ToUpper();
+                    wellKnownName = options.GetValue("name").ToUpper();
                     
                     try
                     {
@@ -118,7 +118,7 @@ namespace SharpWnfScan.Handler
 
                 Console.WriteLine();
             }
-            else if (!string.IsNullOrEmpty(options.GetValue("name")))
+            else if (!string.IsNullOrEmpty(options.GetValue("processname")))
             {
                 Console.WriteLine();
 
@@ -133,7 +133,7 @@ namespace SharpWnfScan.Handler
                 }
 
                 Modules.DumpWnfSubscriptionInformationByName(
-                    options.GetValue("name"),
+                    options.GetValue("processname"),
                     stateName,
                     options.GetFlag("brief"));
                 Console.WriteLine();

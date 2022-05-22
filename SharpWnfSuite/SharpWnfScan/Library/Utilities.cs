@@ -634,7 +634,7 @@ namespace SharpWnfScan.Library
             IntPtr pNameSubscriptionRight;
             IntPtr buffer;
 
-            if (pNameSubscription == IntPtr.Zero )
+            if (!proc.IsHeapAddress(pNameSubscription))
                 return;
 
             if (proc.GetArchitecture() == "x64")
@@ -644,6 +644,9 @@ namespace SharpWnfScan.Library
                     typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11),
                     "NamesTableEntry").ToInt32();
                 buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
+
+                if (buffer == IntPtr.Zero)
+                    return;
 
                 var entry = (Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11)Marshal.PtrToStructure(
                     buffer,
@@ -674,6 +677,9 @@ namespace SharpWnfScan.Library
                     "NamesTableEntry").ToInt32();
                 buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
 
+                if (buffer == IntPtr.Zero)
+                    return;
+
                 var entry = (Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11)Marshal.PtrToStructure(
                     buffer,
                     typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11));
@@ -681,13 +687,13 @@ namespace SharpWnfScan.Library
                 if (!nameSubscriptions.ContainsKey(entry.StateName))
                     nameSubscriptions.Add(entry.StateName, pNameSubscription);
 
-                if (entry.NamesTableEntry.Left != 0L)
+                if (entry.NamesTableEntry.Left != 0)
                 {
                     pNameSubscriptionLeft = new IntPtr(entry.NamesTableEntry.Left - nNameTableEntryOffset);
                     ListWin11NameSubscriptions(proc, pNameSubscriptionLeft, ref nameSubscriptions);
                 }
 
-                if (entry.NamesTableEntry.Right != 0L)
+                if (entry.NamesTableEntry.Right != 0)
                 {
                     pNameSubscriptionRight = new IntPtr(entry.NamesTableEntry.Right - nNameTableEntryOffset);
                     ListWin11NameSubscriptions(proc, pNameSubscriptionRight, ref nameSubscriptions);

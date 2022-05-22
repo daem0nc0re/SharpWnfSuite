@@ -17,8 +17,8 @@ namespace SharpWnfScan
                 options.SetTitle("SharpWnfScan - Tool for dumping WNF information from process.");
                 options.AddFlag(false, "h", "help", "Displays this help message.");
                 options.AddParameter(false, "p", "pid", null, "Specifies the target PID.");
-                options.AddParameter(false, "n", "name", null, "Specifies the target process name.");
-                options.AddParameter(false, "s", "statename", null, "Specifies a wnf state name for filtering.");
+                options.AddParameter(false, "P", "processname", null, "Specifies the target process name.");
+                options.AddParameter(false, "n", "name", null, "Specifies a wnf state name for filtering.");
                 options.AddFlag(false, "a", "all", "Flag to dump information from all process.");
                 options.AddFlag(false, "b", "brief", "Flag to exclude WNF_USER_SUBSCRIPTION information.");
                 options.AddFlag(false, "l", "list", "Flag to list WNF State Name on this system.");

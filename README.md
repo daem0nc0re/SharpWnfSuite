@@ -375,14 +375,14 @@ SharpWnfScan - Tool for dumping WNF information from process.
 
 Usage: SharpWnfScan.exe [Options]
 
-        -h, --help      : Displays this help message.
-        -p, --pid       : Specifies the target PID.
-        -n, --name      : Specifies the target process name.
-        -s, --statename : Specifies a wnf state name for filtering.
-        -a, --all       : Flag to dump information from all process.
-        -b, --brief     : Flag to exclude WNF_USER_SUBSCRIPTION information.
-        -l, --list      : Flag to list WNF State Name on this system.
-        -d, --debug     : Flag to enable SeDebugPrivilege. Administrative privilege is required.
+        -h, --help        : Displays this help message.
+        -p, --pid         : Specifies the target PID.
+        -P, --processname : Specifies the target process name.
+        -n, --name        : Specifies a wnf state name for filtering.
+        -a, --all         : Flag to dump information from all process.
+        -b, --brief       : Flag to exclude WNF_USER_SUBSCRIPTION information.
+        -l, --list        : Flag to list WNF State Name on this system.
+        -d, --debug       : Flag to enable SeDebugPrivilege. Administrative privilege is required.
 ```
 
 To dump a specific process, set `-p` option as follows:
@@ -413,10 +413,10 @@ WNF_SUBSCRIPTION_TABLE @ 0x0000000000F6EEB0
 --snip--
 ```
 
-You can specifies target processes by name with `-n` option:
+You can specifies target processes by name with `-P` option:
 
 ```
-C:\dev>SharpWnfScan.exe -n notepad
+C:\dev>SharpWnfScan.exe -P notepad
 
 Process Name : notepad.exe
 Process ID   : 6812
@@ -435,7 +435,7 @@ WNF_SUBSCRIPTION_TABLE @ 0x02960F08
 --snip--
 ```
 
-To filter with state name, set hex or well know wnf name string to `-s` option as follows:
+To filter with state name, set hex or well know wnf name string to `-n` option as follows:
 
 ```
 C:\dev>SharpWnfScan.exe -n notepad -s WNF_RPCF_FWMAN_RUNNING
@@ -455,7 +455,7 @@ WNF_SUBSCRIPTION_TABLE @ 0x000002AB85EF08F0
 
 
 
-C:\dev>SharpWnfScan.exe -n notepad -s 0x7851E3FA3BC0875
+C:\dev>SharpWnfScan.exe -n notepad -n 0x7851E3FA3BC0875
 
 Process Name : notepad.exe
 Process ID   : 10676
@@ -474,7 +474,7 @@ WNF_SUBSCRIPTION_TABLE @ 0x000002AB85EF08F0
 To remove `WNF_USER_SUBSCRIPTION` information from output, use `-b` option:
 
 ```
-C:\dev>SharpWnfScan.exe -n explorer -b
+C:\dev>SharpWnfScan.exe -P explorer -b
 
 Process Name  : explorer.exe
 Process ID    : 4320
@@ -543,7 +543,7 @@ To enable `SeDebugPrivilege`, set `-d` flag as follows.
 This option requires administrative privilege:
 
 ```
-C:\dev>SharpWnfScan.exe -d -n lsass
+C:\dev>SharpWnfScan.exe -d -P lsass
 
 [>] Trying to enable SeDebugPrivilege.
 [+] SeDebugPrivilege is enabled successfully.
@@ -682,3 +682,7 @@ Thanks for your research:
 + Alex Ionescu ([@aionescu](https://twitter.com/aionescu))
 + Gabrielle Viala ([@pwissenlit](https://twitter.com/pwissenlit))
 + odzhan ([@modexpblog](https://twitter.com/modexpblog))
+
+Thanks for your help:
+
++ mishap ([@oopsmishap](https://twitter.com/oopsmishap))
