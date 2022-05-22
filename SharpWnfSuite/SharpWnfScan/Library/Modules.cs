@@ -167,7 +167,10 @@ namespace SharpWnfScan.Library
                     pSubscriptionTable.ToString(is64bit ? "X16" : "X8"));
             }
 
-            nameSubscriptions = Utilities.GetNameSubscriptions(proc, pSubscriptionTable);
+            if (Header.g_IsWin11)
+                nameSubscriptions = Utilities.GetNameSubscriptionsWin11(proc, pSubscriptionTable);
+            else
+                nameSubscriptions = Utilities.GetNameSubscriptions(proc, pSubscriptionTable);
 
             foreach (var nameEntry in nameSubscriptions)
             {
@@ -374,7 +377,10 @@ namespace SharpWnfScan.Library
                         continue;
                 }
 
-                nameSubscriptions = Utilities.GetNameSubscriptions(proc, pSubscriptionTable);
+                if (Header.g_IsWin11)
+                    nameSubscriptions = Utilities.GetNameSubscriptionsWin11(proc, pSubscriptionTable);
+                else
+                    nameSubscriptions = Utilities.GetNameSubscriptions(proc, pSubscriptionTable);
 
                 foreach (var stateName in nameSubscriptions.Keys)
                 {

@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using SharpWnfScan.Handler;
 
+using System.Linq;
+using SharpWnfScan.Library;
+
 namespace SharpWnfScan
 {
     class SharpWnfScan

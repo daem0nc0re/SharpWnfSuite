@@ -72,6 +72,36 @@ namespace SharpWnfScan.Interop
         }
 
         [StructLayout(LayoutKind.Sequential)]
+        public struct RTL_BALANCED_NODE32
+        {
+            public int /* PRTL_BALANCED_NODE */ Left;
+            public int /* PRTL_BALANCED_NODE */ Right;
+            public int ParentValue;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RTL_BALANCED_NODE64
+        {
+            public long /* PRTL_BALANCED_NODE */ Left;
+            public long /* PRTL_BALANCED_NODE */ Right;
+            public long ParentValue;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RTL_RB_TREE32
+        {
+            public int /* PRTL_BALANCED_NODE */ Root;
+            public int /* PRTL_BALANCED_NODE */ Min;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RTL_RB_TREE64
+        {
+            public long /* PRTL_BALANCED_NODE */ Root;
+            public long /* PRTL_BALANCED_NODE */ Min;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
         public struct TOKEN_PRIVILEGES
         {
             public int PrivilegeCount;
@@ -130,7 +160,7 @@ namespace SharpWnfScan.Interop
             public ulong SubscriptionId;
             public ulong /* WNF_STATE_NAME_INTERNAL */ StateName;
             public uint /* WNF_CHANGE_STAMP */ CurrentChangeStamp;
-            public LIST_ENTRY32 NamesTableEntry;
+            public RTL_BALANCED_NODE32 NamesTableEntry;
             public int /* ref WNF_TYPE_ID */ TypeId;
             public int /* SRWLOCK */ SubscriptionLock;
             public int Unknown; // This is a stopgap measure. Should be investigated details in future.
@@ -169,7 +199,7 @@ namespace SharpWnfScan.Interop
             public ulong SubscriptionId;
             public ulong /* WNF_STATE_NAME_INTERNAL */ StateName;
             public uint /* WNF_CHANGE_STAMP */ CurrentChangeStamp;
-            public LIST_ENTRY64 NamesTableEntry;
+            public RTL_BALANCED_NODE64 NamesTableEntry;
             public long /* ref WNF_TYPE_ID */ TypeId;
             public long /* SRWLOCK */ SubscriptionLock;
             public long Unknown; // This is a stopgap measure. Should be investigated details in future.
@@ -226,11 +256,45 @@ namespace SharpWnfScan.Interop
         }
 
         [StructLayout(LayoutKind.Sequential)]
+        public struct WNF_SUBSCRIPTION_TABLE32_WIN11
+        {
+            public WNF_CONTEXT_HEADER Header;
+            public int /* SRWLOCK */ NamesTableLock;
+            public RTL_RB_TREE32 NamesTableEntry;
+            public LIST_ENTRY32 SerializationGroupListHead;
+            public int /* SRWLOCK */ SerializationGroupLock;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+            public int[] Unknown1;
+            public int SubscribedEventSet;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+            public int[] Unknown2;
+            public int Timer;
+            public ulong TimerDueTime;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
         public struct WNF_SUBSCRIPTION_TABLE64
         {
             public WNF_CONTEXT_HEADER Header;
             public long /* SRWLOCK */ NamesTableLock;
             public LIST_ENTRY64 NamesTableEntry;
+            public LIST_ENTRY64 SerializationGroupListHead;
+            public long /* SRWLOCK */ SerializationGroupLock;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+            public int[] Unknown1;
+            public int SubscribedEventSet;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+            public int[] Unknown2;
+            public long Timer;
+            public ulong TimerDueTime;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct WNF_SUBSCRIPTION_TABLE64_WIN11
+        {
+            public WNF_CONTEXT_HEADER Header;
+            public long /* SRWLOCK */ NamesTableLock;
+            public RTL_RB_TREE64 NamesTableEntry;
             public LIST_ENTRY64 SerializationGroupListHead;
             public long /* SRWLOCK */ SerializationGroupLock;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
