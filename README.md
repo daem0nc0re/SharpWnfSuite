@@ -455,7 +455,7 @@ WNF_SUBSCRIPTION_TABLE @ 0x000002AB85EF08F0
 
 
 
-C:\dev>SharpWnfScan.exe -n notepad -n 0x7851E3FA3BC0875
+C:\dev>SharpWnfScan.exe -P notepad -n 0x7851E3FA3BC0875
 
 Process Name : notepad.exe
 Process ID   : 10676
