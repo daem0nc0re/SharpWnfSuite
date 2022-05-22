@@ -438,7 +438,7 @@ WNF_SUBSCRIPTION_TABLE @ 0x02960F08
 To filter with state name, set hex or well know wnf name string to `-n` option as follows:
 
 ```
-C:\dev>SharpWnfScan.exe -n notepad -s WNF_RPCF_FWMAN_RUNNING
+C:\dev>SharpWnfScan.exe -P notepad -n WNF_RPCF_FWMAN_RUNNING
 
 Process Name : notepad.exe
 Process ID   : 10676
