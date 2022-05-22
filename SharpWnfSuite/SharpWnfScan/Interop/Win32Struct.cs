@@ -163,7 +163,6 @@ namespace SharpWnfScan.Interop
             public RTL_BALANCED_NODE32 NamesTableEntry;
             public int /* ref WNF_TYPE_ID */ TypeId;
             public int /* SRWLOCK */ SubscriptionLock;
-            public int Unknown; // This is a stopgap measure. Should be investigated details in future.
             public LIST_ENTRY32 SubscriptionsListHead;
             public uint NormalDeliverySubscriptions;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 5)]
@@ -202,7 +201,6 @@ namespace SharpWnfScan.Interop
             public RTL_BALANCED_NODE64 NamesTableEntry;
             public long /* ref WNF_TYPE_ID */ TypeId;
             public long /* SRWLOCK */ SubscriptionLock;
-            public long Unknown; // This is a stopgap measure. Should be investigated details in future.
             public LIST_ENTRY64 SubscriptionsListHead;
             public uint NormalDeliverySubscriptions;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 5)]
