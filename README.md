@@ -672,6 +672,7 @@ If you want to enable `SeDebugPrivilege`, set `-d` flag and execute with adminis
 + [Playing with the Windows Notification Facility (WNF)](https://blog.quarkslab.com/playing-with-the-windows-notification-facility-wnf.html)
 + [wnfun](https://github.com/ionescu007/wnfun)
 + [Windows Process Injection : Windows Notification Facility](https://modexp.wordpress.com/2019/06/15/4083/)
++ [New WNF User Subscription Structures in Windows 11](https://mishap.dev/posts/new-wnf-user-subscription-structures-in-w11/)
 
 ## Acknowledgments
 
