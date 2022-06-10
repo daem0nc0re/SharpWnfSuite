@@ -705,7 +705,7 @@ Thanks for your research:
 + Alex Ionescu ([@aionescu](https://twitter.com/aionescu))
 + Gabrielle Viala ([@pwissenlit](https://twitter.com/pwissenlit))
 + odzhan ([@modexpblog](https://twitter.com/modexpblog))
-* Alex Plaskett ([@alexjplaskett](https://twitter.com/alexjplaskett))
++ Alex Plaskett ([@alexjplaskett](https://twitter.com/alexjplaskett))
 
 Thanks for your help:
 
