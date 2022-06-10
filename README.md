@@ -13,6 +13,7 @@ When I develop additional tools for Windows Notification Facility, they will be 
         + [SharpWnfServer](#sharpwnfserver)
         + [SharpWnfScan](#sharpwnfscan)
         + [SharpWnfInject](#sharpwnfinject)
+    + [KernelPrimitive](#kernelprimitive)
     + [Reference](#reference)
     + [Acknowledgments](#acknowledgments)
 
@@ -664,6 +665,24 @@ C:\dev>SharpWnfInject.exe -p 3928 -n WNF_SHEL_APPLICATION_STARTED -i payload.bin
 If you want to enable `SeDebugPrivilege`, set `-d` flag and execute with administrative privilege.
 
 
+## KernelPrimitive
+
+[Back to Top](#sharpwnfsuite)
+
+Projects in this directory are to demonstrate WNF primitive for kernel exploitation.
+You can read the detailed information in [Alex Plaskett](https://twitter.com/alexjplaskett)'s talk and blogs ([Part 1](https://research.nccgroup.com/2021/07/15/cve-2021-31956-exploiting-the-windows-kernel-ntfs-with-wnf-part-1/), [Part 2](https://research.nccgroup.com/2021/08/17/cve-2021-31956-exploiting-the-windows-kernel-ntfs-with-wnf-part-2/), [Slide](https://research.nccgroup.com/2021/11/15/poc2021-pwning-the-windows-10-kernel-with-nfts-and-wnf-slides/)).
+
+Reliability of the PoC is not 100%.
+I defined kernel offset for all versions of Windows 10 x64, but only tested in Windows 10 Build 1903 x64.
+
+| Project | Description |
+| :--- | :--- |
+| [PoolVulnDrv](./KernelPrimitive/PoolVulnDrv/) | This is a vulnerable kernel driver to test WNF kernel primitive. |
+| [WnfPoolOverflow](./KernelPrimitive/WnfPoolOverflow/) | This is a PoC to exploit PoolVulnDrv. |
+
+![WnfPrimitive.png](./figures/WnfPrimitive.png)
+
+
 ## Reference
 
 [Back to Top](#sharpwnfsuite)
@@ -673,6 +692,9 @@ If you want to enable `SeDebugPrivilege`, set `-d` flag and execute with adminis
 + [wnfun](https://github.com/ionescu007/wnfun)
 + [Windows Process Injection : Windows Notification Facility](https://modexp.wordpress.com/2019/06/15/4083/)
 + [New WNF User Subscription Structures in Windows 11](https://mishap.dev/posts/new-wnf-user-subscription-structures-in-w11/)
++ [CVE-2021-31956 Exploiting the Windows Kernel (NTFS with WNF) – Part 1](https://research.nccgroup.com/2021/07/15/cve-2021-31956-exploiting-the-windows-kernel-ntfs-with-wnf-part-1/)
++ [CVE-2021-31956 Exploiting the Windows Kernel (NTFS with WNF) – Part 2](https://research.nccgroup.com/2021/08/17/cve-2021-31956-exploiting-the-windows-kernel-ntfs-with-wnf-part-2/)
++ [POC2021 – Pwning the Windows 10 Kernel with NTFS and WNF Slides](https://research.nccgroup.com/2021/11/15/poc2021-pwning-the-windows-10-kernel-with-nfts-and-wnf-slides/)
 
 ## Acknowledgments
 
@@ -683,6 +705,7 @@ Thanks for your research:
 + Alex Ionescu ([@aionescu](https://twitter.com/aionescu))
 + Gabrielle Viala ([@pwissenlit](https://twitter.com/pwissenlit))
 + odzhan ([@modexpblog](https://twitter.com/modexpblog))
+* Alex Plaskett ([@alexjplaskett](https://twitter.com/alexjplaskett))
 
 Thanks for your help:
 
