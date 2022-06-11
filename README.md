@@ -673,7 +673,7 @@ Projects in this directory are to demonstrate WNF primitive for kernel exploitat
 You can read the detailed information in [Alex Plaskett](https://twitter.com/alexjplaskett)'s talk and blogs ([Part 1](https://research.nccgroup.com/2021/07/15/cve-2021-31956-exploiting-the-windows-kernel-ntfs-with-wnf-part-1/), [Part 2](https://research.nccgroup.com/2021/08/17/cve-2021-31956-exploiting-the-windows-kernel-ntfs-with-wnf-part-2/), [Slide](https://research.nccgroup.com/2021/11/15/poc2021-pwning-the-windows-10-kernel-with-nfts-and-wnf-slides/)).
 
 Reliability of the PoC is not 100%.
-I defined kernel offset for all versions of Windows 10 x64, but only tested in Windows 10 Build 1903 x64.
+I defined kernel offset for all versions of Windows 10 x64, but only tested in Windows 10 Version 1903 x64.
 
 | Project | Description |
 | :--- | :--- |
