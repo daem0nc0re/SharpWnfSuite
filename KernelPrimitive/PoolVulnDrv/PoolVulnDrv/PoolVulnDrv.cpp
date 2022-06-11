@@ -61,10 +61,15 @@ NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING)
 
 void PoolVulnDrvUnload(_In_ PDRIVER_OBJECT DriverObject)
 {
+	PVOID pFree = g_PoolPointer;
 	UNICODE_STRING symLink = RTL_CONSTANT_STRING(L"\\??\\PoolVulnDrv");
 
-	if (g_PoolPointer)
+	if (pFree)
+	{
 		ExFreePoolWithTag(g_PoolPointer, (ULONG)VULN_POOL_TAG);
+		g_PoolPointer = nullptr;
+		DbgPrint("Free'd buffer @ 0x%p.\n", pFree);
+	}
 
 	IoDeleteSymbolicLink(&symLink);
 	IoDeleteDevice(DriverObject->DeviceObject);
@@ -98,7 +103,7 @@ NTSTATUS PoolVulnDrvDeviceControl(_In_ PDEVICE_OBJECT, _Inout_ PIRP Irp)
 		status = AllocateOverflowBufferHandler(UserBuffer, Size);
 
 		if (NT_SUCCESS(status))
-			info = IrpSp->Parameters.DeviceIoControl.InputBufferLength;
+			info = Size;
 
 		break;
 
@@ -110,7 +115,7 @@ NTSTATUS PoolVulnDrvDeviceControl(_In_ PDEVICE_OBJECT, _Inout_ PIRP Irp)
 		status = TriggerOverflowHandler(UserBuffer, Size);
 
 		if (NT_SUCCESS(status))
-			info = IrpSp->Parameters.DeviceIoControl.InputBufferLength;
+			info = Size;
 
 		break;
 	}
