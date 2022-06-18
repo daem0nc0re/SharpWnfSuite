@@ -717,67 +717,70 @@ namespace WnfPoolOverflow
 
         static IntPtr GetWorldGenericAllSecurityDescriptor()
         {
+            bool status;
             int cbSid = SECURITY_MAX_SID_SIZE;
-            IntPtr pSid = Marshal.AllocHGlobal(cbSid);
+            IntPtr pSid = IntPtr.Zero;
+            int cbDacl;
+            IntPtr pDacl = IntPtr.Zero;
+            IntPtr pSecurityDescriptor = IntPtr.Zero;
 
-            if (!CreateWellKnownSid(
-                WELL_KNOWN_SID_TYPE.WinWorldSid,
-                IntPtr.Zero,
-                pSid,
-                ref cbSid))
+            do
             {
+                pSid = Marshal.AllocHGlobal(cbSid);
+                status = CreateWellKnownSid(
+                    WELL_KNOWN_SID_TYPE.WinWorldSid,
+                    IntPtr.Zero,
+                    pSid,
+                    ref cbSid);
+
+                if (!status)
+                    break;
+
+                cbDacl = Marshal.SizeOf(typeof(ACL)) +
+                    Marshal.SizeOf(typeof(ACCESS_ALLOWED_ACE)) -
+                    Marshal.SizeOf(typeof(int)) +
+                    cbSid;
+                pDacl = Marshal.AllocHGlobal(cbDacl);
+                status = InitializeAcl(pDacl, cbDacl, ACL_REVISION);
+
+                if (!status)
+                    break;
+
+                status = AddAccessAllowedAce(
+                    pDacl,
+                    ACL_REVISION,
+                    ACCESS_MASK.GENERIC_ALL,
+                    pSid);
+
+                if (!status)
+                    break;
+
+                pSecurityDescriptor = Marshal.AllocHGlobal(Marshal.SizeOf(
+                    typeof(SECURITY_DESCRIPTOR)));
+                status = InitializeSecurityDescriptor(
+                    pSecurityDescriptor,
+                    SECURITY_DESCRIPTOR_REVISION);
+
+                if (!status)
+                    break;
+
+                status = SetSecurityDescriptorDacl(
+                    pSecurityDescriptor,
+                    true,
+                    pDacl,
+                    false);
+            } while (false);
+
+            if (pSid != IntPtr.Zero)
                 Marshal.FreeHGlobal(pSid);
-
-                return IntPtr.Zero;
-            }
-
-            int cbDacl = Marshal.SizeOf(typeof(ACL)) +
-                Marshal.SizeOf(typeof(ACCESS_ALLOWED_ACE)) -
-                Marshal.SizeOf(typeof(int)) +
-                cbSid;
-            IntPtr pDacl = Marshal.AllocHGlobal(cbDacl);
-
-            if (!InitializeAcl(pDacl, cbDacl, ACL_REVISION))
-            {
-                Marshal.FreeHGlobal(pSid);
+            
+            if (pDacl != IntPtr.Zero)
                 Marshal.FreeHGlobal(pDacl);
 
-                return IntPtr.Zero;
-            }
-
-            if (!AddAccessAllowedAce(
-                pDacl,
-                ACL_REVISION,
-                ACCESS_MASK.GENERIC_ALL,
-                pSid))
+            if (!status)
             {
-                Marshal.FreeHGlobal(pSid);
-                Marshal.FreeHGlobal(pDacl);
-
-                return IntPtr.Zero;
-            }
-
-            IntPtr pSecurityDescriptor = Marshal.AllocHGlobal(Marshal.SizeOf(
-                typeof(SECURITY_DESCRIPTOR)));
-
-            if (!InitializeSecurityDescriptor(
-                pSecurityDescriptor,
-                SECURITY_DESCRIPTOR_REVISION))
-            {
-                Marshal.FreeHGlobal(pSid);
-                Marshal.FreeHGlobal(pDacl);
-
-                return IntPtr.Zero;
-            }
-
-            if (!SetSecurityDescriptorDacl(
-                pSecurityDescriptor,
-                true,
-                pDacl,
-                false))
-            {
-                Marshal.FreeHGlobal(pSid);
-                Marshal.FreeHGlobal(pDacl);
+                if (pSecurityDescriptor != IntPtr.Zero)
+                    Marshal.FreeHGlobal(pSecurityDescriptor);
 
                 return IntPtr.Zero;
             }
