@@ -5,7 +5,7 @@ using SharpWnfInject.Library;
 
 namespace SharpWnfInject.Handler
 {
-    class Execute
+    internal class Execute
     {
         public static void Run(CommandLineParser options)
         {
@@ -64,7 +64,7 @@ namespace SharpWnfInject.Handler
                 try
                 {
                     stateName = (ulong)Enum.Parse(
-                        typeof(Win32Const.WELL_KNOWN_WNF_NAME),
+                        typeof(WELL_KNOWN_WNF_NAME),
                         options.GetValue("name").ToUpper());
                 }
                 catch (ArgumentException ex)

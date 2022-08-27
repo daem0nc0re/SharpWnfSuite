@@ -3,7 +3,7 @@ using SharpWnfNameDumper.Handler;
 
 namespace SharpWnfNameDumper
 {
-    class SharpWnfNameDumper
+    internal class SharpWnfNameDumper
     {
         static void Main(string[] args)
         {

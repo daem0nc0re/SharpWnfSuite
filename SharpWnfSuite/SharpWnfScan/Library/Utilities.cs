@@ -6,24 +6,24 @@ using SharpWnfScan.Interop;
 
 namespace SharpWnfScan.Library
 {
-    class Utilities
+    internal class Utilities
     {
         public static bool EnableDebugPrivilege()
         {
             int error;
-            Win32Api.LookupPrivilegeValue(
+            NativeMethods.LookupPrivilegeValue(
                 null,
                 "SeDebugPrivilege",
-                out Win32Struct.LUID luid);
+                out LUID luid);
 
-            Win32Struct.TOKEN_PRIVILEGES tp = new Win32Struct.TOKEN_PRIVILEGES(1);
+            TOKEN_PRIVILEGES tp = new TOKEN_PRIVILEGES(1);
             tp.Privileges[0].Luid = luid;
-            tp.Privileges[0].Attributes = (uint)Win32Const.PrivilegeAttributeFlags.SE_PRIVILEGE_ENABLED;
+            tp.Privileges[0].Attributes = (uint)PrivilegeAttributeFlags.SE_PRIVILEGE_ENABLED;
 
             IntPtr pTokenPrivilege = Marshal.AllocHGlobal(Marshal.SizeOf(tp));
             Marshal.StructureToPtr(tp, pTokenPrivilege, true);
 
-            if (!Win32Api.AdjustTokenPrivileges(
+            if (!NativeMethods.AdjustTokenPrivileges(
                 WindowsIdentity.GetCurrent().Token,
                 false,
                 pTokenPrivilege,
@@ -59,12 +59,12 @@ namespace SharpWnfScan.Library
 
             if (proc.GetArchitecture() == "x64")
             {
-                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE64));
-                Win32Struct.WNF_NAME_SUBSCRIPTION64 nameSubscription;
+                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64));
+                WNF_NAME_SUBSCRIPTION64 nameSubscription;
                 nSizeNameSubscription = (uint)Marshal.SizeOf(
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64));
+                    typeof(WNF_NAME_SUBSCRIPTION64));
                 nNameTableEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64),
+                    typeof(WNF_NAME_SUBSCRIPTION64),
                     "NamesTableEntry").ToInt32();
                 buffer = proc.ReadMemory(pSubscriptionTable, nSizeSubscriptionTable);
 
@@ -75,10 +75,10 @@ namespace SharpWnfScan.Library
                     return results;
                 }
 
-                var subscriptionTable = (Win32Struct.WNF_SUBSCRIPTION_TABLE64)Marshal.PtrToStructure(
+                var subscriptionTable = (WNF_SUBSCRIPTION_TABLE64)Marshal.PtrToStructure(
                     buffer,
-                    typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE64));
-                Win32Api.LocalFree(buffer);
+                    typeof(WNF_SUBSCRIPTION_TABLE64));
+                NativeMethods.LocalFree(buffer);
 
                 pFirstNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Flink - nNameTableEntryOffset);
                 pNameSubscription = pFirstNameSubscription;
@@ -91,10 +91,10 @@ namespace SharpWnfScan.Library
                     if (buffer == IntPtr.Zero)
                         break;
 
-                    nameSubscription = (Win32Struct.WNF_NAME_SUBSCRIPTION64)Marshal.PtrToStructure(
+                    nameSubscription = (WNF_NAME_SUBSCRIPTION64)Marshal.PtrToStructure(
                         buffer,
-                        typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64));
-                    Win32Api.LocalFree(buffer);
+                        typeof(WNF_NAME_SUBSCRIPTION64));
+                    NativeMethods.LocalFree(buffer);
                     pNameSubscription = new IntPtr(nameSubscription.NamesTableEntry.Flink - nNameTableEntryOffset);
 
                     if (pNameSubscription == pFirstNameSubscription)
@@ -105,12 +105,12 @@ namespace SharpWnfScan.Library
             }
             else if (proc.GetArchitecture() == "x86")
             {
-                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE32));
-                Win32Struct.WNF_NAME_SUBSCRIPTION32 nameSubscription;
+                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32));
+                WNF_NAME_SUBSCRIPTION32 nameSubscription;
                 nSizeNameSubscription = (uint)Marshal.SizeOf(
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32));
+                    typeof(WNF_NAME_SUBSCRIPTION32));
                 nNameTableEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32),
+                    typeof(WNF_NAME_SUBSCRIPTION32),
                     "NamesTableEntry").ToInt32();
                 buffer = proc.ReadMemory(pSubscriptionTable, nSizeSubscriptionTable);
 
@@ -121,10 +121,10 @@ namespace SharpWnfScan.Library
                     return results;
                 }
 
-                var subscriptionTable = (Win32Struct.WNF_SUBSCRIPTION_TABLE32)Marshal.PtrToStructure(
+                var subscriptionTable = (WNF_SUBSCRIPTION_TABLE32)Marshal.PtrToStructure(
                     buffer,
-                    typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE32));
-                Win32Api.LocalFree(buffer);
+                    typeof(WNF_SUBSCRIPTION_TABLE32));
+                NativeMethods.LocalFree(buffer);
 
                 pFirstNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Flink - nNameTableEntryOffset);
                 pNameSubscription = pFirstNameSubscription;
@@ -137,10 +137,10 @@ namespace SharpWnfScan.Library
                     if (buffer == IntPtr.Zero)
                         break;
 
-                    nameSubscription = (Win32Struct.WNF_NAME_SUBSCRIPTION32)Marshal.PtrToStructure(
+                    nameSubscription = (WNF_NAME_SUBSCRIPTION32)Marshal.PtrToStructure(
                         buffer,
-                        typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32));
-                    Win32Api.LocalFree(buffer);
+                        typeof(WNF_NAME_SUBSCRIPTION32));
+                    NativeMethods.LocalFree(buffer);
                     pNameSubscription = new IntPtr(nameSubscription.NamesTableEntry.Flink - nNameTableEntryOffset);
 
                     if (pNameSubscription == pFirstNameSubscription)
@@ -170,9 +170,9 @@ namespace SharpWnfScan.Library
 
             if (proc.GetArchitecture() == "x64")
             {
-                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE64_WIN11));
+                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64_WIN11));
                 nNameTableEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11),
+                    typeof(WNF_NAME_SUBSCRIPTION64_WIN11),
                     "NamesTableEntry").ToInt32();
                 buffer = proc.ReadMemory(pSubscriptionTable, nSizeSubscriptionTable);
 
@@ -183,19 +183,19 @@ namespace SharpWnfScan.Library
                     return results;
                 }
 
-                var subscriptionTable = (Win32Struct.WNF_SUBSCRIPTION_TABLE64_WIN11)Marshal.PtrToStructure(
+                var subscriptionTable = (WNF_SUBSCRIPTION_TABLE64_WIN11)Marshal.PtrToStructure(
                     buffer,
-                    typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE64_WIN11));
-                Win32Api.LocalFree(buffer);
+                    typeof(WNF_SUBSCRIPTION_TABLE64_WIN11));
+                NativeMethods.LocalFree(buffer);
 
                 pNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Root - nNameTableEntryOffset);
                 ListWin11NameSubscriptions(proc, pNameSubscription, ref results);
             }
             else if (proc.GetArchitecture() == "x86")
             {
-                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE32_WIN11));
+                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32_WIN11));
                 nNameTableEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11),
+                    typeof(WNF_NAME_SUBSCRIPTION32_WIN11),
                     "NamesTableEntry").ToInt32();
                 buffer = proc.ReadMemory(pSubscriptionTable, nSizeSubscriptionTable);
 
@@ -206,10 +206,10 @@ namespace SharpWnfScan.Library
                     return results;
                 }
 
-                var subscriptionTable = (Win32Struct.WNF_SUBSCRIPTION_TABLE32_WIN11)Marshal.PtrToStructure(
+                var subscriptionTable = (WNF_SUBSCRIPTION_TABLE32_WIN11)Marshal.PtrToStructure(
                     buffer,
-                    typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE32_WIN11));
-                Win32Api.LocalFree(buffer);
+                    typeof(WNF_SUBSCRIPTION_TABLE32_WIN11));
+                NativeMethods.LocalFree(buffer);
 
                 pNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Root - nNameTableEntryOffset);
                 ListWin11NameSubscriptions(proc, pNameSubscription, ref results);
@@ -229,7 +229,7 @@ namespace SharpWnfScan.Library
             out string errorMessage)
         {
             IntPtr buffer;
-            Win32Struct.WNF_CONTEXT_HEADER header;
+            WNF_CONTEXT_HEADER header;
             IntPtr pSubscriptionTable;
             errorMessage = null;
             pSubscriptionTable = proc.ReadIntPtr(pSubscriptionTablePointer);
@@ -237,13 +237,13 @@ namespace SharpWnfScan.Library
             if (proc.IsHeapAddress(pSubscriptionTable))
             {
                 buffer = proc.ReadMemory(pSubscriptionTable, 4);
-                header = (Win32Struct.WNF_CONTEXT_HEADER)Marshal.PtrToStructure(
+                header = (WNF_CONTEXT_HEADER)Marshal.PtrToStructure(
                     buffer,
-                    typeof(Win32Struct.WNF_CONTEXT_HEADER));
-                Win32Api.LocalFree(buffer);
+                    typeof(WNF_CONTEXT_HEADER));
+                NativeMethods.LocalFree(buffer);
 
-                if (header.NodeTypeCode == Win32Const.WNF_NODE_SUBSCRIPTION_TABLE ||
-                    header.NodeByteSize == Marshal.SizeOf(typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE64)))
+                if (header.NodeTypeCode == Win32Consts.WNF_NODE_SUBSCRIPTION_TABLE ||
+                    header.NodeByteSize == Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64)))
                 {
                     if (proc.GetArchitecture() == "x86" && Environment.Is64BitProcess)
                     {
@@ -280,7 +280,7 @@ namespace SharpWnfScan.Library
             uint nSizeDataSection = proc.GetSectionVirtualSize(".data");
             uint count;
             uint nSizePointer;
-            Win32Struct.WNF_CONTEXT_HEADER tableHeader;
+            WNF_CONTEXT_HEADER tableHeader;
             IntPtr pointer;
             IntPtr buffer;
             IntPtr pSubscriptionTable = IntPtr.Zero;
@@ -288,14 +288,14 @@ namespace SharpWnfScan.Library
             if (proc.GetArchitecture() == "x64")
             {
                 nSizeSubscriptionTable = (uint)Marshal.SizeOf(
-                    typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE64));
+                    typeof(WNF_SUBSCRIPTION_TABLE64));
                 nSizePointer = 8u;
                 count = nSizeDataSection / nSizePointer;
             }
             else if (proc.GetArchitecture() == "x86")
             {
                 nSizeSubscriptionTable = (uint)Marshal.SizeOf(
-                    typeof(Win32Struct.WNF_SUBSCRIPTION_TABLE32));
+                    typeof(WNF_SUBSCRIPTION_TABLE32));
                 nSizePointer = 4u;
                 count = nSizeDataSection / nSizePointer;
             }
@@ -316,18 +316,18 @@ namespace SharpWnfScan.Library
 
                     if (buffer != IntPtr.Zero)
                     {
-                        tableHeader = (Win32Struct.WNF_CONTEXT_HEADER)Marshal.PtrToStructure(
+                        tableHeader = (WNF_CONTEXT_HEADER)Marshal.PtrToStructure(
                             buffer,
-                            typeof(Win32Struct.WNF_CONTEXT_HEADER));
+                            typeof(WNF_CONTEXT_HEADER));
 
-                        Win32Api.LocalFree(buffer);
+                        NativeMethods.LocalFree(buffer);
                     }
                     else
                     {
                         continue;
                     }
 
-                    if ((tableHeader.NodeTypeCode == Win32Const.WNF_NODE_SUBSCRIPTION_TABLE) &&
+                    if ((tableHeader.NodeTypeCode == Win32Consts.WNF_NODE_SUBSCRIPTION_TABLE) &&
                         (tableHeader.NodeByteSize == nSizeSubscriptionTable))
                     {
                         pSubscriptionTable = new IntPtr(
@@ -356,8 +356,8 @@ namespace SharpWnfScan.Library
 
             if (proc.GetArchitecture() == "x64")
             {
-                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64));
-                Win32Struct.WNF_USER_SUBSCRIPTION64 userSubscription;
+                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64));
+                WNF_USER_SUBSCRIPTION64 userSubscription;
                 buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
 
                 if (buffer == IntPtr.Zero)
@@ -367,17 +367,17 @@ namespace SharpWnfScan.Library
                     return results;
                 }
 
-                var nameSubscription = (Win32Struct.WNF_NAME_SUBSCRIPTION64)Marshal.PtrToStructure(
+                var nameSubscription = (WNF_NAME_SUBSCRIPTION64)Marshal.PtrToStructure(
                     buffer,
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64));
-                Win32Api.LocalFree(buffer);
+                    typeof(WNF_NAME_SUBSCRIPTION64));
+                NativeMethods.LocalFree(buffer);
 
-                nSizeUserSubscription = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_USER_SUBSCRIPTION64));
+                nSizeUserSubscription = (uint)Marshal.SizeOf(typeof(WNF_USER_SUBSCRIPTION64));
                 nSubscriptionsListEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(Win32Struct.WNF_USER_SUBSCRIPTION64),
+                    typeof(WNF_USER_SUBSCRIPTION64),
                     "SubscriptionsListEntry").ToInt32();
 
-                if (nameSubscription.Header.NodeTypeCode == Win32Const.WNF_NODE_NAME_SUBSCRIPTION)
+                if (nameSubscription.Header.NodeTypeCode == Win32Consts.WNF_NODE_NAME_SUBSCRIPTION)
                 {
                     pFirstUserSubscription = new IntPtr(nameSubscription.SubscriptionsListHead.Flink - nSubscriptionsListEntryOffset);
                     pUserSubscription = pFirstUserSubscription;
@@ -390,10 +390,10 @@ namespace SharpWnfScan.Library
                         if (buffer == IntPtr.Zero)
                             break;
 
-                        userSubscription = (Win32Struct.WNF_USER_SUBSCRIPTION64)Marshal.PtrToStructure(
+                        userSubscription = (WNF_USER_SUBSCRIPTION64)Marshal.PtrToStructure(
                             buffer,
-                            typeof(Win32Struct.WNF_USER_SUBSCRIPTION64));
-                        Win32Api.LocalFree(buffer);
+                            typeof(WNF_USER_SUBSCRIPTION64));
+                        NativeMethods.LocalFree(buffer);
                         pUserSubscription = new IntPtr(userSubscription.SubscriptionsListEntry.Flink - nSubscriptionsListEntryOffset);
 
                         if (pUserSubscription == pFirstUserSubscription)
@@ -415,8 +415,8 @@ namespace SharpWnfScan.Library
             }
             else if (proc.GetArchitecture() == "x86")
             {
-                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32));
-                Win32Struct.WNF_USER_SUBSCRIPTION32 userSubscription;
+                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32));
+                WNF_USER_SUBSCRIPTION32 userSubscription;
                 buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
 
                 if (buffer == IntPtr.Zero)
@@ -426,17 +426,17 @@ namespace SharpWnfScan.Library
                     return results;
                 }
 
-                var nameSubscription = (Win32Struct.WNF_NAME_SUBSCRIPTION32)Marshal.PtrToStructure(
+                var nameSubscription = (WNF_NAME_SUBSCRIPTION32)Marshal.PtrToStructure(
                     buffer,
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32));
-                Win32Api.LocalFree(buffer);
+                    typeof(WNF_NAME_SUBSCRIPTION32));
+                NativeMethods.LocalFree(buffer);
 
-                nSizeUserSubscription = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_USER_SUBSCRIPTION32));
+                nSizeUserSubscription = (uint)Marshal.SizeOf(typeof(WNF_USER_SUBSCRIPTION32));
                 nSubscriptionsListEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(Win32Struct.WNF_USER_SUBSCRIPTION32),
+                    typeof(WNF_USER_SUBSCRIPTION32),
                     "SubscriptionsListEntry").ToInt32();
 
-                if (nameSubscription.Header.NodeTypeCode == Win32Const.WNF_NODE_NAME_SUBSCRIPTION)
+                if (nameSubscription.Header.NodeTypeCode == Win32Consts.WNF_NODE_NAME_SUBSCRIPTION)
                 {
                     pFirstUserSubscription = new IntPtr(nameSubscription.SubscriptionsListHead.Flink - nSubscriptionsListEntryOffset);
                     pUserSubscription = pFirstUserSubscription;
@@ -449,10 +449,10 @@ namespace SharpWnfScan.Library
                         if (buffer == IntPtr.Zero)
                             break;
 
-                        userSubscription = (Win32Struct.WNF_USER_SUBSCRIPTION32)Marshal.PtrToStructure(
+                        userSubscription = (WNF_USER_SUBSCRIPTION32)Marshal.PtrToStructure(
                             buffer,
-                            typeof(Win32Struct.WNF_USER_SUBSCRIPTION32));
-                        Win32Api.LocalFree(buffer);
+                            typeof(WNF_USER_SUBSCRIPTION32));
+                        NativeMethods.LocalFree(buffer);
                         pUserSubscription = new IntPtr(userSubscription.SubscriptionsListEntry.Flink - nSubscriptionsListEntryOffset);
 
                         if (pUserSubscription == pFirstUserSubscription)
@@ -497,8 +497,8 @@ namespace SharpWnfScan.Library
 
             if (proc.GetArchitecture() == "x64")
             {
-                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11));
-                Win32Struct.WNF_USER_SUBSCRIPTION64 userSubscription;
+                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64_WIN11));
+                WNF_USER_SUBSCRIPTION64 userSubscription;
                 buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
 
                 if (buffer == IntPtr.Zero)
@@ -508,17 +508,17 @@ namespace SharpWnfScan.Library
                     return results;
                 }
 
-                var nameSubscription = (Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11)Marshal.PtrToStructure(
+                var nameSubscription = (WNF_NAME_SUBSCRIPTION64_WIN11)Marshal.PtrToStructure(
                     buffer,
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11));
-                Win32Api.LocalFree(buffer);
+                    typeof(WNF_NAME_SUBSCRIPTION64_WIN11));
+                NativeMethods.LocalFree(buffer);
 
-                nSizeUserSubscription = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_USER_SUBSCRIPTION64));
+                nSizeUserSubscription = (uint)Marshal.SizeOf(typeof(WNF_USER_SUBSCRIPTION64));
                 nSubscriptionsListEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(Win32Struct.WNF_USER_SUBSCRIPTION64),
+                    typeof(WNF_USER_SUBSCRIPTION64),
                     "SubscriptionsListEntry").ToInt32();
 
-                if (nameSubscription.Header.NodeTypeCode == Win32Const.WNF_NODE_NAME_SUBSCRIPTION)
+                if (nameSubscription.Header.NodeTypeCode == Win32Consts.WNF_NODE_NAME_SUBSCRIPTION)
                 {
                     pFirstUserSubscription = new IntPtr(nameSubscription.SubscriptionsListHead.Flink - nSubscriptionsListEntryOffset);
                     pUserSubscription = pFirstUserSubscription;
@@ -531,10 +531,10 @@ namespace SharpWnfScan.Library
                         if (buffer == IntPtr.Zero)
                             break;
 
-                        userSubscription = (Win32Struct.WNF_USER_SUBSCRIPTION64)Marshal.PtrToStructure(
+                        userSubscription = (WNF_USER_SUBSCRIPTION64)Marshal.PtrToStructure(
                             buffer,
-                            typeof(Win32Struct.WNF_USER_SUBSCRIPTION64));
-                        Win32Api.LocalFree(buffer);
+                            typeof(WNF_USER_SUBSCRIPTION64));
+                        NativeMethods.LocalFree(buffer);
                         pUserSubscription = new IntPtr(userSubscription.SubscriptionsListEntry.Flink - nSubscriptionsListEntryOffset);
 
                         if (pUserSubscription == pFirstUserSubscription)
@@ -556,8 +556,8 @@ namespace SharpWnfScan.Library
             }
             else if (proc.GetArchitecture() == "x86")
             {
-                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11));
-                Win32Struct.WNF_USER_SUBSCRIPTION32 userSubscription;
+                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32_WIN11));
+                WNF_USER_SUBSCRIPTION32 userSubscription;
                 buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
 
                 if (buffer == IntPtr.Zero)
@@ -567,17 +567,17 @@ namespace SharpWnfScan.Library
                     return results;
                 }
 
-                var nameSubscription = (Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11)Marshal.PtrToStructure(
+                var nameSubscription = (WNF_NAME_SUBSCRIPTION32_WIN11)Marshal.PtrToStructure(
                     buffer,
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11));
-                Win32Api.LocalFree(buffer);
+                    typeof(WNF_NAME_SUBSCRIPTION32_WIN11));
+                NativeMethods.LocalFree(buffer);
 
-                nSizeUserSubscription = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_USER_SUBSCRIPTION32));
+                nSizeUserSubscription = (uint)Marshal.SizeOf(typeof(WNF_USER_SUBSCRIPTION32));
                 nSubscriptionsListEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(Win32Struct.WNF_USER_SUBSCRIPTION32),
+                    typeof(WNF_USER_SUBSCRIPTION32),
                     "SubscriptionsListEntry").ToInt32();
 
-                if (nameSubscription.Header.NodeTypeCode == Win32Const.WNF_NODE_NAME_SUBSCRIPTION)
+                if (nameSubscription.Header.NodeTypeCode == Win32Consts.WNF_NODE_NAME_SUBSCRIPTION)
                 {
                     pFirstUserSubscription = new IntPtr(nameSubscription.SubscriptionsListHead.Flink - nSubscriptionsListEntryOffset);
                     pUserSubscription = pFirstUserSubscription;
@@ -590,10 +590,10 @@ namespace SharpWnfScan.Library
                         if (buffer == IntPtr.Zero)
                             break;
 
-                        userSubscription = (Win32Struct.WNF_USER_SUBSCRIPTION32)Marshal.PtrToStructure(
+                        userSubscription = (WNF_USER_SUBSCRIPTION32)Marshal.PtrToStructure(
                             buffer,
-                            typeof(Win32Struct.WNF_USER_SUBSCRIPTION32));
-                        Win32Api.LocalFree(buffer);
+                            typeof(WNF_USER_SUBSCRIPTION32));
+                        NativeMethods.LocalFree(buffer);
                         pUserSubscription = new IntPtr(userSubscription.SubscriptionsListEntry.Flink - nSubscriptionsListEntryOffset);
 
                         if (pUserSubscription == pFirstUserSubscription)
@@ -638,18 +638,18 @@ namespace SharpWnfScan.Library
 
             if (proc.GetArchitecture() == "x64")
             {
-                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11));
+                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64_WIN11));
                 nNameTableEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11),
+                    typeof(WNF_NAME_SUBSCRIPTION64_WIN11),
                     "NamesTableEntry").ToInt32();
                 buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
 
                 if (buffer == IntPtr.Zero)
                     return;
 
-                var entry = (Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11)Marshal.PtrToStructure(
+                var entry = (WNF_NAME_SUBSCRIPTION64_WIN11)Marshal.PtrToStructure(
                     buffer,
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION64_WIN11));
+                    typeof(WNF_NAME_SUBSCRIPTION64_WIN11));
 
                 if (!nameSubscriptions.ContainsKey(entry.StateName))
                     nameSubscriptions.Add(entry.StateName, pNameSubscription);
@@ -666,22 +666,22 @@ namespace SharpWnfScan.Library
                     ListWin11NameSubscriptions(proc, pNameSubscriptionRight, ref nameSubscriptions);
                 }
 
-                Win32Api.LocalFree(buffer);
+                NativeMethods.LocalFree(buffer);
             }
             else if (proc.GetArchitecture() == "x86")
             {
-                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11));
+                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32_WIN11));
                 nNameTableEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11),
+                    typeof(WNF_NAME_SUBSCRIPTION32_WIN11),
                     "NamesTableEntry").ToInt32();
                 buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
 
                 if (buffer == IntPtr.Zero)
                     return;
 
-                var entry = (Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11)Marshal.PtrToStructure(
+                var entry = (WNF_NAME_SUBSCRIPTION32_WIN11)Marshal.PtrToStructure(
                     buffer,
-                    typeof(Win32Struct.WNF_NAME_SUBSCRIPTION32_WIN11));
+                    typeof(WNF_NAME_SUBSCRIPTION32_WIN11));
 
                 if (!nameSubscriptions.ContainsKey(entry.StateName))
                     nameSubscriptions.Add(entry.StateName, pNameSubscription);
@@ -698,7 +698,7 @@ namespace SharpWnfScan.Library
                     ListWin11NameSubscriptions(proc, pNameSubscriptionRight, ref nameSubscriptions);
                 }
 
-                Win32Api.LocalFree(buffer);
+                NativeMethods.LocalFree(buffer);
             }
         }
     }

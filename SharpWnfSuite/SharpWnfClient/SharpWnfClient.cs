@@ -3,7 +3,7 @@ using SharpWnfClient.Handler;
 
 namespace SharpWnfClient
 {
-    class SharpWnfClient
+    internal class SharpWnfClient
     {
         static void Main(string[] args)
         {

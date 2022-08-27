@@ -5,9 +5,11 @@ using SharpWnfClient.Interop;
 
 namespace SharpWnfClient.Library
 {
-    class WnfCom
+    using NTSTATUS = Int32;
+
+    internal class WnfCom
     {
-        struct NotifyContext
+        private struct NotifyContext
         {
             public bool Destroyed;
             public IntPtr Event;
@@ -62,16 +64,16 @@ namespace SharpWnfClient.Library
 
         public ulong CreateServer()
         {
-            int ntstatus = Win32Api.NtCreateWnfStateName(
+            NTSTATUS ntstatus = NativeMethods.NtCreateWnfStateName(
                 out this.StateName,
-                Win32Const.WNF_STATE_NAME_LIFETIME.WnfTemporaryStateName,
-                Win32Const.WNF_DATA_SCOPE.WnfDataScopeMachine,
+                WNF_STATE_NAME_LIFETIME.WnfTemporaryStateName,
+                WNF_DATA_SCOPE.WnfDataScopeMachine,
                 false,
                 IntPtr.Zero,
                 0x1000,
                 this.SecurityDescriptor);
 
-            if (ntstatus != Win32Const.STATUS_SUCCESS)
+            if (ntstatus != Win32Consts.STATUS_SUCCESS)
                 return 0;
 
             SetInternalName();
@@ -80,6 +82,7 @@ namespace SharpWnfClient.Library
             return this.StateName;
         }
 
+
         private ulong GetWnfStateName(string name)
         {
             ulong value;
@@ -87,7 +90,7 @@ namespace SharpWnfClient.Library
             try
             {
                 value = (ulong)Enum.Parse(
-                    typeof(Win32Const.WELL_KNOWN_WNF_NAME),
+                    typeof(WELL_KNOWN_WNF_NAME),
                     name.ToUpper());
             }
             catch
@@ -106,6 +109,7 @@ namespace SharpWnfClient.Library
             return value;
         }
 
+
         public bool Listen()
         {
             if (this.StateName == 0)
@@ -114,7 +118,7 @@ namespace SharpWnfClient.Library
                 return false;
             }
 
-            IntPtr hEvent = Win32Api.CreateEvent(
+            IntPtr hEvent = NativeMethods.CreateEvent(
                 IntPtr.Zero,
                 false,
                 false,
@@ -130,7 +134,7 @@ namespace SharpWnfClient.Library
             NotifyContext context = new NotifyContext(false, hEvent);
             Marshal.StructureToPtr(context, contextBuffer, true);
 
-            int ntstatus = Win32Api.RtlSubscribeWnfStateChangeNotification(
+            int ntstatus = NativeMethods.RtlSubscribeWnfStateChangeNotification(
                 out IntPtr subscription,
                 this.StateName,
                 0,
@@ -140,7 +144,7 @@ namespace SharpWnfClient.Library
                 0,
                 0);
 
-            if (ntstatus != Win32Const.STATUS_SUCCESS)
+            if (ntstatus != Win32Consts.STATUS_SUCCESS)
             {
                 Console.WriteLine("\n[-] Failed to subscribe WNF (NTSTATUS = 0x{0})\n", ntstatus.ToString("X8"));
                 return false;
@@ -151,7 +155,7 @@ namespace SharpWnfClient.Library
             {
                 try
                 {
-                    Win32Api.WaitForSingleObject(hEvent, 1000);
+                    NativeMethods.WaitForSingleObject(hEvent, 1000);
                 }
                 catch
                 {
@@ -160,10 +164,11 @@ namespace SharpWnfClient.Library
             }
 
             Console.WriteLine("\n[>] Shutting down client...\n");
-            Win32Api.CloseHandle(hEvent);
-            Win32Api.RtlUnsubscribeWnfStateChangeNotification(subscription);
+            NativeMethods.CloseHandle(hEvent);
+            NativeMethods.RtlUnsubscribeWnfStateChangeNotification(subscription);
             return true;
         }
+
 
         private int NotifyCallback(
             ulong stateName,
@@ -194,8 +199,9 @@ namespace SharpWnfClient.Library
 
             Marshal.StructureToPtr(context, callbackContext, true);
 
-            return Win32Const.STATUS_SUCCESS;
+            return Win32Consts.STATUS_SUCCESS;
         }
+
 
         public void PrintInternalName()
         {
@@ -205,7 +211,7 @@ namespace SharpWnfClient.Library
             output.Append(string.Format(
                 "Encoded State Name: 0x{0}, Decoded State Name: 0x{1}\n",
                 this.StateName.ToString("X16"),
-                (this.StateName ^ Win32Const.WNF_STATE_KEY).ToString("X")));
+                (this.StateName ^ Win32Consts.WNF_STATE_KEY).ToString("X")));
             output.Append(string.Format(
                 "\tVersion: {0}, Lifetime: {1}, Scope: {2}, Permanent: {3}, Sequence Number: 0x{4}, Owner Tag: 0x{5}",
                 this.InternalName.Version,
@@ -215,14 +221,17 @@ namespace SharpWnfClient.Library
                 this.InternalName.SequenceNumber.ToString("X"),
                 this.InternalName.OwnerTag.ToString("X")));
             output.Append("\n");
-            Console.WriteLine(output);
+
+            Console.WriteLine(output.ToString());
         }
+
 
         public bool Read(
             out int changeStamp,
             out IntPtr dataBuffer,
             out int bufferSize)
         {
+            NTSTATUS ntstatus;
             changeStamp = 0;
             bufferSize = 0x1000;
 
@@ -231,22 +240,24 @@ namespace SharpWnfClient.Library
                 Console.WriteLine("\n[-] Server is not initialized.\n");
                 dataBuffer = IntPtr.Zero;
                 bufferSize = 0;
+
                 return false;
             }
 
-            dataBuffer = Win32Api.VirtualAlloc(
+            dataBuffer = NativeMethods.VirtualAlloc(
                 IntPtr.Zero,
                 bufferSize,
-                Win32Const.MEM_COMMIT,
-                Win32Const.PAGE_READWRITE);
+                Win32Consts.MEM_COMMIT,
+                Win32Consts.PAGE_READWRITE);
 
             if (dataBuffer == IntPtr.Zero)
             {
                 bufferSize = 0;
+
                 return false;
             }
 
-            int ntstatus = Win32Api.NtQueryWnfStateData(
+            ntstatus = NativeMethods.NtQueryWnfStateData(
                 in this.StateName,
                 IntPtr.Zero,
                 IntPtr.Zero,
@@ -254,26 +265,28 @@ namespace SharpWnfClient.Library
                 dataBuffer,
                 ref bufferSize);
 
-            if (ntstatus != Win32Const.STATUS_SUCCESS)
+            if (ntstatus != Win32Consts.STATUS_SUCCESS)
             {
-                Win32Api.VirtualFree(dataBuffer, 0, Win32Const.MEM_RELEASE);
+                NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
                 dataBuffer = IntPtr.Zero;
                 bufferSize = 0;
+
                 return false;
             }
 
             if (bufferSize == 0)
             {
-                Win32Api.VirtualFree(dataBuffer, 0, Win32Const.MEM_RELEASE);
+                NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
                 dataBuffer = IntPtr.Zero;
             }
 
             return true;
         }
 
+
         private void SetInternalName()
         {
-            ulong stateName = this.StateName ^ Win32Const.WNF_STATE_KEY;
+            ulong stateName = this.StateName ^ Win32Consts.WNF_STATE_KEY;
             this.InternalName.Version = (stateName & 0xF);
             this.InternalName.NameLifeTime = ((stateName >> 4) & 0x3);
             this.InternalName.DataScope = ((stateName >> 6) & 0xF);
@@ -281,6 +294,7 @@ namespace SharpWnfClient.Library
             this.InternalName.SequenceNumber = ((stateName >> 11) & 0x1FFFFF);
             this.InternalName.OwnerTag = ((stateName >> 32) & 0xFFFFFFFF);
         }
+
 
         public bool SetStateName(string name)
         {
@@ -297,18 +311,25 @@ namespace SharpWnfClient.Library
             return true;
         }
 
+
         public WnfCom()
         {
+            int cbSid;
+            int cbDacl;
+            IntPtr pSid;
+            IntPtr pDacl;
+            IntPtr pSecurityDescriptor;
+
             this.StateName = 0UL;
             this.InternalName = new WNF_STATE_NAME_Data();
             this.Callback = Marshal.GetFunctionPointerForDelegate(
                 new CallbackDelegate(NotifyCallback));
 
-            int cbSid = Win32Const.SECURITY_MAX_SID_SIZE;
-            IntPtr pSid = Marshal.AllocHGlobal(cbSid);
+            cbSid = Win32Consts.SECURITY_MAX_SID_SIZE;
+            pSid = Marshal.AllocHGlobal(cbSid);
 
-            if (!Win32Api.CreateWellKnownSid(
-                Win32Const.WELL_KNOWN_SID_TYPE.WinWorldSid,
+            if (!NativeMethods.CreateWellKnownSid(
+                WELL_KNOWN_SID_TYPE.WinWorldSid,
                 IntPtr.Zero,
                 pSid,
                 ref cbSid))
@@ -318,23 +339,23 @@ namespace SharpWnfClient.Library
                 return;
             }
 
-            int cbDacl = Marshal.SizeOf(typeof(Win32Struct.ACL)) +
-                Marshal.SizeOf(typeof(Win32Struct.ACCESS_ALLOWED_ACE)) -
+            cbDacl = Marshal.SizeOf(typeof(ACL)) +
+                Marshal.SizeOf(typeof(ACCESS_ALLOWED_ACE)) -
                 Marshal.SizeOf(typeof(int)) +
                 cbSid;
-            IntPtr pDacl = Marshal.AllocHGlobal(cbDacl);
+            pDacl = Marshal.AllocHGlobal(cbDacl);
 
-            if (!Win32Api.InitializeAcl(pDacl, cbDacl, Win32Const.ACL_REVISION))
+            if (!NativeMethods.InitializeAcl(pDacl, cbDacl, Win32Consts.ACL_REVISION))
             {
                 Console.WriteLine("\n[-] Failed to initialize ACL (Error = {0}).\n",
                     Marshal.GetLastWin32Error());
                 return;
             }
 
-            if (!Win32Api.AddAccessAllowedAce(
+            if (!NativeMethods.AddAccessAllowedAce(
                 pDacl,
-                Win32Const.ACL_REVISION,
-                Win32Const.ACCESS_MASK.GENERIC_ALL,
+                Win32Consts.ACL_REVISION,
+                ACCESS_MASK.GENERIC_ALL,
                 pSid))
             {
                 Console.WriteLine("\n[-] Failed to add ACL (Error = {0}).\n",
@@ -342,19 +363,19 @@ namespace SharpWnfClient.Library
                 return;
             }
 
-            IntPtr pSecurityDescriptor = Marshal.AllocHGlobal(Marshal.SizeOf(
-                typeof(Win32Struct.SECURITY_DESCRIPTOR)));
+            pSecurityDescriptor = Marshal.AllocHGlobal(Marshal.SizeOf(
+                typeof(SECURITY_DESCRIPTOR)));
 
-            if (!Win32Api.InitializeSecurityDescriptor(
+            if (!NativeMethods.InitializeSecurityDescriptor(
                 pSecurityDescriptor,
-                Win32Const.SECURITY_DESCRIPTOR_REVISION))
+                Win32Consts.SECURITY_DESCRIPTOR_REVISION))
             {
                 Console.WriteLine("\n[-] Failed to initialize security descriptor (Error = {0}).\n",
                     Marshal.GetLastWin32Error());
                 return;
             }
 
-            if (!Win32Api.SetSecurityDescriptorDacl(
+            if (!NativeMethods.SetSecurityDescriptorDacl(
                 pSecurityDescriptor,
                 true,
                 pDacl,
@@ -368,17 +389,24 @@ namespace SharpWnfClient.Library
             this.SecurityDescriptor = pSecurityDescriptor;
         }
 
+
         public WnfCom(string nameString)
         {
+            int cbSid;
+            int cbDacl;
+            IntPtr pSid;
+            IntPtr pDacl;
+            IntPtr pSecurityDescriptor;
+            
             SetStateName(nameString);
             this.Callback = Marshal.GetFunctionPointerForDelegate(
                 new CallbackDelegate(NotifyCallback));
 
-            int cbSid = Win32Const.SECURITY_MAX_SID_SIZE;
-            IntPtr pSid = Marshal.AllocHGlobal(cbSid);
+            cbSid = Win32Consts.SECURITY_MAX_SID_SIZE;
+            pSid = Marshal.AllocHGlobal(cbSid);
 
-            if (!Win32Api.CreateWellKnownSid(
-                Win32Const.WELL_KNOWN_SID_TYPE.WinWorldSid,
+            if (!NativeMethods.CreateWellKnownSid(
+                WELL_KNOWN_SID_TYPE.WinWorldSid,
                 IntPtr.Zero,
                 pSid,
                 ref cbSid))
@@ -388,23 +416,23 @@ namespace SharpWnfClient.Library
                 return;
             }
 
-            int cbDacl = Marshal.SizeOf(typeof(Win32Struct.ACL)) +
-                Marshal.SizeOf(typeof(Win32Struct.ACCESS_ALLOWED_ACE)) -
+            cbDacl = Marshal.SizeOf(typeof(ACL)) +
+                Marshal.SizeOf(typeof(ACCESS_ALLOWED_ACE)) -
                 Marshal.SizeOf(typeof(int)) +
                 cbSid;
-            IntPtr pDacl = Marshal.AllocHGlobal(cbDacl);
+            pDacl = Marshal.AllocHGlobal(cbDacl);
 
-            if (!Win32Api.InitializeAcl(pDacl, cbDacl, Win32Const.ACL_REVISION))
+            if (!NativeMethods.InitializeAcl(pDacl, cbDacl, Win32Consts.ACL_REVISION))
             {
                 Console.WriteLine("\n[-] Failed to initialize ACL (Error = {0}).\n",
                     Marshal.GetLastWin32Error());
                 return;
             }
 
-            if (!Win32Api.AddAccessAllowedAce(
+            if (!NativeMethods.AddAccessAllowedAce(
                 pDacl,
-                Win32Const.ACL_REVISION,
-                Win32Const.ACCESS_MASK.GENERIC_ALL,
+                Win32Consts.ACL_REVISION,
+                ACCESS_MASK.GENERIC_ALL,
                 pSid))
             {
                 Console.WriteLine("\n[-] Failed to add ACL (Error = {0}).\n",
@@ -412,19 +440,19 @@ namespace SharpWnfClient.Library
                 return;
             }
 
-            IntPtr pSecurityDescriptor = Marshal.AllocHGlobal(Marshal.SizeOf(
-                typeof(Win32Struct.SECURITY_DESCRIPTOR)));
+            pSecurityDescriptor = Marshal.AllocHGlobal(Marshal.SizeOf(
+                typeof(SECURITY_DESCRIPTOR)));
 
-            if (!Win32Api.InitializeSecurityDescriptor(
+            if (!NativeMethods.InitializeSecurityDescriptor(
                 pSecurityDescriptor,
-                Win32Const.SECURITY_DESCRIPTOR_REVISION))
+                Win32Consts.SECURITY_DESCRIPTOR_REVISION))
             {
                 Console.WriteLine("\n[-] Failed to initialize security descriptor (Error = {0}).\n",
                     Marshal.GetLastWin32Error());
                 return;
             }
 
-            if (!Win32Api.SetSecurityDescriptorDacl(
+            if (!NativeMethods.SetSecurityDescriptorDacl(
                 pSecurityDescriptor,
                 true,
                 pDacl,
@@ -438,36 +466,34 @@ namespace SharpWnfClient.Library
             this.SecurityDescriptor = pSecurityDescriptor;
         }
 
+
         public bool Write(byte[] data)
         {
+            NTSTATUS ntstatus;
+            IntPtr pDataBuffer;
+
             if (this.StateName == 0)
             {
                 Console.WriteLine("\n[-] Server is not initialized.\n");
                 return false;
             }
 
-            IntPtr dataBuffer = Marshal.AllocHGlobal(data.Length);
-            Marshal.Copy(data, 0, dataBuffer, data.Length);
+            pDataBuffer = Marshal.AllocHGlobal(data.Length);
+            Marshal.Copy(data, 0, pDataBuffer, data.Length);
 
             Console.WriteLine("Sending input data to WNF subscriber...\n");
 
-            int ntstatus = Win32Api.NtUpdateWnfStateData(
+            ntstatus = NativeMethods.NtUpdateWnfStateData(
                 in this.StateName,
-                dataBuffer,
+                pDataBuffer,
                 data.Length,
                 IntPtr.Zero,
                 IntPtr.Zero,
                 0,
                 0);
+            Marshal.FreeHGlobal(pDataBuffer);
 
-            Marshal.FreeHGlobal(dataBuffer);
-
-            if (ntstatus != Win32Const.STATUS_SUCCESS)
-            {
-                return false;
-            }
-
-            return true;
+            return (ntstatus == Win32Consts.STATUS_SUCCESS);
         }
     }
 }

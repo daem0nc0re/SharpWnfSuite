@@ -1,112 +1,203 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace SharpWnfNameDumper.Library
 {
-    class Helpers
+    internal class Helpers
     {
-        public static int SearchTableOffset(in PeLoader binary)
+        [HandleProcessCorruptedStateExceptions]
+        public static bool ReadStateData(
+            in PeFile peImage,
+            uint nPointerOffset,
+            out ulong stateName,
+            out string stateNameString,
+            out string description)
         {
-            List<int> nameOffsets = binary.SearchBytes(Encoding.Unicode.GetBytes("WNF_"));
-            IntPtr sectionVA = binary.GetSectionVirtualAddress();
-            IntPtr pointerSearch;
-            int tableOffset;
-            string arch = binary.GetArchitecture();
-            int nSize;
+            uint alignment;
+            string archtecture = peImage.GetArchitecture();
+            string sectionName = ".rdata";
+            IntPtr pDataBuffer;
+            IntPtr pImageBase = peImage.GetImageBase();
+            uint nSectionVirtualAddress = peImage.GetSectionVirtualAddress(sectionName);
+            uint nSectionOffset = peImage.GetSectionPointerToRawData(sectionName);
+            long nBaseOffset = (long)(nSectionOffset - nSectionVirtualAddress) - pImageBase.ToInt64();
+            
+            stateName = 0UL;
+            stateNameString = null;
+            description = null;
 
-            if (arch == "x64")
-            {
-                nSize = 8;
-            }
-            else if (arch == "x86")
-            {
-                nSize = 4;
-            }
+            if (archtecture == "x64")
+                alignment = 8u;
+            else if (archtecture == "x86")
+                alignment = 4u;
             else
-            {
-                return 0;
-            }
+                return false;
 
-            foreach (var nameOffset in nameOffsets)
+            try
             {
-                pointerSearch = new IntPtr(sectionVA.ToInt64() + nameOffset);
-                List<int> tableOffsets = binary.SearchPointers(pointerSearch);
-                if (tableOffsets.Count > 0)
-                {
-                    tableOffset = tableOffsets[0] - nSize;
-                    if (VerifyTable(in binary, tableOffset))
-                    {
-                        return tableOffset;
-                    }
-                }
-            }
+                pDataBuffer = peImage.ReadIntPtr(new IntPtr(nPointerOffset));
+                stateName = (ulong)peImage.ReadInt64(
+                    new IntPtr(pDataBuffer.ToInt64() + nBaseOffset));
 
-            return 0;
-        }
+                pDataBuffer = peImage.ReadIntPtr(new IntPtr(nPointerOffset + alignment));
+                stateNameString = peImage.ReadUnicodeString(
+                    new IntPtr(pDataBuffer.ToInt64() + nBaseOffset));
 
-        public static bool VerifyTable(in PeLoader binary, int tableOffset)
-        {
-            string arch = binary.GetArchitecture();
-            int nSize;
-            int baseOffset;
-            IntPtr lpSubject;
-            byte[] data;
-            IntPtr lpSection = binary.GetSectionVirtualAddress();
-            int nSectionSize = binary.GetSectionSize();
+                pDataBuffer = peImage.ReadIntPtr(new IntPtr(nPointerOffset + (alignment * 2)));
+                description = peImage.ReadUnicodeString(
+                    new IntPtr(pDataBuffer.ToInt64() + nBaseOffset));
+            }
+            catch (AccessViolationException)
+            {
+                stateName = 0UL;
+                stateNameString = null;
+                description = null;
 
-            if (arch == "x64")
-            {
-                nSize = 8;
-            }
-            else if (arch == "x86")
-            {
-                nSize = 4;
-            }
-            else
-            {
                 return false;
             }
 
+            return true;
+        }
+
+
+        public static uint SearchTableOffset(in PeFile peImage)
+        {
+            IntPtr pImageBase;
+            IntPtr pTablePointer;
+            uint nSectionVirtualAddress;
+            uint nSectionOffset;
+            uint nSectionSize;
+            uint nTableOffset;
+            uint nPointerSize;
+            IntPtr[] pCandidates;
+            IntPtr pTableOffset;
+            byte[] searchBytes;
+            string architecture = peImage.GetArchitecture();
+            string sectionName = ".rdata";
+
+            pImageBase = peImage.GetImageBase();
+            nSectionVirtualAddress = peImage.GetSectionVirtualAddress(sectionName);
+            nSectionOffset = peImage.GetSectionPointerToRawData(sectionName);
+            nSectionSize = peImage.GetSectionSizeOfRawData(sectionName);
+
+            if ((nSectionOffset == 0) || (nSectionSize == 0) || (nSectionVirtualAddress == 0))
+                return 0u;
+
+            pCandidates = peImage.SearchBytes(
+                new IntPtr((long)nSectionOffset),
+                nSectionSize,
+                Encoding.Unicode.GetBytes("WNF_"));
+
+            if (pCandidates.Length == 0)
+                return 0u;
+
+            for (var idx = 0; idx < pCandidates.Length; idx++)
+            {
+                pTablePointer = new IntPtr(
+                    pImageBase.ToInt64() +
+                    (long)nSectionVirtualAddress +
+                    pCandidates[idx].ToInt64() -
+                    (long)nSectionOffset);
+
+                if (architecture == "x64")
+                {
+                    nPointerSize = 8u;
+                    searchBytes = BitConverter.GetBytes(pTablePointer.ToInt64());
+                }
+                else if (architecture == "x86")
+                {
+                    nPointerSize = 4u;
+                    searchBytes = BitConverter.GetBytes(pTablePointer.ToInt32());
+                }
+                else
+                {
+                    return 0u;
+                }
+
+                pTableOffset = peImage.SearchBytesFirst(
+                    new IntPtr((long)nSectionOffset),
+                    nSectionSize,
+                    searchBytes);
+
+                if (pTableOffset != IntPtr.Zero)
+                {
+                    nTableOffset = (uint)pTableOffset.ToInt64() - nPointerSize;
+                    
+                    if (VerifyTable(in peImage, nTableOffset))
+                        return nTableOffset;
+                }
+            }
+
+            return 0u;
+        }
+
+
+        public static bool VerifyTable(in PeFile peImage, uint tableOffset)
+        {
+            uint nPointerSize;
+            uint baseOffset;
+            IntPtr pImageBase;
+            IntPtr pDataBuffer;
+            IntPtr pDataOffset;
+            ulong stateName;
+            string stateNameString;
+            string description;
+            uint nSectionVirtualAddress;
+            uint nSectionOffset;
+            string architecture = peImage.GetArchitecture();
+            string sectionName = ".rdata";
+            var suffix = new Regex(@"^WNF_\S+$");
+
+            if (architecture == "x64")
+                nPointerSize = 8u;
+            else if (architecture == "x86")
+                nPointerSize = 4u;
+            else
+                return false;
+
+            pImageBase = peImage.GetImageBase();
+            nSectionVirtualAddress = peImage.GetSectionVirtualAddress(sectionName);
+            nSectionOffset = peImage.GetSectionPointerToRawData(sectionName);
             baseOffset = tableOffset;
 
             for (var count = 0; count < 3; count++)
             {
-                // WNF State Name Value
-                lpSubject = binary.ReadPointerFromSection(baseOffset);
-                data = binary.ReadSectionWithVirtualAddress(lpSubject, 8);
-                
-                if (BitConverter.ToInt64(data, 0) == 0)
+                if (!ReadStateData(
+                    in peImage,
+                    baseOffset,
+                    out stateName,
+                    out stateNameString,
+                    out description))
+                {
+                    return false;
+                }
+
+                if (stateName == 0)
                     return false;
 
-                // WNF State Name Key
-                baseOffset += nSize;
-                lpSubject = binary.ReadPointerFromSection(baseOffset);
-                data = binary.ReadSectionWithVirtualAddress(lpSubject, 8);
-
-                if (Encoding.Unicode.GetString(data) != "WNF_")
+                if (!suffix.IsMatch(stateNameString))
                     return false;
 
-                // WNF State Name Description
-                baseOffset += nSize;
-                lpSubject = binary.ReadPointerFromSection(baseOffset);
-                data = binary.ReadSectionWithVirtualAddress(lpSubject, 8);
-                if (BitConverter.ToInt64(data, 0) == 0)
+                if (string.IsNullOrEmpty(description))
                     return false;
 
-                if (lpSubject.ToInt64() < lpSection.ToInt64() ||
-                    lpSubject.ToInt64() >= (lpSection.ToInt64() + nSectionSize - nSize))
-                    return false;
-                baseOffset += nSize;
+                baseOffset += nPointerSize * 3;
             }
 
-            baseOffset = tableOffset - (nSize * 2);
-            lpSubject = binary.ReadPointerFromSection(baseOffset);
+            // Verify Top of Table with WNF state name string
+            baseOffset = tableOffset - (nPointerSize * 2);
+            pDataBuffer = peImage.ReadIntPtr(new IntPtr(baseOffset));
+            pDataOffset = new IntPtr(
+                pDataBuffer.ToInt64() -
+                pImageBase.ToInt64() -
+                (long)nSectionVirtualAddress +
+                (long)nSectionOffset);
 
-            if (lpSubject.ToInt64() != 0)
+            if (pDataOffset.ToInt64() != 0)
             {
-                data = binary.ReadSectionWithVirtualAddress(lpSubject, 8);
-                if (Encoding.Unicode.GetString(data) == "WNF_")
+                if (suffix.IsMatch(peImage.ReadUnicodeString(pDataOffset)))
                     return false;
             }
 

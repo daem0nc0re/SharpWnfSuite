@@ -1,23 +1,25 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace SharpWnfClient.Interop
+namespace SharpWnfServer.Interop
 {
-    class Win32Api
+    using NTSTATUS = Int32;
+
+    internal class NativeMethods
     {
         /*
          * advapi32.dll
          */
         [DllImport("advapi32.dll", SetLastError = true)]
         public static extern bool AddAccessAllowedAce(
-            IntPtr pAcl,
-            uint dwAceRevision,
-            Win32Const.ACCESS_MASK AccessMask,
+            IntPtr pAcl, 
+            uint dwAceRevision, 
+            ACCESS_MASK AccessMask, 
             IntPtr pSid);
 
         [DllImport("advapi32.dll", SetLastError = true)]
         public static extern bool CreateWellKnownSid(
-            Win32Const.WELL_KNOWN_SID_TYPE WellKnownSidType,
+            WELL_KNOWN_SID_TYPE WellKnownSidType,
             IntPtr DomainSid,
             IntPtr pSid,
             ref int cbSid);
@@ -35,9 +37,9 @@ namespace SharpWnfClient.Interop
 
         [DllImport("advapi32.dll", SetLastError = true)]
         public static extern bool SetSecurityDescriptorDacl(
-            IntPtr pSecurityDescriptor,
-            bool bDaclPresent,
-            IntPtr pDacl,
+            IntPtr pSecurityDescriptor, 
+            bool bDaclPresent, 
+            IntPtr pDacl, 
             bool bDaclDefaulted);
 
         /*
@@ -48,9 +50,9 @@ namespace SharpWnfClient.Interop
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern IntPtr CreateEvent(
-            IntPtr lpEventAttributes,
-            bool bManualReset,
-            bool bInitialState,
+            IntPtr lpEventAttributes, 
+            bool bManualReset, 
+            bool bInitialState, 
             IntPtr lpName);
 
         [DllImport("kernel32", SetLastError = true)]
@@ -68,24 +70,24 @@ namespace SharpWnfClient.Interop
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern int WaitForSingleObject(
-            IntPtr hHandle,
+            IntPtr hHandle, 
             int dwMilliseconds);
 
         /*
          * ntdll.dll
          */
         [DllImport("ntdll.dll")]
-        public static extern int NtCreateWnfStateName(
+        public static extern NTSTATUS NtCreateWnfStateName(
             out ulong StateName,
-            Win32Const.WNF_STATE_NAME_LIFETIME NameLifetime,
-            Win32Const.WNF_DATA_SCOPE DataScope,
+            WNF_STATE_NAME_LIFETIME NameLifetime,
+            WNF_DATA_SCOPE DataScope,
             bool PersistData,
             IntPtr TypeId,
             int MaximumStateSize,
             IntPtr SecurityDescriptor);
 
         [DllImport("ntdll.dll")]
-        public static extern int NtQueryWnfStateData(
+        public static extern NTSTATUS NtQueryWnfStateData(
             in ulong StateName,
             IntPtr TypeId,
             IntPtr ExplicitScope,
@@ -94,7 +96,7 @@ namespace SharpWnfClient.Interop
             ref int BufferSize);
 
         [DllImport("ntdll.dll")]
-        public static extern int NtUpdateWnfStateData(
+        public static extern NTSTATUS NtUpdateWnfStateData(
             in ulong StateName,
             IntPtr Buffer,
             int Length,
@@ -104,7 +106,7 @@ namespace SharpWnfClient.Interop
             int CheckStamp);
 
         [DllImport("ntdll.dll")]
-        public static extern int RtlSubscribeWnfStateChangeNotification(
+        public static extern NTSTATUS RtlSubscribeWnfStateChangeNotification(
             out IntPtr Subscription,
             ulong StateName,
             int ChangeStamp,
@@ -115,7 +117,7 @@ namespace SharpWnfClient.Interop
             int Unknown);
 
         [DllImport("ntdll.dll")]
-        public static extern int RtlUnsubscribeWnfStateChangeNotification(
+        public static extern NTSTATUS RtlUnsubscribeWnfStateChangeNotification(
             IntPtr Subscription);
     }
 }

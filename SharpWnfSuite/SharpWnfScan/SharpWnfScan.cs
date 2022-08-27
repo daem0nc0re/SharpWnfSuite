@@ -4,7 +4,7 @@ using SharpWnfScan.Handler;
 
 namespace SharpWnfScan
 {
-    class SharpWnfScan
+    internal class SharpWnfScan
     {
         static void Main(string[] args)
         {

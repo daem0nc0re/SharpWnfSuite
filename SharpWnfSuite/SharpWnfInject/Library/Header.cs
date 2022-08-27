@@ -1,6 +1,6 @@
 ﻿namespace SharpWnfInject.Library
 {
-    class Header
+    internal class Header
     {
         public static bool g_IsWin11 = false;
     }

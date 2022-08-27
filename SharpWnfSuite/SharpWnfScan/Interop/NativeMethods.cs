@@ -4,7 +4,9 @@ using System.Text;
 
 namespace SharpWnfScan.Interop
 {
-    class Win32Api
+    using NTSTATUS = Int32;
+
+    internal class NativeMethods
     {
         /*
          * advapi32.dll
@@ -22,7 +24,7 @@ namespace SharpWnfScan.Interop
         public static extern bool LookupPrivilegeValue(
             string lpSystemName,
             string lpName,
-            out Win32Struct.LUID lpLuid);
+            out LUID lpLuid);
 
         /*
          * Dbghelp.dll
@@ -35,11 +37,11 @@ namespace SharpWnfScan.Interop
             IntPtr hProcess,
             long Address,
             IntPtr Displacement,
-            ref Win32Struct.SYMBOL_INFO Symbol);
+            ref SYMBOL_INFO Symbol);
 
         [DllImport("Dbghelp.dll", SetLastError = true)]
-        public static extern Win32Const.SYM_OPTIONS SymSetOptions(
-            Win32Const.SYM_OPTIONS SymOptions);
+        public static extern SYM_OPTIONS SymSetOptions(
+            SYM_OPTIONS SymOptions);
 
         [DllImport("Dbghelp.dll", SetLastError = true)]
         public static extern bool SymInitialize(
@@ -84,7 +86,7 @@ namespace SharpWnfScan.Interop
          *
          */
         [DllImport("ntdll.dll")]
-        public static extern int NtQueryWnfStateData(
+        public static extern NTSTATUS NtQueryWnfStateData(
             in ulong StateName,
             IntPtr TypeId,
             IntPtr ExplicitScope,
@@ -93,15 +95,15 @@ namespace SharpWnfScan.Interop
             ref int BufferSize);
 
         [DllImport("ntdll.dll")]
-        public static extern int NtQueryWnfStateNameInformation(
+        public static extern NTSTATUS NtQueryWnfStateNameInformation(
             in ulong StateName,
-            Win32Const.WNF_STATE_NAME_INFORMATION NameInfoClass,
+            WNF_STATE_NAME_INFORMATION NameInfoClass,
             IntPtr ExplicitScope,
             ref int InfoBuffer,
             int InfoBufferSize);
 
         [DllImport("ntdll.dll")]
-        public static extern int NtUpdateWnfStateData(
+        public static extern NTSTATUS NtUpdateWnfStateData(
             in ulong StateName,
             IntPtr Buffer,
             int Length,

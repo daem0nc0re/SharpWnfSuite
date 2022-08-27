@@ -3,7 +3,7 @@ using SharpWnfDump.Library;
 
 namespace SharpWnfDump.Handler
 {
-    class Execute
+    internal class Execute
     {
         public static void Run(CommandLineParser options)
         {
@@ -16,8 +16,11 @@ namespace SharpWnfDump.Handler
             if (options.GetFlag("help"))
             {
                 options.GetHelp();
+
+                return;
             }
-            else if (options.GetFlag("info"))
+            
+            if (options.GetFlag("info"))
             {
                 wnfName = options.GetValue("WNF_NAME");
 
@@ -71,8 +74,9 @@ namespace SharpWnfDump.Handler
                     if (stateName == 0)
                     {
                         Console.WriteLine(
-                            "\n[-] Failed to resolve WNF State Name ({0}).",
+                            "\n[-] Failed to resolve WNF State Name ({0}).\n",
                             wnfName);
+
                         return;
                     }
 
@@ -86,12 +90,14 @@ namespace SharpWnfDump.Handler
                     if (string.IsNullOrEmpty(wnfName))
                     {
                         Console.WriteLine("\n[!] Missing WNF State Name.\n");
+
                         return;
                     }
 
                     if (string.IsNullOrEmpty(fileName))
                     {
                         Console.WriteLine("\n[!] Missing data source file.\n");
+
                         return;
                     }
 
@@ -107,8 +113,9 @@ namespace SharpWnfDump.Handler
                     if (stateName == 0)
                     {
                         Console.WriteLine(
-                            "\n[-] Failed to resolve WNF State Name ({0}).",
+                            "\n[-] Failed to resolve WNF State Name ({0}).\n",
                             wnfName);
+
                         return;
                     }
 
@@ -117,8 +124,12 @@ namespace SharpWnfDump.Handler
                 else
                 {
                     options.GetHelp();
+
+                    return;
                 }
             }
+
+            Console.WriteLine();
         }
     }
 }

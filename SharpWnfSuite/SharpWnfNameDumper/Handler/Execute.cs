@@ -4,7 +4,7 @@ using SharpWnfNameDumper.Library;
 
 namespace SharpWnfNameDumper.Handler
 {
-    class Execute
+    internal class Execute
     {
         public static void Run(CommandLineParser options)
         {
@@ -84,8 +84,11 @@ namespace SharpWnfNameDumper.Handler
             else
             {
                 options.GetHelp();
+
                 return;
             }
+
+            Console.WriteLine();
         }
     }
 }

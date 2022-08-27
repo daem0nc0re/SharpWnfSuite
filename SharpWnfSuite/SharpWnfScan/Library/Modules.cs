@@ -6,7 +6,7 @@ using SharpWnfScan.Interop;
 
 namespace SharpWnfScan.Library
 {
-    class Modules
+    internal class Modules
     {
         public static void DumpAllWnfSubscriptionInformation(
             ulong stateName,
@@ -42,7 +42,7 @@ namespace SharpWnfScan.Library
             Dictionary<ulong, IntPtr> nameSubscriptions;
             Dictionary<IntPtr, Dictionary<IntPtr, IntPtr>> userSubscriptions;
             Dictionary<IntPtr, IntPtr> callbackInfo;
-            Header.PROCESS_INFORMATION processInfo = new Header.PROCESS_INFORMATION {
+            var processInfo = new PROCESS_INFORMATION {
                 ProcessName = "N/A",
                 ProcessId = pid,
                 Architecture = "N/A",
@@ -157,7 +157,7 @@ namespace SharpWnfScan.Library
                 }
             }
 
-            Win32Api.SymSetOptions(Win32Const.SYM_OPTIONS.SYMOPT_DEFERRED_LOADS);
+            NativeMethods.SymSetOptions(SYM_OPTIONS.SYMOPT_DEFERRED_LOADS);
 
             if (stateNameFilter == 0UL)
             {
@@ -267,8 +267,8 @@ namespace SharpWnfScan.Library
             bool is64bit;
             IntPtr pSubscriptionTable;
             Dictionary<ulong, IntPtr> nameSubscriptions;
-            Header.PROCESS_INFORMATION processInfo;
-            var stateNames = new Dictionary<ulong, List<Header.PROCESS_INFORMATION>>();
+            PROCESS_INFORMATION processInfo;
+            var stateNames = new Dictionary<ulong, List<PROCESS_INFORMATION>>();
             var deniedProcesses = new Dictionary<int, string>();
 
             Process[] procs = Process.GetProcesses();
@@ -279,7 +279,7 @@ namespace SharpWnfScan.Library
             {
                 pid = procs[idx].Id;
 
-                processInfo = new Header.PROCESS_INFORMATION {
+                processInfo = new PROCESS_INFORMATION {
                     ProcessName = "N/A",
                     ProcessId = pid,
                     Architecture = "N/A",
@@ -390,7 +390,7 @@ namespace SharpWnfScan.Library
                     }
                     else
                     {
-                        stateNames.Add(stateName, new List<Header.PROCESS_INFORMATION>());
+                        stateNames.Add(stateName, new List<PROCESS_INFORMATION>());
                         stateNames[stateName].Add(processInfo);
                     }
                 }

@@ -3,7 +3,7 @@ using SharpWnfInject.Handler;
 
 namespace SharpWnfInject
 {
-    class SharpWnfInject
+    internal class SharpWnfInject
     {
         static void Main(string[] args)
         {

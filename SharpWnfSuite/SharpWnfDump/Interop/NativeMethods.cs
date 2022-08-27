@@ -4,7 +4,9 @@ using System.Text;
 
 namespace SharpWnfDump.Interop
 {
-    class Win32Api
+    using NTSTATUS = Int32;
+
+    internal class NativeMethods
     {
         /*
          * advapi32.dll
@@ -13,7 +15,7 @@ namespace SharpWnfDump.Interop
         public static extern bool ConvertSecurityDescriptorToStringSecurityDescriptor(
             IntPtr pSecurityDescriptor,
             int RequestedStringSDRevision,
-            Win32Const.SECURITY_INFORMATION SecurityInformation,
+            SECURITY_INFORMATION SecurityInformation,
             out StringBuilder StringSecurityDescriptor,
             IntPtr StringSecurityDescriptorLen);
 
@@ -91,7 +93,7 @@ namespace SharpWnfDump.Interop
          *
          */
         [DllImport("ntdll.dll")]
-        public static extern int NtQueryWnfStateData(
+        public static extern NTSTATUS NtQueryWnfStateData(
             in ulong StateName,
             IntPtr TypeId,
             IntPtr ExplicitScope,
@@ -100,15 +102,15 @@ namespace SharpWnfDump.Interop
             ref int BufferSize);
 
         [DllImport("ntdll.dll")]
-        public static extern int NtQueryWnfStateNameInformation(
+        public static extern NTSTATUS NtQueryWnfStateNameInformation(
             in ulong StateName,
-            Win32Const.WNF_STATE_NAME_INFORMATION NameInfoClass,
+            WNF_STATE_NAME_INFORMATION NameInfoClass,
             IntPtr ExplicitScope,
             ref int InfoBuffer,
             int InfoBufferSize);
 
         [DllImport("ntdll.dll")]
-        public static extern int NtUpdateWnfStateData(
+        public static extern NTSTATUS NtUpdateWnfStateData(
             in ulong StateName,
             IntPtr Buffer,
             int Length,

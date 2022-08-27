@@ -6,80 +6,66 @@ using System.Text;
 
 namespace SharpWnfNameDumper.Library
 {
-    class Modules
+    internal class Modules
     {
         public static bool DumpWellKnownWnfNames(
             string filePath, 
             out Dictionary<string, Dictionary<ulong, string>> stateNames)
         {
-            PeLoader binary;
+            ulong stateName;
+            string stateNameString;
+            string description;
+            uint nTableOffset;
+            uint nPointerSize;
+            string architecture;
             stateNames= new Dictionary<string, Dictionary<ulong, string>>();
 
             try
             {
-                binary = new PeLoader(filePath);
+                using (var peImage = new PeFile(filePath))
+                {
+                    architecture = peImage.GetArchitecture();
+
+                    if (architecture == "x64")
+                        nPointerSize = 8;
+                    else if (architecture == "x86")
+                        nPointerSize = 4;
+                    else
+                        return false;
+
+                    nTableOffset = Helpers.SearchTableOffset(in peImage);
+
+                    if (nTableOffset == 0)
+                        return false;
+
+                    while (Helpers.ReadStateData(
+                        in peImage,
+                        nTableOffset,
+                        out stateName,
+                        out stateNameString,
+                        out description))
+                    {
+                        stateNames.Add(
+                            stateNameString, 
+                            new Dictionary<ulong, string> { { stateName, description } });
+                        nTableOffset += (nPointerSize * 3);
+                    }
+                }
             }
             catch (InvalidDataException ex)
             {
-                Console.WriteLine("\n[!] {0}\n", ex.Message);
+                Console.WriteLine("[!] {0}", ex.Message);
+
                 return false;
             }
-
-            int tableOffset = Helpers.SearchTableOffset(in binary);
-
-            if (tableOffset == 0)
+            catch
             {
-                return false;
-            }
-
-            int offset = tableOffset;
-            IntPtr lpSubject = binary.ReadPointerFromSection(offset);
-            byte[] data;
-            string key;
-            ulong value;
-            string description;
-            string arch = binary.GetArchitecture();
-            int nSize;
-
-            if (arch == "x64")
-            {
-                nSize = 8;
-            }
-            else if (arch == "x86")
-            {
-                nSize = 4;
-            }
-            else
-            {
-                return false;
-            }
-
-            while (lpSubject.ToInt64() != 0)
-            {
-                data = binary.ReadSectionWithVirtualAddress(lpSubject, 8);
-                value = BitConverter.ToUInt64(data, 0);
-                
-                offset += nSize;
-                lpSubject = binary.ReadPointerFromSection(offset);
-                
-                if (lpSubject.ToInt64() == 0)
-                    return false;
-
-                key = binary.GetUnicodeStringFromSection(lpSubject);
-                offset += nSize;
-                lpSubject = binary.ReadPointerFromSection(offset);
-
-                if (lpSubject.ToInt64() == 0)
-                    return false;
-
-                description = binary.GetUnicodeStringFromSection(lpSubject);
-                stateNames.Add(key, new Dictionary<ulong, string> { { value, description } });
-                offset += nSize;
-                lpSubject = binary.ReadPointerFromSection(offset);
+                Console.WriteLine("[!] Unexpected exception.");
             }
 
             return true;
         }
+
 
         public static void DiffTables(
             Dictionary<string, Dictionary<ulong, string>> oldNames,
@@ -157,6 +143,7 @@ namespace SharpWnfNameDumper.Library
                 }
             }
         }
+
 
         public static void PrintDiff(
             Dictionary<string, Dictionary<ulong, string>> added,
@@ -262,6 +249,7 @@ namespace SharpWnfNameDumper.Library
             }
         }
 
+
         public static void WriteWnfNamesToFile(
             Dictionary<string, Dictionary<ulong, string>> stateNames,
             string filename,
@@ -269,7 +257,6 @@ namespace SharpWnfNameDumper.Library
             bool verbose,
             string format)
         {
-            StringBuilder output = new StringBuilder();
             string key;
             ulong value;
             string desctiption;
@@ -278,10 +265,11 @@ namespace SharpWnfNameDumper.Library
             string formatterLine;
             string delimiter;
             string formatterFooter;
+            string dirPath;
             int count = 0;
             int sizeStateNames = stateNames.Count;
             string fullPath = null;
-            string dirPath;
+            StringBuilder output = new StringBuilder();
 
             if (!string.IsNullOrEmpty(filename))
             {

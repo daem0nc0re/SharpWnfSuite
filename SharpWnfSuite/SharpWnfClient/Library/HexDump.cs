@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace SharpWnfClient.Library
 {
-    class HexDump
+    internal class HexDump
     {
         public static void Dump(byte[] data, int numIndent)
         {

@@ -5,7 +5,7 @@ using SharpWnfDump.Interop;
 
 namespace SharpWnfDump.Library
 {
-    class Helpers
+    internal class Helpers
     {
         public static string[] g_LifetimeKeyNames = new string[] {
             "SYSTEM\\CurrentControlSet\\Control\\Notifications",
@@ -50,7 +50,7 @@ namespace SharpWnfDump.Library
             stateName |= ((stateData.PermanentData & 0x1) << 10);
             stateName |= ((stateData.SequenceNumber & 0x1FFFFF) << 11);
             stateName |= ((stateData.OwnerTag & 0xFFFFFFFF) << 32);
-            stateName ^= Win32Const.WNF_STATE_KEY;
+            stateName ^= Win32Consts.WNF_STATE_KEY;
 
             return stateName;
         }
@@ -58,7 +58,7 @@ namespace SharpWnfDump.Library
         public static WNF_STATE_NAME_Data ConvertFromStateNameToStateData(ulong stateName)
         {
             WNF_STATE_NAME_Data stateData;
-            stateName ^= Win32Const.WNF_STATE_KEY;
+            stateName ^= Win32Consts.WNF_STATE_KEY;
             stateData.Version = (stateName & 0xF);
             stateData.NameLifeTime = ((stateName >> 4) & 0x3);
             stateData.DataScope = ((stateName >> 6) & 0xF);
@@ -80,9 +80,9 @@ namespace SharpWnfDump.Library
 
             if (pSecurityDescriptor != IntPtr.Zero)
             {
-                if (Win32Api.IsValidSecurityDescriptor(pSecurityDescriptor))
+                if (NativeMethods.IsValidSecurityDescriptor(pSecurityDescriptor))
                 {
-                    sdSize = Win32Api.GetSecurityDescriptorLength(pSecurityDescriptor);
+                    sdSize = NativeMethods.GetSecurityDescriptorLength(pSecurityDescriptor);
                     maxSize = Marshal.ReadInt32(new IntPtr(pSecurityDescriptor.ToInt64() + sdSize));
                 }
                 else
@@ -106,9 +106,9 @@ namespace SharpWnfDump.Library
             WNF_STATE_NAME_Data data = ConvertFromStateNameToStateData(stateName);
             byte[] tag = BitConverter.GetBytes((uint)data.OwnerTag);
             bool isWellKnown = data.NameLifeTime ==
-                (ulong)Win32Const.WNF_STATE_NAME_LIFETIME.WnfWellKnownStateName;
+                (ulong)WNF_STATE_NAME_LIFETIME.WnfWellKnownStateName;
 
-            wnfName = Enum.GetName(typeof(Win32Const.WELL_KNOWN_WNF_NAME), stateName);
+            wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME), stateName);
 
             if (string.IsNullOrEmpty(wnfName))
             {
@@ -135,7 +135,7 @@ namespace SharpWnfDump.Library
             try
             {
                 value = (ulong)Enum.Parse(
-                    typeof(Win32Const.WELL_KNOWN_WNF_NAME),
+                    typeof(WELL_KNOWN_WNF_NAME),
                     name.ToUpper());
             }
             catch
@@ -158,9 +158,9 @@ namespace SharpWnfDump.Library
         {
             WNF_STATE_NAME_Data stateData = ConvertFromStateNameToStateData(stateName);
             uint maxNameLifetime = (uint)(Enum.GetNames(
-                typeof(Win32Const.WNF_STATE_NAME_LIFETIME)).Length - 1);
+                typeof(WNF_STATE_NAME_LIFETIME)).Length - 1);
             uint maxDataScope = (uint)(Enum.GetNames(
-                typeof(Win32Const.WNF_DATA_SCOPE)).Length - 1);
+                typeof(WNF_DATA_SCOPE)).Length - 1);
 
             if (stateData.NameLifeTime > maxNameLifetime)
                 return false;
@@ -174,7 +174,7 @@ namespace SharpWnfDump.Library
         public static bool IsWritable(ulong stateName)
         {
             int STATUS_OPERATION_FAILED = Convert.ToInt32("0xC0000001", 16);
-            int ntstatus = Win32Api.NtUpdateWnfStateData(
+            int ntstatus = NativeMethods.NtUpdateWnfStateData(
                 in stateName,
                 IntPtr.Zero,
                 0,
@@ -218,7 +218,7 @@ namespace SharpWnfDump.Library
             {
                 exists = QueryWnfInfoClass(
                     stateName,
-                    Win32Const.WNF_STATE_NAME_INFORMATION.WnfInfoSubscribersPresent);
+                    WNF_STATE_NAME_INFORMATION.WnfInfoSubscribersPresent);
             }
 
             WNF_STATE_NAME_Data data = ConvertFromStateNameToStateData(stateName);
@@ -237,12 +237,10 @@ namespace SharpWnfDump.Library
 
             if (showSd && pSecurityDescriptor != IntPtr.Zero)
             {
-                Win32Api.ConvertSecurityDescriptorToStringSecurityDescriptor(
+                NativeMethods.ConvertSecurityDescriptorToStringSecurityDescriptor(
                     pSecurityDescriptor,
                     SDDL_REVISION_1,
-                    Win32Const.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION |
-                    Win32Const.SECURITY_INFORMATION.SACL_SECURITY_INFORMATION |
-                    Win32Const.SECURITY_INFORMATION.LABEL_SECURITY_INFORMATION,
+                    SECURITY_INFORMATION.DACL_SECURITY_INFORMATION | SECURITY_INFORMATION.SACL_SECURITY_INFORMATION | SECURITY_INFORMATION.LABEL_SECURITY_INFORMATION,
                     out StringBuilder StringSecurityDescriptor,
                     IntPtr.Zero);
                 Console.WriteLine("\n\t{0}", StringSecurityDescriptor);
@@ -259,26 +257,26 @@ namespace SharpWnfDump.Library
                 Console.WriteLine();
             }
 
-            Win32Api.VirtualFree(dataBuffer, 0, Win32Const.MEM_RELEASE);
+            NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
 
             return true;
         }
 
         public static int QueryWnfInfoClass(
             ulong stateName,
-            Win32Const.WNF_STATE_NAME_INFORMATION nameInfoClass)
+            WNF_STATE_NAME_INFORMATION nameInfoClass)
         {
             int sizeOfUint = Marshal.SizeOf(typeof(uint));
             int exists = 2;
 
-            int ntstatus = Win32Api.NtQueryWnfStateNameInformation(
+            int ntstatus = NativeMethods.NtQueryWnfStateNameInformation(
                 in stateName,
                 nameInfoClass,
                 IntPtr.Zero,
                 ref exists,
                 sizeOfUint);
 
-            if (ntstatus != Win32Const.STATUS_SUCCESS)
+            if (ntstatus != Win32Consts.STATUS_SUCCESS)
             {
                 return 0;
             }
@@ -295,11 +293,11 @@ namespace SharpWnfDump.Library
             changeStamp = 0;
             bufferSize = 0x1000;
 
-            dataBuffer = Win32Api.VirtualAlloc(
+            dataBuffer = NativeMethods.VirtualAlloc(
                 IntPtr.Zero,
                 bufferSize,
-                Win32Const.MEM_COMMIT,
-                Win32Const.PAGE_READWRITE);
+                Win32Consts.MEM_COMMIT,
+                Win32Consts.PAGE_READWRITE);
 
             if (dataBuffer == IntPtr.Zero)
             {
@@ -307,7 +305,7 @@ namespace SharpWnfDump.Library
                 return false;
             }
 
-            int ntstatus = Win32Api.NtQueryWnfStateData(
+            int ntstatus = NativeMethods.NtQueryWnfStateData(
                 in stateName,
                 IntPtr.Zero,
                 IntPtr.Zero,
@@ -315,9 +313,9 @@ namespace SharpWnfDump.Library
                 dataBuffer,
                 ref bufferSize);
 
-            if (ntstatus != Win32Const.STATUS_SUCCESS)
+            if (ntstatus != Win32Consts.STATUS_SUCCESS)
             {
-                Win32Api.VirtualFree(dataBuffer, 0, Win32Const.MEM_RELEASE);
+                NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
                 dataBuffer = IntPtr.Zero;
                 bufferSize = 0;
                 return false;
@@ -325,7 +323,7 @@ namespace SharpWnfDump.Library
 
             if (bufferSize == 0)
             {
-                Win32Api.VirtualFree(dataBuffer, 0, Win32Const.MEM_RELEASE);
+                NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
                 dataBuffer = IntPtr.Zero;
             }
 
@@ -334,7 +332,7 @@ namespace SharpWnfDump.Library
 
         public static bool WriteWnfData(ulong stateName, IntPtr dataBuffer, int dataSize)
         {
-            int ntstatus = Win32Api.NtUpdateWnfStateData(
+            int ntstatus = NativeMethods.NtUpdateWnfStateData(
                 in stateName,
                 dataBuffer,
                 dataSize,
@@ -343,7 +341,7 @@ namespace SharpWnfDump.Library
                 0,
                 0);
 
-            if (ntstatus != Win32Const.STATUS_SUCCESS)
+            if (ntstatus != Win32Consts.STATUS_SUCCESS)
             {
                 return false;
             }

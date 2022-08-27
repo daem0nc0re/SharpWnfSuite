@@ -6,7 +6,7 @@ using SharpWnfScan.Interop;
 
 namespace SharpWnfScan.Library
 {
-    class Helpers
+    internal class Helpers
     {
         private struct WNF_STATE_NAME_DATA
         {
@@ -22,7 +22,7 @@ namespace SharpWnfScan.Library
         private static WNF_STATE_NAME_DATA ConvertFromStateNameToStateData(ulong stateName)
         {
             WNF_STATE_NAME_DATA stateData;
-            stateName ^= Win32Const.WNF_STATE_KEY;
+            stateName ^= Win32Consts.WNF_STATE_KEY;
             stateData.Version = (stateName & 0xF);
             stateData.NameLifeTime = ((stateName >> 4) & 0x3);
             stateData.DataScope = ((stateName >> 6) & 0xF);
@@ -37,23 +37,23 @@ namespace SharpWnfScan.Library
         public static string GetSymbolPath(IntPtr hProcess, IntPtr pointer)
         {
             string symbol;
-            var pathBuilder = new StringBuilder((int)Win32Const.MAX_PATH);
-            var symbolInfo = new Win32Struct.SYMBOL_INFO
+            var pathBuilder = new StringBuilder((int)Win32Consts.MAX_PATH);
+            var symbolInfo = new SYMBOL_INFO
             {
-                SizeOfStruct = (uint)Marshal.SizeOf(typeof(Win32Struct.SYMBOL_INFO)) - Win32Const.MAX_SYM_NAME,
-                MaxNameLen = Win32Const.MAX_SYM_NAME,
-                Name = new byte[Win32Const.MAX_SYM_NAME]
+                SizeOfStruct = (uint)Marshal.SizeOf(typeof(SYMBOL_INFO)) - Win32Consts.MAX_SYM_NAME,
+                MaxNameLen = Win32Consts.MAX_SYM_NAME,
+                Name = new byte[Win32Consts.MAX_SYM_NAME]
             };
 
-            Win32Api.SymInitialize(hProcess, null, true);
+            NativeMethods.SymInitialize(hProcess, null, true);
 
-            Win32Api.GetMappedFileName(
+            NativeMethods.GetMappedFileName(
                 hProcess,
                 pointer,
                 pathBuilder,
                 (uint)pathBuilder.Capacity);
 
-            if (Win32Api.SymFromAddr(
+            if (NativeMethods.SymFromAddr(
                 hProcess,
                 pointer.ToInt64(),
                 IntPtr.Zero,
@@ -74,7 +74,7 @@ namespace SharpWnfScan.Library
                 symbol = "N/A";
             }
 
-            Win32Api.SymCleanup(hProcess);
+            NativeMethods.SymCleanup(hProcess);
 
             return symbol;
         }
@@ -86,9 +86,9 @@ namespace SharpWnfScan.Library
             WNF_STATE_NAME_DATA data = ConvertFromStateNameToStateData(stateName);
             byte[] tag = BitConverter.GetBytes((uint)data.OwnerTag);
             bool isWellKnown = data.NameLifeTime ==
-                (ulong)Win32Const.WNF_STATE_NAME_LIFETIME.WnfWellKnownStateName;
+                (ulong)WNF_STATE_NAME_LIFETIME.WnfWellKnownStateName;
 
-            wnfName = Enum.GetName(typeof(Win32Const.WELL_KNOWN_WNF_NAME), stateName);
+            wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME), stateName);
 
             if (string.IsNullOrEmpty(wnfName))
             {
@@ -115,14 +115,14 @@ namespace SharpWnfScan.Library
             int MinorVersion = 0;
             int BuildNumber = 0;
 
-            Win32Api.RtlGetNtVersionNumbers(ref MajorVersion, ref MinorVersion, ref BuildNumber);
+            NativeMethods.RtlGetNtVersionNumbers(ref MajorVersion, ref MinorVersion, ref BuildNumber);
             BuildNumber &= 0xFFFF;
 
             return ((MajorVersion >= 10) && (BuildNumber >= 22000));
         }
 
 
-        public static void PrintProcessInformation(Header.PROCESS_INFORMATION processInfo)
+        public static void PrintProcessInformation(PROCESS_INFORMATION processInfo)
         {
             if (string.IsNullOrEmpty(processInfo.ErrorMessage))
             {

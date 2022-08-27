@@ -8,7 +8,7 @@ using System.Text;
 
 namespace SharpWnfInject.Library
 {
-    class PeProcess : IDisposable
+    internal class PeProcess : IDisposable
     {
         /*
          * P/Invoke : Enums
