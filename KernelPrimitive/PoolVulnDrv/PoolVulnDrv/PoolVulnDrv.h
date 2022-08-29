@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning(disable : 4996)
 
 #define POOLVULNDRV_DEVICE 0xdead
 #define VULN_POOL_TAG 'daed'
