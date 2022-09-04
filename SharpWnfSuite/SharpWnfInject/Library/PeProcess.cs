@@ -99,7 +99,7 @@ namespace SharpWnfInject.Library
             WriteCombineModifierflag = 0x400
         }
 
-        public enum PROCESSINFOCLASS
+        public enum PROCESS_INFORMATION_CLASS
         {
             ProcessBasicInformation = 0x00,
             ProcessQuotaLimits = 0x01,
@@ -722,7 +722,7 @@ namespace SharpWnfInject.Library
         [DllImport("ntdll.dll", SetLastError = true)]
         static extern int NtQueryInformationProcess(
             IntPtr processHandle,
-            PROCESSINFOCLASS processInformationClass,
+            PROCESS_INFORMATION_CLASS processInformationClass,
             IntPtr processInformation,
             uint processInformationLength,
             IntPtr returnLength);
@@ -1514,7 +1514,7 @@ namespace SharpWnfInject.Library
 
                     ntstatus = NtQueryInformationProcess(
                         this.hProcess,
-                        PROCESSINFOCLASS.ProcessWow64Information,
+                        PROCESS_INFORMATION_CLASS.ProcessWow64Information,
                         buffer,
                         (uint)nSize, IntPtr.Zero);
 
@@ -1534,7 +1534,7 @@ namespace SharpWnfInject.Library
 
             ntstatus = NtQueryInformationProcess(
                 this.hProcess,
-                PROCESSINFOCLASS.ProcessBasicInformation,
+                PROCESS_INFORMATION_CLASS.ProcessBasicInformation,
                 buffer,
                 (uint)nSize,
                 IntPtr.Zero);
