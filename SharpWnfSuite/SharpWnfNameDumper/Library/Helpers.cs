@@ -15,39 +15,38 @@ namespace SharpWnfNameDumper.Library
             out string stateNameString,
             out string description)
         {
-            uint alignment;
-            string archtecture = peImage.GetArchitecture();
-            string sectionName = ".rdata";
             IntPtr pDataBuffer;
             IntPtr pImageBase = peImage.GetImageBase();
+            uint alignment = peImage.Is64Bit ? 8u : 4u;
+            string sectionName = ".rdata";
             uint nSectionVirtualAddress = peImage.GetSectionVirtualAddress(sectionName);
             uint nSectionOffset = peImage.GetSectionPointerToRawData(sectionName);
             long nBaseOffset = (long)(nSectionOffset - nSectionVirtualAddress) - pImageBase.ToInt64();
-            
-            stateName = 0UL;
-            stateNameString = null;
-            description = null;
-
-            if (archtecture == "x64")
-                alignment = 8u;
-            else if (archtecture == "x86")
-                alignment = 4u;
-            else
-                return false;
 
             try
             {
-                pDataBuffer = peImage.ReadIntPtr(new IntPtr(nPointerOffset));
-                stateName = (ulong)peImage.ReadInt64(
-                    new IntPtr(pDataBuffer.ToInt64() + nBaseOffset));
+                if (Environment.Is64BitProcess)
+                {
+                    pDataBuffer = peImage.ReadIntPtr(new IntPtr(nPointerOffset));
+                    stateName = (ulong)peImage.ReadInt64(new IntPtr(pDataBuffer.ToInt64() + nBaseOffset));
 
-                pDataBuffer = peImage.ReadIntPtr(new IntPtr(nPointerOffset + alignment));
-                stateNameString = peImage.ReadUnicodeString(
-                    new IntPtr(pDataBuffer.ToInt64() + nBaseOffset));
+                    pDataBuffer = peImage.ReadIntPtr(new IntPtr(nPointerOffset + alignment));
+                    stateNameString = peImage.ReadUnicodeString(new IntPtr(pDataBuffer.ToInt64() + nBaseOffset));
 
-                pDataBuffer = peImage.ReadIntPtr(new IntPtr(nPointerOffset + (alignment * 2)));
-                description = peImage.ReadUnicodeString(
-                    new IntPtr(pDataBuffer.ToInt64() + nBaseOffset));
+                    pDataBuffer = peImage.ReadIntPtr(new IntPtr(nPointerOffset + (alignment * 2)));
+                    description = peImage.ReadUnicodeString(new IntPtr(pDataBuffer.ToInt64() + nBaseOffset));
+                }
+                else
+                {
+                    pDataBuffer = peImage.ReadIntPtr(new IntPtr((int)nPointerOffset));
+                    stateName = (ulong)peImage.ReadInt64(new IntPtr(pDataBuffer.ToInt32() + (int)nBaseOffset));
+
+                    pDataBuffer = peImage.ReadIntPtr(new IntPtr((int)(nPointerOffset + alignment)));
+                    stateNameString = peImage.ReadUnicodeString(new IntPtr(pDataBuffer.ToInt32() + (int)nBaseOffset));
+
+                    pDataBuffer = peImage.ReadIntPtr(new IntPtr((int)(nPointerOffset + (alignment * 2))));
+                    description = peImage.ReadUnicodeString(new IntPtr(pDataBuffer.ToInt32() + (int)nBaseOffset));
+                }
             }
             catch (AccessViolationException)
             {
@@ -70,12 +69,11 @@ namespace SharpWnfNameDumper.Library
             uint nSectionOffset;
             uint nSectionSize;
             uint nTableOffset;
-            uint nPointerSize;
             IntPtr[] pCandidates;
             IntPtr pTableOffset;
             byte[] searchBytes;
-            string architecture = peImage.GetArchitecture();
             string sectionName = ".rdata";
+            uint nPointerSize = peImage.Is64Bit ? 8u : 4u;
 
             pImageBase = peImage.GetImageBase();
             nSectionVirtualAddress = peImage.GetSectionVirtualAddress(sectionName);
@@ -95,26 +93,15 @@ namespace SharpWnfNameDumper.Library
 
             for (var idx = 0; idx < pCandidates.Length; idx++)
             {
-                pTablePointer = new IntPtr(
-                    pImageBase.ToInt64() +
-                    (long)nSectionVirtualAddress +
-                    pCandidates[idx].ToInt64() -
-                    (long)nSectionOffset);
-
-                if (architecture == "x64")
-                {
-                    nPointerSize = 8u;
-                    searchBytes = BitConverter.GetBytes(pTablePointer.ToInt64());
-                }
-                else if (architecture == "x86")
-                {
-                    nPointerSize = 4u;
-                    searchBytes = BitConverter.GetBytes(pTablePointer.ToInt32());
-                }
+                if (Environment.Is64BitProcess)
+                    pTablePointer = new IntPtr(pImageBase.ToInt64() + pCandidates[idx].ToInt64() + (long)(nSectionVirtualAddress - nSectionOffset));
                 else
-                {
-                    return 0u;
-                }
+                    pTablePointer = new IntPtr(pImageBase.ToInt32() + pCandidates[idx].ToInt32() + (int)(nSectionVirtualAddress - nSectionOffset));
+
+                if (peImage.Is64Bit)
+                    searchBytes = BitConverter.GetBytes(pTablePointer.ToInt64());
+                else
+                    searchBytes = BitConverter.GetBytes(pTablePointer.ToInt32());
 
                 pTableOffset = peImage.SearchBytesFirst(
                     new IntPtr((long)nSectionOffset),
@@ -136,26 +123,15 @@ namespace SharpWnfNameDumper.Library
 
         public static bool VerifyTable(in PeFile peImage, uint tableOffset)
         {
-            uint nPointerSize;
             uint baseOffset;
             IntPtr pImageBase;
             IntPtr pDataBuffer;
             IntPtr pDataOffset;
-            ulong stateName;
-            string stateNameString;
-            string description;
             uint nSectionVirtualAddress;
             uint nSectionOffset;
-            string architecture = peImage.GetArchitecture();
             string sectionName = ".rdata";
+            uint nPointerSize = peImage.Is64Bit ? 8u : 4u;
             var suffix = new Regex(@"^WNF_\S+$");
-
-            if (architecture == "x64")
-                nPointerSize = 8u;
-            else if (architecture == "x86")
-                nPointerSize = 4u;
-            else
-                return false;
 
             pImageBase = peImage.GetImageBase();
             nSectionVirtualAddress = peImage.GetSectionVirtualAddress(sectionName);
@@ -167,9 +143,9 @@ namespace SharpWnfNameDumper.Library
                 if (!ReadStateData(
                     in peImage,
                     baseOffset,
-                    out stateName,
-                    out stateNameString,
-                    out description))
+                    out ulong stateName,
+                    out string stateNameString,
+                    out string description))
                 {
                     return false;
                 }
@@ -189,11 +165,11 @@ namespace SharpWnfNameDumper.Library
             // Verify Top of Table with WNF state name string
             baseOffset = tableOffset - (nPointerSize * 2);
             pDataBuffer = peImage.ReadIntPtr(new IntPtr(baseOffset));
-            pDataOffset = new IntPtr(
-                pDataBuffer.ToInt64() -
-                pImageBase.ToInt64() -
-                (long)nSectionVirtualAddress +
-                (long)nSectionOffset);
+
+            if (Environment.Is64BitProcess)
+                pDataOffset = new IntPtr(pDataBuffer.ToInt64() - pImageBase.ToInt64() - (long)(nSectionVirtualAddress - nSectionOffset));
+            else
+                pDataOffset = new IntPtr(pDataBuffer.ToInt32() - pImageBase.ToInt32() - (int)(nSectionVirtualAddress - nSectionOffset));
 
             if (pDataOffset.ToInt64() != 0)
             {

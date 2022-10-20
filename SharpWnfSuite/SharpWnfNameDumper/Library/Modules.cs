@@ -12,27 +12,15 @@ namespace SharpWnfNameDumper.Library
             string filePath, 
             out Dictionary<string, Dictionary<ulong, string>> stateNames)
         {
-            ulong stateName;
-            string stateNameString;
-            string description;
             uint nTableOffset;
             uint nPointerSize;
-            string architecture;
             stateNames= new Dictionary<string, Dictionary<ulong, string>>();
 
             try
             {
                 using (var peImage = new PeFile(filePath))
                 {
-                    architecture = peImage.GetArchitecture();
-
-                    if (architecture == "x64")
-                        nPointerSize = 8;
-                    else if (architecture == "x86")
-                        nPointerSize = 4;
-                    else
-                        return false;
-
+                    nPointerSize = peImage.Is64Bit ? 8u : 4u;
                     nTableOffset = Helpers.SearchTableOffset(in peImage);
 
                     if (nTableOffset == 0)
@@ -41,9 +29,9 @@ namespace SharpWnfNameDumper.Library
                     while (Helpers.ReadStateData(
                         in peImage,
                         nTableOffset,
-                        out stateName,
-                        out stateNameString,
-                        out description))
+                        out ulong stateName,
+                        out string stateNameString,
+                        out string description))
                     {
                         stateNames.Add(
                             stateNameString, 
@@ -74,11 +62,11 @@ namespace SharpWnfNameDumper.Library
             out Dictionary<string, Dictionary<ulong, string>> deleted,
             out Dictionary<string, Dictionary<ulong, string>> modified)
         {
+            bool exists;
+            bool modifies;
             added = new Dictionary<string, Dictionary<ulong, string>>();
             deleted = new Dictionary<string, Dictionary<ulong, string>>();
             modified = new Dictionary<string, Dictionary<ulong, string>>();
-            bool exists;
-            bool modifies;
 
             foreach (var oldName in oldNames)
             {
@@ -153,13 +141,12 @@ namespace SharpWnfNameDumper.Library
             bool verbose,
             string format)
         {
-            StringBuilder output = new StringBuilder();
-            StringBuilder headerAdded = new StringBuilder();
-            StringBuilder headerDeleted = new StringBuilder();
-            StringBuilder headerModified = new StringBuilder();
-
-            string fullPath = null;
             string dirPath;
+            string fullPath = null;
+            var output = new StringBuilder();
+            var headerAdded = new StringBuilder();
+            var headerDeleted = new StringBuilder();
+            var headerModified = new StringBuilder();
 
             if (!string.IsNullOrEmpty(filename))
             {
@@ -269,7 +256,7 @@ namespace SharpWnfNameDumper.Library
             int count = 0;
             int sizeStateNames = stateNames.Count;
             string fullPath = null;
-            StringBuilder output = new StringBuilder();
+            var output = new StringBuilder();
 
             if (!string.IsNullOrEmpty(filename))
             {
