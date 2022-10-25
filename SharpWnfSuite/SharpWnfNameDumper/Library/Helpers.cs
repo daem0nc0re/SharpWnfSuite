@@ -63,30 +63,28 @@ namespace SharpWnfNameDumper.Library
 
         public static uint SearchTableOffset(in PeFile peImage)
         {
-            IntPtr pImageBase;
             IntPtr pTablePointer;
-            uint nSectionVirtualAddress;
-            uint nSectionOffset;
-            uint nSectionSize;
             uint nTableOffset;
+            IntPtr pSectionOffset;
             IntPtr[] pCandidates;
             IntPtr pTableOffset;
             byte[] searchBytes;
             string sectionName = ".rdata";
             uint nPointerSize = peImage.Is64Bit ? 8u : 4u;
-
-            pImageBase = peImage.GetImageBase();
-            nSectionVirtualAddress = peImage.GetSectionVirtualAddress(sectionName);
-            nSectionOffset = peImage.GetSectionPointerToRawData(sectionName);
-            nSectionSize = peImage.GetSectionSizeOfRawData(sectionName);
+            IntPtr pImageBase = peImage.GetImageBase();
+            uint nSectionVirtualAddress = peImage.GetSectionVirtualAddress(sectionName);
+            uint nSectionOffset = peImage.GetSectionPointerToRawData(sectionName);
+            uint nSectionSize = peImage.GetSectionSizeOfRawData(sectionName);
 
             if ((nSectionOffset == 0) || (nSectionSize == 0) || (nSectionVirtualAddress == 0))
                 return 0u;
 
-            pCandidates = peImage.SearchBytes(
-                new IntPtr((long)nSectionOffset),
-                nSectionSize,
-                Encoding.Unicode.GetBytes("WNF_"));
+            if (Environment.Is64BitProcess)
+                pSectionOffset = new IntPtr((long)nSectionOffset);
+            else
+                pSectionOffset = new IntPtr((int)nSectionOffset);
+
+            pCandidates = peImage.SearchBytes(pSectionOffset, nSectionSize, Encoding.Unicode.GetBytes("WNF_"));
 
             if (pCandidates.Length == 0)
                 return 0u;
@@ -94,24 +92,25 @@ namespace SharpWnfNameDumper.Library
             for (var idx = 0; idx < pCandidates.Length; idx++)
             {
                 if (Environment.Is64BitProcess)
+                {
                     pTablePointer = new IntPtr(pImageBase.ToInt64() + pCandidates[idx].ToInt64() + (long)(nSectionVirtualAddress - nSectionOffset));
-                else
-                    pTablePointer = new IntPtr(pImageBase.ToInt32() + pCandidates[idx].ToInt32() + (int)(nSectionVirtualAddress - nSectionOffset));
-
-                if (peImage.Is64Bit)
                     searchBytes = BitConverter.GetBytes(pTablePointer.ToInt64());
+                }
                 else
+                {
+                    pTablePointer = new IntPtr(pImageBase.ToInt32() + pCandidates[idx].ToInt32() + (int)(nSectionVirtualAddress - nSectionOffset));
                     searchBytes = BitConverter.GetBytes(pTablePointer.ToInt32());
+                }
 
-                pTableOffset = peImage.SearchBytesFirst(
-                    new IntPtr((long)nSectionOffset),
-                    nSectionSize,
-                    searchBytes);
+                pTableOffset = peImage.SearchBytesFirst(pSectionOffset, nSectionSize, searchBytes);
 
                 if (pTableOffset != IntPtr.Zero)
                 {
-                    nTableOffset = (uint)pTableOffset.ToInt64() - nPointerSize;
-                    
+                    if (Environment.Is64BitProcess)
+                        nTableOffset = (uint)pTableOffset.ToInt64() - nPointerSize;
+                    else
+                        nTableOffset = (uint)pTableOffset.ToInt32() - nPointerSize;
+
                     if (VerifyTable(in peImage, nTableOffset))
                         return nTableOffset;
                 }
@@ -123,20 +122,15 @@ namespace SharpWnfNameDumper.Library
 
         public static bool VerifyTable(in PeFile peImage, uint tableOffset)
         {
-            uint baseOffset;
-            IntPtr pImageBase;
             IntPtr pDataBuffer;
             IntPtr pDataOffset;
-            uint nSectionVirtualAddress;
-            uint nSectionOffset;
             string sectionName = ".rdata";
+            IntPtr pImageBase = peImage.GetImageBase();
+            uint nSectionVirtualAddress = peImage.GetSectionVirtualAddress(sectionName);
+            uint nSectionOffset = peImage.GetSectionPointerToRawData(sectionName);
+            uint baseOffset = tableOffset;
             uint nPointerSize = peImage.Is64Bit ? 8u : 4u;
             var suffix = new Regex(@"^WNF_\S+$");
-
-            pImageBase = peImage.GetImageBase();
-            nSectionVirtualAddress = peImage.GetSectionVirtualAddress(sectionName);
-            nSectionOffset = peImage.GetSectionPointerToRawData(sectionName);
-            baseOffset = tableOffset;
 
             for (var count = 0; count < 3; count++)
             {

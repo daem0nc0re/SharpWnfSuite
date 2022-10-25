@@ -7,21 +7,7 @@ namespace SharpWnfNameDumper
     {
         static void Main(string[] args)
         {
-            CommandLineParser options = new CommandLineParser();
-
-            if (!Environment.Is64BitOperatingSystem)
-            {
-                Console.WriteLine("\n[!] Should be run in 64bit OS.\n");
-
-                return;
-            }
-
-            if (!Environment.Is64BitProcess)
-            {
-                Console.WriteLine("\n[!] Should be built as 64bit binary.\n");
-
-                return;
-            }
+            var options = new CommandLineParser();
 
             try
             {

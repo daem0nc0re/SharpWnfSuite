@@ -7,7 +7,7 @@ namespace SharpWnfClient
     {
         static void Main(string[] args)
         {
-            CommandLineParser options = new CommandLineParser();
+            var options = new CommandLineParser();
 
             try
             {
