@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SharpWnfServer.Interop
+﻿namespace SharpWnfServer.Interop
 {
     internal class Win32Consts
     {

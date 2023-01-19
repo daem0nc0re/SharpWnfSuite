@@ -12,11 +12,10 @@ namespace SharpWnfClient.Handler
             }
             else
             {
-                WnfCom wnfClient = new WnfCom();
-
-                if (wnfClient.SetStateName(options.GetValue("WNF_NAME")))
+                using (var wnfClient = new WnfCom())
                 {
-                    wnfClient.Listen();
+                    if (wnfClient.SetStateName(options.GetValue("WNF_NAME")))
+                        wnfClient.Listen();
                 }
             }
         }

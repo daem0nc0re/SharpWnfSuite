@@ -15,16 +15,19 @@ namespace SharpWnfServer.Handler
             else
             {
                 string input;
-                WnfCom wnfServer = new WnfCom();
-                wnfServer.CreateServer();
-                wnfServer.PrintInternalName();
-                wnfServer.Write(Encoding.ASCII.GetBytes("Hello, world!"));
 
-                while (true)
+                using (var wnfServer = new WnfCom())
                 {
-                    Console.Write("[INPUT]> ");
-                    input = Console.ReadLine();
-                    wnfServer.Write(Encoding.ASCII.GetBytes(input));
+                    wnfServer.CreateServer();
+                    wnfServer.PrintInternalName();
+                    wnfServer.Write(Encoding.ASCII.GetBytes("Hello, world!"));
+
+                    while (true)
+                    {
+                        Console.Write("[INPUT]> ");
+                        input = Console.ReadLine();
+                        wnfServer.Write(Encoding.ASCII.GetBytes(input));
+                    }
                 }
             }
         }
