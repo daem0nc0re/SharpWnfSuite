@@ -199,8 +199,10 @@ namespace SharpWnfClient.Library
                 } while (!context.Destroyed);
 
                 NativeMethods.RtlUnsubscribeWnfStateChangeNotification(pSubscription);
-                NativeMethods.CloseHandle(hEvent);
             }
+
+            if (hEvent != IntPtr.Zero)
+                NativeMethods.CloseHandle(hEvent);
 
             if (pContextBuffer != IntPtr.Zero)
                 Marshal.FreeHGlobal(pContextBuffer);
