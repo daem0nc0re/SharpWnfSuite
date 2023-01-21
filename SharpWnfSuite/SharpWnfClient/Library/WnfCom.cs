@@ -57,7 +57,7 @@ namespace SharpWnfClient.Library
         }
 
         /*
-         * Delegate Types (this definition is not required. For memo purpose.)
+         * Delegate Types
          */
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int CallbackDelegate(
