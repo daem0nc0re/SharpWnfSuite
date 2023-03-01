@@ -1,0 +1,4 @@
+WnfCallback
+CalcHash
+GetModuleHandleByHash
+GetProcAddressByHash
