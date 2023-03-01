@@ -10,7 +10,9 @@ typedef struct _WNF_STATE_NAME
 {
     ULONG Data[2];
 } WNF_STATE_NAME, * PWNF_STATE_NAME;
+
 typedef ULONG WNF_CHANGE_STAMP, * PWNF_CHANGE_STAMP;
+
 typedef struct _WNF_TYPE_ID
 {
     GUID TypeId;
@@ -21,11 +23,10 @@ typedef UINT(WINAPI* WinExec_t)(
     UINT   uCmdShow);
 
 //
-// Know Hash Definitions
+// Known Hash Definitions
 //
-#define KERNEL32_HASH 0x6A4ABC5B
-#define CREATEPROCESSA_HASH 0xB4F0F459
-#define WINEXEC_HASH 0x0D88F668
+#define KERNEL32_HASH 0x6A4ABC5B // Uppercase ASCII
+#define WINEXEC_HASH 0x0D88F668  // Uppercase Unicode
 
 //
 // Function Definitions
@@ -67,7 +68,7 @@ ULONG_PTR GetModuleHandleByHash(DWORD moduleHash)
     return nullptr;
 #endif
 
-    do
+    while (pLdrDataTable->DllBase != NULL)
     {
 #ifdef _WIN64
         pBaseDllName = (PUNICODE_STRING)((ULONG_PTR)pLdrDataTable + 0x58);
@@ -90,7 +91,7 @@ ULONG_PTR GetModuleHandleByHash(DWORD moduleHash)
 #else
         break;
 #endif
-    } while (pLdrDataTable->DllBase != NULL);
+    }
 
     return pModule;
 }

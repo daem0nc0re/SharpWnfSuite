@@ -1,4 +1,4 @@
-# Build Shellcode for WNF Callback 
+# Building Shellcode for WNF Callback 
 
 For memo purpose, we describe things about WNF Callback shellcode in C/C++ with Visual Studio.
 
@@ -7,10 +7,10 @@ For memo purpose, we describe things about WNF Callback shellcode in C/C++ with 
 ### Avoiding Access Violation
 
 Shellcode must be self-contained, and all code must be in single section (`.text` section).
-We cannot use Windows API or Library function without implementing procedures to resolve by ourselves, and any access to uncertain memory area causes access violation.
+We cannot use Windows API or Library function without implementing procedures to resolve by ourselves, and any access to uncertain memory area cause access violation.
 
 #### Stack Cookie
-Stack cookie is not located in `.text` section. It located at section to store data and causes access violation in shellcode execution. We must avoid to use stack cookie in program for shellcoding. The easiest way to avoid stack cookie is to use `/GS-` compiler option. To set `/GS-` compiler option, open protect's `[Properties]` page and set the value of `[Configuration Properties] -> [C/C++] -> [Code Generation] -> [Security Check]` to `Disable Security Check (/GS-)` as following figure:
+Stack cookie is not located in `.text` section. It is located at section to store data and causes access violation in shellcode execution. We must avoid to use stack cookie in program for shellcoding. The easiest way to avoid stack cookie is to use `/GS-` compiler option. To set `/GS-` compiler option, open protect's `[Properties]` page and set the value of `[Configuration Properties] -> [C/C++] -> [Code Generation] -> [Security Check]` to `Disable Security Check (/GS-)` as following figure:
 
 ![Disable Stack Cookie Generation](./figures/disable-gs.png)
 
@@ -42,7 +42,7 @@ int main()
 ```
 
 #### Array Variable Initialization
-If we declare initial values for array variables, it will generate `memset` call. For example, following declaration will cause `memset(buf, 0, 0x400)`:
+If we declare initial values for array variables, it will generate `memset` call. For example, following declaration will cause `memset(buf, 0, 0x400)` call:
 
 ```c
 int buf[256] = { 0 };
@@ -71,7 +71,7 @@ function_3
 
 If we coding in C++, function names will be mangled.
 Linker will fail to resolve function name without defining correct mangled function name, and function order definition will be ignored.
-This issue can be avoided with setting `extern "C"` keyword to functions or changing the source code extension to `.c`.
+This issue can be avoided with setting `extern "C"` keyword to functions or changing the source code extension from `.cpp` to `.c`.
 
 To reflect function order setting, open protect's `[Properties]` page and set the value of `[Configuration Properties] -> [Linker] -> [Optimization] -> [Function Order]` to the definiton file path as following figure:
 
@@ -106,7 +106,7 @@ typedef NTSTATUS (NTAPI *PWNF_USER_CALLBACK)(
     );
 ```
 
-This means shellcode parameters must be follow this prototype manner.
+This means that shellcode's function signature must follow this prototype manner.
 
 
 ## Get Shellcode from C Program
