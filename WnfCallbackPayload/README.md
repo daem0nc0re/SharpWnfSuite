@@ -3,7 +3,7 @@
 For memo purpose, we describe things about WNF Callback shellcode in C/C++ with Visual Studio.
 The code in [WnfCallbackPayload](./WnfCallbackPayload/) is for generating shellcode which calls `WinExec("notepad", SW_SHOW)`.
 
-> __NOTE__
+> __WARNING__
 >
 > WnfCallbackPayload project must be built as Release build.
 
@@ -121,7 +121,7 @@ There are several ways to get shellcode from built program, but I wrote small pr
 
 Before get shellcode, we should check location and size of shellcode with Disassembler or something.
 For example, my sample locate shellcode at start of `.text` section.
-To get minimum shellcode, we can check shellcode bytes `PeRipper` as follows (in this example, shellcode is 0x185 bytes):
+To get minimum shellcode, we can check shellcode bytes `PeRipper` as follows:
 
 ```
 PS C:\Dev> .\PeRipper.exe -p .\WnfCallbackPayload.exe -a
@@ -136,22 +136,31 @@ PS C:\Dev> .\PeRipper.exe -p .\WnfCallbackPayload.exe -a
     [*] .text Section:
         [*] VirtualAddress   : 0x00001000
         [*] PointerToRawData : 0x00000400
+        [*] VirtualSize      : 0x185
         [*] SizeOfRawData    : 0x200
     [*] .rdata Section:
         [*] VirtualAddress   : 0x00002000
         [*] PointerToRawData : 0x00000600
+        [*] VirtualSize      : 0x1E0
         [*] SizeOfRawData    : 0x200
     [*] .pdata Section:
         [*] VirtualAddress   : 0x00003000
         [*] PointerToRawData : 0x00000800
+        [*] VirtualSize      : 0x24
         [*] SizeOfRawData    : 0x200
     [*] .rsrc Section:
         [*] VirtualAddress   : 0x00004000
         [*] PointerToRawData : 0x00000A00
+        [*] VirtualSize      : 0x1E0
         [*] SizeOfRawData    : 0x200
 [*] Export functions (Count = 0):
 [*] Done.
+```
 
+If you implemented only shellcode in your C/C++ program, `VirtualSize` for `.text` section would be shellcode size.
+In the example above, shellcode size should be `0x185`:
+
+```
 PS C:\Dev> .\PeRipper.exe -p .\WnfCallbackPayload.exe -v 0x1000 -s 0x200 -d
 
 [*] Raw Data Size : 3072 bytes
@@ -234,8 +243,6 @@ PS C:\Dev> .\PeRipper.exe -p .\WnfCallbackPayload.exe -v 0x1000 -s 0x185 -d
     0000000000001180 | 83 C4 30 5E C3                                  | .Ä0^A
 
 [*] Done.
-
-PS C:\Dev>
 ```
 
 Using these information, we can get shellcode bytes as follows:
@@ -259,7 +266,4 @@ PS C:\Dev> dir .\bytes_from_module.bin
 Mode                 LastWriteTime         Length Name
 ----                 -------------         ------ ----
 -a----          3/1/2023   4:11 AM            389 bytes_from_module.bin
-
-
-PS C:\Dev>
 ```
