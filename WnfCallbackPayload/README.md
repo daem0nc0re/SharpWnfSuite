@@ -1,6 +1,11 @@
 # Building Shellcode for WNF Callback 
 
 For memo purpose, we describe things about WNF Callback shellcode in C/C++ with Visual Studio.
+The code in [WnfCallbackPayload](./WnfCallbackPayload/) is for generating shellcode which calls `WinExec("notepad", SW_SHOW)`.
+
+> __NOTE__
+>
+> WnfCallbackPayload project must be built as Release build.
 
 ## Note About Shellcode Programming with C/C++
 
