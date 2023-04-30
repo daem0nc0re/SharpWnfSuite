@@ -25,8 +25,8 @@ typedef UINT(WINAPI* WinExec_t)(
 //
 // Known Hash Definitions
 //
-#define KERNEL32_HASH 0x6A4ABC5B // Uppercase ASCII
-#define WINEXEC_HASH 0x0D88F668  // Uppercase Unicode
+#define KERNEL32_HASH 0x6A4ABC5B // Uppercase Unicode
+#define WINEXEC_HASH 0x0D88F668  // Uppercase ASCII
 
 //
 // Function Definitions
