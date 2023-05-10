@@ -249,7 +249,7 @@ namespace SharpWnfDump.Library
             if (showData && readable && bufferSize != 0)
             {
                 Console.WriteLine();
-                HexDump.Dump(dataBuffer, (int)bufferSize, 2);
+                HexDump.Dump(dataBuffer, (uint)bufferSize, 2);
                 Console.WriteLine();
             }
             else if (showSd)

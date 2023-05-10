@@ -237,7 +237,7 @@ namespace SharpWnfDump.Library
             }
 
             Console.WriteLine("\n{0}:\n", nameString);
-            HexDump.Dump(dataBuffer, (int)bufferSize, 1);
+            HexDump.Dump(dataBuffer, (uint)bufferSize, 1);
             NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
         }
 
