@@ -27,10 +27,10 @@ namespace SharpWnfDump.Library
 
                 tableIndex.Clear();
                 tableIndex.Append("\n");
-                tableIndex.Append(string.Format(
+                tableIndex.AppendFormat(
                     "| {0,-64}",
                     string.Format("WNF State Name [{0} Scope]",
-                    Enum.GetName(typeof(WNF_DATA_SCOPE), scope))));
+                    Enum.GetName(typeof(WNF_DATA_SCOPE), scope)));
                 tableIndex.Append("| S | L | P | AC | N | CurSize | MaxSize | Changes |");
                 tableIndex.Append("\n");
                 tableIndex.Append(new string('-', 118));
@@ -116,7 +116,7 @@ namespace SharpWnfDump.Library
                 }
 
                 output.Append("\n");
-                output.Append(string.Format("| {0,-64}", "WNF State Name"));
+                output.AppendFormat("| {0,-64}", "WNF State Name");
                 output.Append("| S | L | P | AC | N | CurSize | MaxSize | Changes |");
                 output.Append("\n");
                 output.Append(new string('-', 118));
@@ -160,10 +160,10 @@ namespace SharpWnfDump.Library
 
                 output.Clear();
                 output.Append("\n");
-                output.Append(string.Format(
+                output.AppendFormat(
                     "| {0,-64}",
                     string.Format("WNF State Name [{0} Lifetime]",
-                    Enum.GetName(typeof(WNF_STATE_NAME_LIFETIME), idx))));
+                    Enum.GetName(typeof(WNF_STATE_NAME_LIFETIME), idx)));
                 output.Append("| S | L | P | AC | N | CurSize | MaxSize | Changes |");
                 output.Append("\n");
                 output.Append(new string('-', 118));

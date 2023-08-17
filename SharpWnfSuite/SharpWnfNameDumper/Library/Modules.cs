@@ -314,10 +314,10 @@ namespace SharpWnfNameDumper.Library
 
                     if (verbose)
                     {
-                        output.Append(string.Format(formatComment, desctiption));
+                        output.AppendFormat(formatComment, desctiption);
                     }
 
-                    output.Append(string.Format(formatterLine, key, value.ToString("X16")));
+                    output.AppendFormat(formatterLine, key, value.ToString("X16"));
                 }
 
                 if (count < sizeStateNames - 1)
@@ -331,17 +331,11 @@ namespace SharpWnfNameDumper.Library
             output.Append(formatterFooter);
 
             if (!string.IsNullOrEmpty(fullPath) && !append)
-            {
                 File.WriteAllText(fullPath, output.ToString());
-            }
             else if (!string.IsNullOrEmpty(fullPath) && append)
-            {
                 File.AppendAllText(fullPath, output.ToString());
-            }
             else
-            {
                 Console.WriteLine(output);
-            }
         }
     }
 }

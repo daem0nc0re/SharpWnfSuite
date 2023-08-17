@@ -216,18 +216,18 @@ namespace SharpWnfClient.Library
             var output = new StringBuilder();
 
             output.Append("\n");
-            output.Append(string.Format(
+            output.AppendFormat(
                 "Encoded State Name: 0x{0}, Decoded State Name: 0x{1}\n",
                 this.StateName.ToString("X16"),
-                (this.StateName ^ Win32Consts.WNF_STATE_KEY).ToString("X")));
-            output.Append(string.Format(
+                (this.StateName ^ Win32Consts.WNF_STATE_KEY).ToString("X"));
+            output.AppendFormat(
                 "    Version: {0}, Lifetime: {1}, Scope: {2}, Permanent: {3}, Sequence Number: 0x{4}, Owner Tag: 0x{5}",
                 this.InternalName.Version,
                 Enum.GetName(typeof(WNF_STATE_NAME_LIFETIME_Brief), this.InternalName.NameLifeTime),
                 Enum.GetName(typeof(WNF_DATA_SCOPE_TYPE), this.InternalName.DataScope),
                 this.InternalName.PermanentData != 0 ? "YES" : "NO",
                 this.InternalName.SequenceNumber.ToString("X"),
-                this.InternalName.OwnerTag.ToString("X")));
+                this.InternalName.OwnerTag.ToString("X"));
             output.Append("\n");
 
             Console.WriteLine(output.ToString());
