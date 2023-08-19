@@ -13,20 +13,17 @@ namespace SharpWnfNameDumper.Handler
                 options.GetHelp();
                 return;
             }
-            else if (options.GetFlag("dump"))
+
+            Console.WriteLine();
+
+            if (options.GetFlag("dump"))
             {
                 if (options.GetValue("format") == "c")
-                {
-                    Console.WriteLine("\n[>] Output results in C style.\n");
-                }
+                    Console.WriteLine("[>] Output results in C style.\n");
                 else if (options.GetValue("format") == "py")
-                {
-                    Console.WriteLine("\n[>] Output results in Python style.\n");
-                }
+                    Console.WriteLine("[>] Output results in Python style.\n");
                 else
-                {
-                    Console.WriteLine("\n[>] Output results in C# style.\n");
-                }
+                    Console.WriteLine("[>] Output results in C# style.\n");
 
                 Modules.DumpWellKnownWnfNames(
                     options.GetValue("FILE_NAME_1"),
@@ -42,50 +39,42 @@ namespace SharpWnfNameDumper.Handler
             {
                 if (string.IsNullOrEmpty(options.GetValue("FILE_NAME_2")))
                 {
-                    Console.WriteLine("\n[!] Missing newer DLL for diffing.\n");
-                    return;
-                }
-
-                if (options.GetValue("format") == "c")
-                {
-                    Console.WriteLine("\n[>] Output results in C style.\n");
-                }
-                else if (options.GetValue("format") == "py")
-                {
-                    Console.WriteLine("\n[>] Output results in Python style.\n");
+                    Console.WriteLine("[!] Missing newer DLL for diffing.");
                 }
                 else
                 {
-                    Console.WriteLine("\n[>] Output results in C# style.\n");
+                    if (options.GetValue("format") == "c")
+                        Console.WriteLine("[>] Output results in C style.\n");
+                    else if (options.GetValue("format") == "py")
+                        Console.WriteLine("[>] Output results in Python style.\n");
+                    else
+                        Console.WriteLine("[>] Output results in C# style.\n");
+
+                    Modules.DumpWellKnownWnfNames(
+                        options.GetValue("FILE_NAME_1"),
+                        out Dictionary<string, Dictionary<ulong, string>> oldNames);
+                    Modules.DumpWellKnownWnfNames(
+                        options.GetValue("FILE_NAME_2"),
+                        out Dictionary<string, Dictionary<ulong, string>> newNames);
+                    Modules.DiffTables(
+                        oldNames,
+                        newNames,
+                        out Dictionary<string, Dictionary<ulong, string>> added,
+                        out Dictionary<string, Dictionary<ulong, string>> deleted,
+                        out Dictionary<string, Dictionary<ulong, string>> modified);
+                    Modules.PrintDiff(
+                        added,
+                        deleted,
+                        modified,
+                        options.GetValue("output"),
+                        options.GetFlag("verbose"),
+                        options.GetValue("format"));
                 }
-
-                Modules.DumpWellKnownWnfNames(
-                    options.GetValue("FILE_NAME_1"),
-                    out Dictionary<string, Dictionary<ulong, string>> oldNames);
-                Modules.DumpWellKnownWnfNames(
-                    options.GetValue("FILE_NAME_2"),
-                    out Dictionary<string, Dictionary<ulong, string>> newNames);
-
-                Modules.DiffTables(
-                    oldNames,
-                    newNames,
-                    out Dictionary<string, Dictionary<ulong, string>> added,
-                    out Dictionary<string, Dictionary<ulong, string>> deleted,
-                    out Dictionary<string, Dictionary<ulong, string>> modified);
-
-                Modules.PrintDiff(
-                    added,
-                    deleted,
-                    modified,
-                    options.GetValue("output"),
-                    options.GetFlag("verbose"),
-                    options.GetValue("format"));
             }
             else
             {
+                Console.WriteLine("[-] No options. Check -h option.");
                 options.GetHelp();
-
-                return;
             }
 
             Console.WriteLine();
