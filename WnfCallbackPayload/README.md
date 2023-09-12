@@ -7,6 +7,14 @@ The code in [WnfCallbackPayload](./WnfCallbackPayload/) is for generating shellc
 >
 > WnfCallbackPayload project must be built as Release build.
 
+## Supported Architecture
+
+Following architecture are supported:
+
+* x86
+* x64
+* ARM64
+
 ## Note About Shellcode Programming with C/C++
 
 ### Avoiding Access Violation
