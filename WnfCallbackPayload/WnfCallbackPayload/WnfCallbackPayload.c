@@ -58,7 +58,10 @@ ULONG_PTR GetModuleHandleByHash(DWORD moduleHash)
     PLDR_DATA_TABLE_ENTRY pLdrDataTable;
     ULONG_PTR pModule = 0;
 
-#ifdef _WIN64
+#ifdef _M_ARM64
+    pLdrData = (PPEB_LDR_DATA)(*(PULONG_PTR)(*(ULONG_PTR*)(__getReg(18) + 0x60) + 0x18));
+    pLdrDataTable = (PLDR_DATA_TABLE_ENTRY)((ULONG_PTR)pLdrData->InMemoryOrderModuleList.Flink - 0x10);
+#elif _WIN64
     pLdrData = (PPEB_LDR_DATA)(*(PULONG_PTR)((ULONG_PTR)__readgsqword(0x60) + 0x18));
     pLdrDataTable = (PLDR_DATA_TABLE_ENTRY)((ULONG_PTR)pLdrData->InMemoryOrderModuleList.Flink - 0x10);
 #elif _WIN32
