@@ -105,14 +105,14 @@ namespace SharpWnfDump.Library
             string wnfName;
             WNF_STATE_NAME_Data data = ConvertFromStateNameToStateData(stateName);
             byte[] tag = BitConverter.GetBytes((uint)data.OwnerTag);
-            bool isWellKnown = data.NameLifeTime ==
+            bool bWellKnown = data.NameLifeTime ==
                 (ulong)WNF_STATE_NAME_LIFETIME.WnfWellKnownStateName;
 
             wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME), stateName);
 
             if (string.IsNullOrEmpty(wnfName))
             {
-                if (isWellKnown)
+                if (bWellKnown)
                 {
                     wnfName = string.Format("{0}.{1} 0x{2}",
                         Encoding.ASCII.GetString(tag).Trim('\0'),
@@ -134,9 +134,7 @@ namespace SharpWnfDump.Library
 
             try
             {
-                value = (ulong)Enum.Parse(
-                    typeof(WELL_KNOWN_WNF_NAME),
-                    name.ToUpper());
+                value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME), name.ToUpper());
             }
             catch
             {
@@ -157,10 +155,8 @@ namespace SharpWnfDump.Library
         public static bool IsValidInternalName(ulong stateName)
         {
             WNF_STATE_NAME_Data stateData = ConvertFromStateNameToStateData(stateName);
-            uint maxNameLifetime = (uint)(Enum.GetNames(
-                typeof(WNF_STATE_NAME_LIFETIME)).Length - 1);
-            uint maxDataScope = (uint)(Enum.GetNames(
-                typeof(WNF_DATA_SCOPE)).Length - 1);
+            var maxNameLifetime = (uint)(Enum.GetNames(typeof(WNF_STATE_NAME_LIFETIME)).Length - 1);
+            var maxDataScope = (uint)(Enum.GetNames(typeof(WNF_DATA_SCOPE)).Length - 1);
 
             if (stateData.NameLifeTime > maxNameLifetime)
                 return false;
@@ -183,12 +179,7 @@ namespace SharpWnfDump.Library
                 -1,
                 1);
 
-            if (ntstatus == STATUS_OPERATION_FAILED)
-            {
-                return true;
-            }
-
-            return false;
+            return (ntstatus == STATUS_OPERATION_FAILED);
         }
 
         public static bool PrintWnfRuntimeStatus(
@@ -198,23 +189,23 @@ namespace SharpWnfDump.Library
             int maxSize,
             bool showData)
         {
+            bool bReadable;
+            bool bWritable;
             long exists = 2;
             int SDDL_REVISION_1 = 1;
 
             if (!IsValidInternalName(stateName))
-            {
                 return false;
-            }
 
-            bool readable = ReadWnfData(
+            bReadable = ReadWnfData(
                 stateName,
                 out int changeStamp,
                 out IntPtr dataBuffer,
                 out int bufferSize);
 
-            bool writable = IsWritable(stateName);
+            bWritable = IsWritable(stateName);
 
-            if (writable)
+            if (bWritable)
             {
                 exists = QueryWnfInfoClass(
                     stateName,
@@ -229,7 +220,7 @@ namespace SharpWnfDump.Library
                 Enum.GetName(typeof(WNF_DATA_SCOPE_Brief), data.DataScope)[0],
                 Enum.GetName(typeof(WNF_STATE_NAME_LIFETIME_Brief), data.NameLifeTime)[0],
                 data.PermanentData != 0 ? 'Y' : 'N',
-                readable && writable ? "RW" : (readable ? "RO" : (writable ? "WO" : "NA")),
+                bReadable && bWritable ? "RW" : (bReadable ? "RO" : (bWritable ? "WO" : "NA")),
                 exists == 1 ? 'A' : (exists == 2 ? 'U' : 'I'),
                 bufferSize,
                 maxSize == -1 ? "?" : maxSize.ToString("D"),
@@ -246,7 +237,7 @@ namespace SharpWnfDump.Library
                 Console.WriteLine("\n\t{0}", StringSecurityDescriptor);
             }
 
-            if (showData && readable && bufferSize != 0)
+            if (showData && bReadable && bufferSize != 0)
             {
                 Console.WriteLine();
                 HexDump.Dump(dataBuffer, (uint)bufferSize, 2);
@@ -277,9 +268,7 @@ namespace SharpWnfDump.Library
                 sizeOfUint);
 
             if (ntstatus != Win32Consts.STATUS_SUCCESS)
-            {
-                return 0;
-            }
+                exists = 0;
 
             return exists;
         }
@@ -313,21 +302,14 @@ namespace SharpWnfDump.Library
                 dataBuffer,
                 ref bufferSize);
 
-            if (ntstatus != Win32Consts.STATUS_SUCCESS)
+            if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (bufferSize == 0))
             {
                 NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
                 dataBuffer = IntPtr.Zero;
                 bufferSize = 0;
-                return false;
             }
 
-            if (bufferSize == 0)
-            {
-                NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
-                dataBuffer = IntPtr.Zero;
-            }
-
-            return true;
+            return (ntstatus == Win32Consts.STATUS_SUCCESS);
         }
 
         public static bool WriteWnfData(ulong stateName, IntPtr dataBuffer, int dataSize)
@@ -341,12 +323,7 @@ namespace SharpWnfDump.Library
                 0,
                 0);
 
-            if (ntstatus != Win32Consts.STATUS_SUCCESS)
-            {
-                return false;
-            }
-
-            return true;
+            return (ntstatus == Win32Consts.STATUS_SUCCESS);
         }
     }
 }
