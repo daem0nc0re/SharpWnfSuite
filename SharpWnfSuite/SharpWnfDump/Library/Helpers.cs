@@ -168,8 +168,7 @@ namespace SharpWnfDump.Library
                 stateName,
                 out int changeStamp,
                 out IntPtr dataBuffer,
-                out int bufferSize);
-
+                out uint bufferSize);
             bWritable = IsWritable(stateName);
 
             if (bWritable)
@@ -215,7 +214,8 @@ namespace SharpWnfDump.Library
                 Console.WriteLine();
             }
 
-            NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
+            if (dataBuffer != IntPtr.Zero)
+                Marshal.FreeHGlobal(dataBuffer);
 
             return true;
         }
@@ -238,38 +238,29 @@ namespace SharpWnfDump.Library
         public static bool ReadWnfData(
             ulong stateName,
             out int changeStamp,
-            out IntPtr dataBuffer,
-            out int bufferSize)
+            out IntPtr pInfoBuffer,
+            out uint nInfoLength)
         {
             NTSTATUS ntstatus;
-            changeStamp = 0;
-            bufferSize = 0x1000;
-            dataBuffer = NativeMethods.VirtualAlloc(
-                IntPtr.Zero,
-                bufferSize,
-                Win32Consts.MEM_COMMIT,
-                Win32Consts.PAGE_READWRITE);
+            nInfoLength = 0x1000u;
 
-            if (dataBuffer == IntPtr.Zero)
+            do
             {
-                bufferSize = 0;
-                return false;
-            }
+                pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
+                ntstatus = NativeMethods.NtQueryWnfStateData(
+                    in stateName,
+                    IntPtr.Zero,
+                    IntPtr.Zero,
+                    out changeStamp,
+                    pInfoBuffer,
+                    ref nInfoLength);
 
-            ntstatus = NativeMethods.NtQueryWnfStateData(
-                in stateName,
-                IntPtr.Zero,
-                IntPtr.Zero,
-                out changeStamp,
-                dataBuffer,
-                ref bufferSize);
-
-            if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (bufferSize == 0))
-            {
-                NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
-                dataBuffer = IntPtr.Zero;
-                bufferSize = 0;
-            }
+                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nInfoLength == 0))
+                {
+                    Marshal.FreeHGlobal(pInfoBuffer);
+                    pInfoBuffer = IntPtr.Zero;
+                }
+            } while (ntstatus == Win32Consts.STATUS_BUFFER_TOO_SMALL);
 
             return (ntstatus == Win32Consts.STATUS_SUCCESS);
         }

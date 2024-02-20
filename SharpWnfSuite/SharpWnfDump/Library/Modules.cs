@@ -29,11 +29,8 @@ namespace SharpWnfDump.Library
                 tableIndex.Clear();
                 tableIndex.Append("\n");
                 tableIndex.AppendFormat(
-                    "| {0,-64}",
-                    string.Format("WNF State Name [{0} Scope]",
-                    Enum.GetName(typeof(WNF_DATA_SCOPE), scope)));
-                tableIndex.Append("| S | L | P | AC | N | CurSize | MaxSize | Changes |");
-                tableIndex.Append("\n");
+                    "| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n",
+                    string.Format("WNF State Name [{0} Scope]", Enum.GetName(typeof(WNF_DATA_SCOPE), scope)));
                 tableIndex.Append(new string('-', 118));
                 Console.WriteLine(tableIndex);
 
@@ -54,6 +51,7 @@ namespace SharpWnfDump.Library
             return;
         }
 
+
         public static bool DumpKeyInfo(ulong stateName, bool showSd, bool showData)
         {
             NTSTATUS ntstatus;
@@ -62,8 +60,7 @@ namespace SharpWnfDump.Library
             WNF_STATE_NAME_Data stateData = Helpers.ConvertFromStateNameToStateData(stateName);
             StringBuilder output = new StringBuilder();
 
-            if (stateData.NameLifeTime !=
-                (ulong)WNF_STATE_NAME_LIFETIME.WnfTemporaryStateName)
+            if (stateData.NameLifeTime != (ulong)WNF_STATE_NAME_LIFETIME.WnfTemporaryStateName)
             {
                 ntstatus = NativeMethods.RegOpenKeyEx(
                     Win32Consts.HKEY_LOCAL_MACHINE,
@@ -115,9 +112,8 @@ namespace SharpWnfDump.Library
                 }
 
                 output.Append("\n");
-                output.AppendFormat("| {0,-64}", "WNF State Name");
-                output.Append("| S | L | P | AC | N | CurSize | MaxSize | Changes |");
-                output.Append("\n");
+                output.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n",
+                    "WNF State Name");
                 output.Append(new string('-', 118));
 
                 Console.WriteLine(output);
@@ -130,6 +126,7 @@ namespace SharpWnfDump.Library
 
             return true;
         }
+
 
         public static bool DumpWnfNames(bool showSd, bool showData)
         {
@@ -219,24 +216,35 @@ namespace SharpWnfDump.Library
             return status;
         }
 
+
         public static void OperationRead(ulong stateName)
         {
             string nameString = Helpers.GetWnfName(stateName);
 
-            if (!Helpers.ReadWnfData(
+            if (Helpers.ReadWnfData(
                 stateName,
                 out int _,
-                out IntPtr dataBuffer,
-                out int bufferSize))
+                out IntPtr pInfoBuffer,
+                out uint nInfoLength))
+            {
+                Console.WriteLine("\n{0}:\n", nameString);
+
+                if (pInfoBuffer != IntPtr.Zero)
+                {
+                    HexDump.Dump(pInfoBuffer, nInfoLength, 1);
+                    Marshal.FreeHGlobal(pInfoBuffer);
+                }
+                else
+                {
+                    Console.WriteLine("    (Data is empty.)");
+                }
+            }
+            else
             {
                 Console.WriteLine("\n[-] Failed to read data from {0}.", nameString);
-                return;
             }
-
-            Console.WriteLine("\n{0}:\n", nameString);
-            HexDump.Dump(dataBuffer, (uint)bufferSize, 1);
-            NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
         }
+
 
         public static void OperationWrite(ulong stateName, string filePath)
         {

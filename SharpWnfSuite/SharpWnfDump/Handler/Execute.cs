@@ -34,6 +34,7 @@ namespace SharpWnfDump.Handler
 
                 if (stateName == 0)
                 {
+                    Console.WriteLine("\n[!] Failed to resolve WNF State Name.\n");
                     return;
                 }
 
@@ -42,13 +43,9 @@ namespace SharpWnfDump.Handler
             else if (options.GetFlag("dump") || options.GetFlag("brut"))
             {
                 if (options.GetFlag("dump"))
-                {
                     Modules.DumpWnfNames(showSd, showData);
-                }
                 else
-                {
                     Modules.BruteForceWnfNames(showData);
-                }
             }
             else
             {

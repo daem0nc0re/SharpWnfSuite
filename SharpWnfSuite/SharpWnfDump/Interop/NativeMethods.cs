@@ -86,7 +86,7 @@ namespace SharpWnfDump.Interop
             IntPtr ExplicitScope,
             out int ChangeStamp,
             IntPtr Buffer,
-            ref int BufferSize);
+            ref uint BufferSize);
 
         [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtQueryWnfStateNameInformation(
