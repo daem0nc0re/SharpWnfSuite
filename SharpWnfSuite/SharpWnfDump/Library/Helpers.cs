@@ -5,6 +5,8 @@ using SharpWnfDump.Interop;
 
 namespace SharpWnfDump.Library
 {
+    using NTSTATUS = Int32;
+
     internal class Helpers
     {
         public static ulong ConvertFromStateDataToStateName(WNF_STATE_NAME_Data stateData)
@@ -49,7 +51,7 @@ namespace SharpWnfDump.Library
                 if (NativeMethods.IsValidSecurityDescriptor(pSecurityDescriptor))
                 {
                     sdSize = NativeMethods.GetSecurityDescriptorLength(pSecurityDescriptor);
-                    maxSize = Marshal.ReadInt32(new IntPtr(pSecurityDescriptor.ToInt64() + sdSize));
+                    maxSize = Marshal.ReadInt32(pSecurityDescriptor, sdSize);
                 }
                 else
                 {
@@ -135,8 +137,7 @@ namespace SharpWnfDump.Library
 
         public static bool IsWritable(ulong stateName)
         {
-            int STATUS_OPERATION_FAILED = Convert.ToInt32("0xC0000001", 16);
-            int ntstatus = NativeMethods.NtUpdateWnfStateData(
+            NTSTATUS ntstatus = NativeMethods.NtUpdateWnfStateData(
                 in stateName,
                 IntPtr.Zero,
                 0,
@@ -145,7 +146,7 @@ namespace SharpWnfDump.Library
                 -1,
                 1);
 
-            return (ntstatus == STATUS_OPERATION_FAILED);
+            return (ntstatus == Win32Consts.STATUS_OPERATION_FAILED);
         }
 
         public static bool PrintWnfRuntimeStatus(
@@ -223,20 +224,15 @@ namespace SharpWnfDump.Library
             ulong stateName,
             WNF_STATE_NAME_INFORMATION nameInfoClass)
         {
-            int sizeOfUint = Marshal.SizeOf(typeof(uint));
             int exists = 2;
-
-            int ntstatus = NativeMethods.NtQueryWnfStateNameInformation(
+            NTSTATUS ntstatus = NativeMethods.NtQueryWnfStateNameInformation(
                 in stateName,
                 nameInfoClass,
                 IntPtr.Zero,
                 ref exists,
-                sizeOfUint);
+                4);
 
-            if (ntstatus != Win32Consts.STATUS_SUCCESS)
-                exists = 0;
-
-            return exists;
+            return (ntstatus == Win32Consts.STATUS_SUCCESS) ? exists : 0;
         }
 
         public static bool ReadWnfData(
@@ -245,9 +241,9 @@ namespace SharpWnfDump.Library
             out IntPtr dataBuffer,
             out int bufferSize)
         {
+            NTSTATUS ntstatus;
             changeStamp = 0;
             bufferSize = 0x1000;
-
             dataBuffer = NativeMethods.VirtualAlloc(
                 IntPtr.Zero,
                 bufferSize,
@@ -260,7 +256,7 @@ namespace SharpWnfDump.Library
                 return false;
             }
 
-            int ntstatus = NativeMethods.NtQueryWnfStateData(
+            ntstatus = NativeMethods.NtQueryWnfStateData(
                 in stateName,
                 IntPtr.Zero,
                 IntPtr.Zero,
@@ -280,7 +276,7 @@ namespace SharpWnfDump.Library
 
         public static bool WriteWnfData(ulong stateName, IntPtr dataBuffer, int dataSize)
         {
-            int ntstatus = NativeMethods.NtUpdateWnfStateData(
+            NTSTATUS ntstatus = NativeMethods.NtUpdateWnfStateData(
                 in stateName,
                 dataBuffer,
                 dataSize,

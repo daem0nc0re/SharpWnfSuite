@@ -6,6 +6,8 @@ using SharpWnfDump.Interop;
 
 namespace SharpWnfDump.Library
 {
+    using NTSTATUS = Int32;
+
     internal class Modules
     {
         public static void BruteForceWnfNames(bool showData)
@@ -13,13 +15,12 @@ namespace SharpWnfDump.Library
             WNF_STATE_NAME_Data stateData;
             ulong stateName;
             long exists;
+            var tableIndex = new StringBuilder();
+            var scopeRange = (ulong)(Enum.GetNames(typeof(WNF_DATA_SCOPE)).Length);
             stateData.Version = 1;
             stateData.NameLifeTime = (ulong)WNF_STATE_NAME_LIFETIME.WnfTemporaryStateName;
             stateData.PermanentData = 0;
             stateData.OwnerTag = 0;
-            StringBuilder tableIndex = new StringBuilder();
-            ulong scopeRange = (ulong)(Enum.GetNames(
-                typeof(WNF_DATA_SCOPE)).Length);
 
             for (var scope = 0UL; scope < scopeRange; scope++)
             {
@@ -55,7 +56,7 @@ namespace SharpWnfDump.Library
 
         public static bool DumpKeyInfo(ulong stateName, bool showSd, bool showData)
         {
-            int ntstatus;
+            NTSTATUS ntstatus;
             IntPtr dataBuffer;
             int dataSize = 0;
             WNF_STATE_NAME_Data stateData = Helpers.ConvertFromStateNameToStateData(stateName);
@@ -72,9 +73,7 @@ namespace SharpWnfDump.Library
                     out IntPtr phkResult);
 
                 if (ntstatus != Win32Consts.ERROR_SUCCESS)
-                {
                     return false;
-                }
 
                 dataBuffer = NativeMethods.VirtualAlloc(
                         IntPtr.Zero, 0x1000, Win32Consts.MEM_COMMIT, Win32Consts.PAGE_READWRITE);
@@ -134,7 +133,7 @@ namespace SharpWnfDump.Library
 
         public static bool DumpWnfNames(bool showSd, bool showData)
         {
-            int ntstatus;
+            NTSTATUS ntstatus;
             IntPtr lpBuffer;
             int count;
             int lpcValueName = 255;
@@ -284,13 +283,9 @@ namespace SharpWnfDump.Library
             Marshal.Copy(dataBytes, 0, dataBuffer, dataBytes.Length);
 
             if (Helpers.WriteWnfData(stateName, dataBuffer, dataBytes.Length))
-            {
                 Console.WriteLine("\n[+] Data is written successfully.\n");
-            }
             else
-            {
                 Console.WriteLine("\n[-] Failed to write data (The data size may exceed the maximum size of the target WNF object).\n");
-            }
 
             NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
         }
