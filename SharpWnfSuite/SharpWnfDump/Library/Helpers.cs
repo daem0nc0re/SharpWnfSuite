@@ -11,8 +11,7 @@ namespace SharpWnfDump.Library
     {
         public static ulong ConvertFromStateDataToStateName(WNF_STATE_NAME_Data stateData)
         {
-            ulong stateName = 0;
-            stateName |= (stateData.Version & 0xF);
+            ulong stateName = (stateData.Version & 0xF);
             stateName |= ((stateData.NameLifeTime) << 4);
             stateName |= ((stateData.DataScope & 0xF) << 6);
             stateName |= ((stateData.PermanentData & 0x1) << 10);
@@ -70,21 +69,18 @@ namespace SharpWnfDump.Library
 
         public static string GetWnfName(ulong stateName)
         {
-            string wnfName;
-            WNF_STATE_NAME_Data data = ConvertFromStateNameToStateData(stateName);
-            byte[] tag = BitConverter.GetBytes((uint)data.OwnerTag);
-            bool bWellKnown = data.NameLifeTime ==
-                (ulong)WNF_STATE_NAME_LIFETIME.WnfWellKnownStateName;
-
-            wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME), stateName);
+            WNF_STATE_NAME wnfStateName = new WNF_STATE_NAME { Data = stateName };
+            byte[] tag = BitConverter.GetBytes(wnfStateName.GetOwnerTag());
+            uint nameLifeTime = wnfStateName.GetNameLifeTime();
+            string wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME), stateName);
 
             if (string.IsNullOrEmpty(wnfName))
             {
-                if (bWellKnown)
+                if (nameLifeTime == (uint)WNF_STATE_NAME_LIFETIME.WnfWellKnownStateName)
                 {
                     wnfName = string.Format("{0}.{1} 0x{2}",
                         Encoding.ASCII.GetString(tag).Trim('\0'),
-                        data.SequenceNumber.ToString("D3"),
+                        wnfStateName.GetSequenceNumber().ToString("D3"),
                         stateName.ToString("X8"));
                 }
                 else
@@ -160,6 +156,7 @@ namespace SharpWnfDump.Library
             bool bWritable;
             long exists = 2;
             int SDDL_REVISION_1 = 1;
+            var wnfStateName = new WNF_STATE_NAME { Data = stateName };
 
             if (!IsValidInternalName(stateName))
                 return false;
@@ -178,14 +175,12 @@ namespace SharpWnfDump.Library
                     WNF_STATE_NAME_INFORMATION.WnfInfoSubscribersPresent);
             }
 
-            WNF_STATE_NAME_Data data = ConvertFromStateNameToStateData(stateName);
-
             Console.WriteLine(
                 "| {0,-64}| {1} | {2} | {3} | {4} | {5} | {6,7} | {7,7} | {8,7} |",
                 GetWnfName(stateName),
-                Enum.GetName(typeof(WNF_DATA_SCOPE_Brief), data.DataScope)[0],
-                Enum.GetName(typeof(WNF_STATE_NAME_LIFETIME_Brief), data.NameLifeTime)[0],
-                data.PermanentData != 0 ? 'Y' : 'N',
+                ((WNF_DATA_SCOPE_Brief)wnfStateName.GetDataScope()).ToString()[0],
+                ((WNF_STATE_NAME_LIFETIME_Brief)wnfStateName.GetNameLifeTime()).ToString()[0],
+                (wnfStateName.GetPermanentData() != 0) ? 'Y' : 'N',
                 bReadable && bWritable ? "RW" : (bReadable ? "RO" : (bWritable ? "WO" : "NA")),
                 exists == 1 ? 'A' : (exists == 2 ? 'U' : 'I'),
                 bufferSize,
