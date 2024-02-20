@@ -10,7 +10,7 @@ namespace SharpWnfDump.Library
     {
         public static void BruteForceWnfNames(bool showData)
         {
-            Helpers.WNF_STATE_NAME_Data stateData;
+            WNF_STATE_NAME_Data stateData;
             ulong stateName;
             long exists;
             stateData.Version = 1;
@@ -58,7 +58,7 @@ namespace SharpWnfDump.Library
             int ntstatus;
             IntPtr dataBuffer;
             int dataSize = 0;
-            Helpers.WNF_STATE_NAME_Data stateData = Helpers.ConvertFromStateNameToStateData(stateName);
+            WNF_STATE_NAME_Data stateData = Helpers.ConvertFromStateNameToStateData(stateName);
             StringBuilder output = new StringBuilder();
 
             if (stateData.NameLifeTime !=
@@ -66,7 +66,7 @@ namespace SharpWnfDump.Library
             {
                 ntstatus = NativeMethods.RegOpenKeyEx(
                     Win32Consts.HKEY_LOCAL_MACHINE,
-                    Helpers.g_LifetimeKeyNames[stateData.NameLifeTime],
+                    Globals.LifetimeKeyNames[stateData.NameLifeTime],
                     0,
                     Win32Consts.KEY_READ,
                     out IntPtr phkResult);
@@ -141,14 +141,14 @@ namespace SharpWnfDump.Library
             int bufferSize = 0x1000;
             ulong stateName;
             bool status = true;
-            StringBuilder output = new StringBuilder();
-            StringBuilder lpValueName = new StringBuilder((int)lpcValueName);
+            var output = new StringBuilder();
+            var lpValueName = new StringBuilder((int)lpcValueName);
 
-            for (var idx = 0; idx < Helpers.g_LifetimeKeyNames.Length; idx++)
+            for (var idx = 0; idx < Globals.LifetimeKeyNames.Length; idx++)
             {
                 ntstatus = NativeMethods.RegOpenKeyEx(
                     Win32Consts.HKEY_LOCAL_MACHINE,
-                    Helpers.g_LifetimeKeyNames[idx],
+                    Globals.LifetimeKeyNames[idx],
                     0,
                     Win32Consts.KEY_READ,
                     out IntPtr phkResult);
@@ -195,9 +195,7 @@ namespace SharpWnfDump.Library
                         ref bufferSize);
 
                     if (ntstatus != Win32Consts.ERROR_SUCCESS)
-                    {
                         break;
-                    }
 
                     count++;
 
@@ -228,7 +226,7 @@ namespace SharpWnfDump.Library
 
             if (!Helpers.ReadWnfData(
                 stateName,
-                out int changeStamp,
+                out int _,
                 out IntPtr dataBuffer,
                 out int bufferSize))
             {

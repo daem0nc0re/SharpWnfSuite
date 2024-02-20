@@ -59,19 +59,6 @@ namespace SharpWnfDump.Interop
         /*
          * kernel32.dll
          */
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern int FormatMessage(
-            uint dwFlags,
-            IntPtr lpSource,
-            int dwMessageId,
-            int dwLanguageId,
-            StringBuilder lpBuffer,
-            int nSize,
-            IntPtr Arguments);
-
-        [DllImport("kernel32.dll")]
-        public static extern IntPtr GetCurrentProcess();
-
         [DllImport("kernel32", SetLastError = true)]
         public static extern IntPtr VirtualAlloc(
             IntPtr lpAddress,
