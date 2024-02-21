@@ -9,33 +9,6 @@ namespace SharpWnfDump.Library
 
     internal class Helpers
     {
-        public static ulong ConvertFromStateDataToStateName(WNF_STATE_NAME_Data stateData)
-        {
-            ulong stateName = (stateData.Version & 0xF);
-            stateName |= ((stateData.NameLifeTime) << 4);
-            stateName |= ((stateData.DataScope & 0xF) << 6);
-            stateName |= ((stateData.PermanentData & 0x1) << 10);
-            stateName |= ((stateData.SequenceNumber & 0x1FFFFF) << 11);
-            stateName |= ((stateData.OwnerTag & 0xFFFFFFFF) << 32);
-            stateName ^= Win32Consts.WNF_STATE_KEY;
-
-            return stateName;
-        }
-
-        public static WNF_STATE_NAME_Data ConvertFromStateNameToStateData(ulong stateName)
-        {
-            WNF_STATE_NAME_Data stateData;
-            stateName ^= Win32Consts.WNF_STATE_KEY;
-            stateData.Version = (stateName & 0xF);
-            stateData.NameLifeTime = ((stateName >> 4) & 0x3);
-            stateData.DataScope = ((stateName >> 6) & 0xF);
-            stateData.PermanentData = ((stateName >> 10) & 0x1);
-            stateData.SequenceNumber = ((stateName >> 11) & 0x1FFFFF);
-            stateData.OwnerTag = ((stateName >> 32) & 0xFFFFFFFF);
-
-            return stateData;
-        }
-
         public static bool DumpWnfData(
             ulong stateName,
             IntPtr pSecurityDescriptor,
@@ -69,14 +42,14 @@ namespace SharpWnfDump.Library
 
         public static string GetWnfName(ulong stateName)
         {
-            WNF_STATE_NAME wnfStateName = new WNF_STATE_NAME { Data = stateName };
+            var wnfStateName = new WNF_STATE_NAME { Data = stateName };
             byte[] tag = BitConverter.GetBytes(wnfStateName.GetOwnerTag());
-            uint nameLifeTime = wnfStateName.GetNameLifeTime();
+            WNF_STATE_NAME_LIFETIME nameLifeTime = wnfStateName.GetNameLifeTime();
             string wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME), stateName);
 
             if (string.IsNullOrEmpty(wnfName))
             {
-                if (nameLifeTime == (uint)WNF_STATE_NAME_LIFETIME.WnfWellKnownStateName)
+                if (nameLifeTime == WNF_STATE_NAME_LIFETIME.WnfWellKnownStateName)
                 {
                     wnfName = string.Format("{0}.{1} 0x{2}",
                         Encoding.ASCII.GetString(tag).Trim('\0'),
@@ -118,17 +91,10 @@ namespace SharpWnfDump.Library
 
         public static bool IsValidInternalName(ulong stateName)
         {
-            WNF_STATE_NAME_Data stateData = ConvertFromStateNameToStateData(stateName);
-            var maxNameLifetime = (uint)(Enum.GetNames(typeof(WNF_STATE_NAME_LIFETIME)).Length - 1);
-            var maxDataScope = (uint)(Enum.GetNames(typeof(WNF_DATA_SCOPE)).Length - 1);
+            var wnfStateName = new WNF_STATE_NAME { Data = stateName };
 
-            if (stateData.NameLifeTime > maxNameLifetime)
-                return false;
-
-            if (stateData.DataScope > maxDataScope)
-                return false;
-
-            return true;
+            return ((wnfStateName.GetNameLifeTime() < WNF_STATE_NAME_LIFETIME.WnfMaxStateName) &&
+                (wnfStateName.GetNameLifeTime() < WNF_STATE_NAME_LIFETIME.WnfMaxStateName));
         }
 
         public static bool IsWritable(ulong stateName)

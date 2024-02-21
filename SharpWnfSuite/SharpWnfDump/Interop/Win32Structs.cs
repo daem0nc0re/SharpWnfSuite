@@ -9,7 +9,7 @@ namespace SharpWnfDump.Interop
 
         public WNF_STATE_NAME(
             uint Version,
-            uint NameLifeTime,
+            WNF_STATE_NAME_LIFETIME NameLifeTime,
             uint DataScope,
             uint PermanentData,
             uint SequenceNumber,
@@ -29,9 +29,9 @@ namespace SharpWnfDump.Interop
             return (uint)((Data ^ 0x41C64E6DA3BC0074UL) & 0xF);
         }
 
-        public uint GetNameLifeTime()
+        public WNF_STATE_NAME_LIFETIME GetNameLifeTime()
         {
-            return (uint)(((Data ^ 0x41C64E6DA3BC0074UL) >> 4) & 0x3);
+            return (WNF_STATE_NAME_LIFETIME)(((Data ^ 0x41C64E6DA3BC0074UL) >> 4) & 0x3);
         }
 
         public uint GetDataScope()
@@ -52,6 +52,54 @@ namespace SharpWnfDump.Interop
         public uint GetOwnerTag()
         {
             return (uint)(((Data ^ 0x41C64E6DA3BC0074UL) >> 32) & 0xFFFFFFFF);
+        }
+
+        public void SetVersion(uint version)
+        {
+            Data ^= 0x41C64E6DA3BC0074UL;
+            Data &= 0xFFFFFFFFFFFFFFF0UL;
+            Data |= (version & 0xF);
+            Data ^= 0x41C64E6DA3BC0074UL;
+        }
+
+        public void SetNameLifeTime(WNF_STATE_NAME_LIFETIME nameLifeTime)
+        {
+            Data ^= 0x41C64E6DA3BC0074UL;
+            Data &= 0xFFFFFFFFFFFFFFCFUL;
+            Data |= (((uint)nameLifeTime & 0x3) << 4);
+            Data ^= 0x41C64E6DA3BC0074UL;
+        }
+
+        public void SetDataScope(uint dataScope)
+        {
+            Data ^= 0x41C64E6DA3BC0074UL;
+            Data &= 0xFFFFFFFFFFFFFC3FUL;
+            Data |= ((dataScope & 0xF) << 6);
+            Data ^= 0x41C64E6DA3BC0074UL;
+        }
+
+        public void SetPermanentData(uint parmanentData)
+        {
+            Data ^= 0x41C64E6DA3BC0074UL;
+            Data &= 0xFFFFFFFFFFFFFBFFUL;
+            Data |= ((parmanentData & 0x1) << 10);
+            Data ^= 0x41C64E6DA3BC0074UL;
+        }
+
+        public void SetSequenceNumber(uint sequenceNumber)
+        {
+            Data ^= 0x41C64E6DA3BC0074UL;
+            Data &= 0xFFFFFFFF000007FFUL;
+            Data |= ((sequenceNumber & 0x1FFFFF) << 11);
+            Data ^= 0x41C64E6DA3BC0074UL;
+        }
+
+        public void SetOwnerTag(uint ownerTag)
+        {
+            Data ^= 0x41C64E6DA3BC0074UL;
+            Data &= 0x00000000FFFFFFFFUL;
+            Data |= (ownerTag << 32);
+            Data ^= 0x41C64E6DA3BC0074UL;
         }
     }
 }

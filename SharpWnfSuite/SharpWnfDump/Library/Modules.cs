@@ -12,43 +12,32 @@ namespace SharpWnfDump.Library
     {
         public static void BruteForceWnfNames(bool showData)
         {
-            WNF_STATE_NAME_Data stateData;
-            ulong stateName;
             long exists;
             var tableIndex = new StringBuilder();
-            var scopeRange = (ulong)(Enum.GetNames(typeof(WNF_DATA_SCOPE)).Length);
-            stateData.Version = 1;
-            stateData.NameLifeTime = (ulong)WNF_STATE_NAME_LIFETIME.WnfTemporaryStateName;
-            stateData.PermanentData = 0;
-            stateData.OwnerTag = 0;
+            var wnfStateName = new WNF_STATE_NAME(1, WNF_STATE_NAME_LIFETIME.WnfTemporaryStateName, 0, 0, 0, 0);
 
-            for (var scope = 0UL; scope < scopeRange; scope++)
+            for (var scope = 0u; scope < (uint)WNF_DATA_SCOPE.WnfMaxScope; scope++)
             {
-                stateData.DataScope = scope;
+                wnfStateName.SetDataScope(scope);
 
                 tableIndex.Clear();
                 tableIndex.Append("\n");
-                tableIndex.AppendFormat(
-                    "| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n",
-                    string.Format("WNF State Name [{0} Scope]", Enum.GetName(typeof(WNF_DATA_SCOPE), scope)));
+                tableIndex.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n",
+                    string.Format("WNF State Name [{0} Scope]", ((WNF_DATA_SCOPE)scope).ToString()));
                 tableIndex.Append(new string('-', 118));
                 Console.WriteLine(tableIndex);
 
-                for (var number = 0UL; number < 0x200000UL; number++)
+                for (var number = 0u; number < 0x200000u; number++)
                 {
-                    stateData.SequenceNumber = number;
-                    stateName = Helpers.ConvertFromStateDataToStateName(stateData);
+                    wnfStateName.SetSequenceNumber(number);
                     exists = Helpers.QueryWnfInfoClass(
-                        stateName,
+                        wnfStateName.Data,
                         WNF_STATE_NAME_INFORMATION.WnfInfoStateNameExist);
 
                     if (exists != 0)
-                    {
-                        Helpers.DumpWnfData(stateName, IntPtr.Zero, false, showData);
-                    }
+                        Helpers.DumpWnfData(wnfStateName.Data, IntPtr.Zero, false, showData);
                 }
             }
-            return;
         }
 
 
@@ -57,14 +46,14 @@ namespace SharpWnfDump.Library
             NTSTATUS ntstatus;
             IntPtr dataBuffer;
             int dataSize = 0;
-            WNF_STATE_NAME_Data stateData = Helpers.ConvertFromStateNameToStateData(stateName);
-            StringBuilder output = new StringBuilder();
+            var wnfStateName = new WNF_STATE_NAME { Data = stateName }; 
+            var output = new StringBuilder();
 
-            if (stateData.NameLifeTime != (ulong)WNF_STATE_NAME_LIFETIME.WnfTemporaryStateName)
+            if (wnfStateName.GetNameLifeTime() != WNF_STATE_NAME_LIFETIME.WnfTemporaryStateName)
             {
                 ntstatus = NativeMethods.RegOpenKeyEx(
                     Win32Consts.HKEY_LOCAL_MACHINE,
-                    Globals.LifetimeKeyNames[stateData.NameLifeTime],
+                    Globals.LifetimeKeyNames[(uint)wnfStateName.GetNameLifeTime()],
                     0,
                     Win32Consts.KEY_READ,
                     out IntPtr phkResult);

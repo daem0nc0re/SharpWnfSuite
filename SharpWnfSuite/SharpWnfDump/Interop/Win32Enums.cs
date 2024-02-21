@@ -37,19 +37,21 @@ namespace SharpWnfDump.Interop
     internal enum WNF_STATE_NAME_LIFETIME : uint
     {
         WnfWellKnownStateName = 0,
-        WnfPermanentStateName = 1,
-        WnfPersistentStateName = 2,
-        WnfTemporaryStateName = 3
+        WnfPermanentStateName,
+        WnfPersistentStateName,
+        WnfTemporaryStateName,
+        WnfMaxStateName
     }
 
     internal enum WNF_DATA_SCOPE : uint
     {
         WnfDataScopeSystem = 0,
-        WnfDataScopeSession = 1,
-        WnfDataScopeUser = 2,
-        WnfDataScopeProcess = 3,
-        WnfDataScopeMachine = 4,
-        WnfDataScopePhysicalMachine = 5
+        WnfDataScopeSession,
+        WnfDataScopeUser,
+        WnfDataScopeProcess,
+        WnfDataScopeMachine,
+        WnfDataScopePhysicalMachine,
+        WnfMaxScope
     }
 
     internal enum WNF_STATE_NAME_INFORMATION : uint

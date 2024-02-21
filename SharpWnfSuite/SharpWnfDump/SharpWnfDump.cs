@@ -1,5 +1,6 @@
 ﻿using System;
 using SharpWnfDump.Handler;
+using SharpWnfDump.Interop;
 
 namespace SharpWnfDump
 {
@@ -28,15 +29,11 @@ namespace SharpWnfDump
             catch (InvalidOperationException ex)
             {
                 Console.WriteLine(ex.Message);
-
-                return;
             }
             catch (ArgumentException ex)
             {
                 options.GetHelp();
                 Console.WriteLine(ex.Message);
-
-                return;
             }
         }
     }

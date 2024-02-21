@@ -10,16 +10,6 @@
         physicalMachine = 5
     }
 
-    public struct WNF_STATE_NAME_Data
-    {
-        public ulong Version;
-        public ulong NameLifeTime;
-        public ulong DataScope;
-        public ulong PermanentData;
-        public ulong SequenceNumber;
-        public ulong OwnerTag;
-    }
-
     public enum WNF_STATE_NAME_LIFETIME_Brief : uint
     {
         WellKnown = 0,
