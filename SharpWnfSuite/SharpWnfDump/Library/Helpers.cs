@@ -40,6 +40,7 @@ namespace SharpWnfDump.Library
                 showData);
         }
 
+
         public static string GetWnfName(ulong stateName)
         {
             var wnfStateName = new WNF_STATE_NAME { Data = stateName };
@@ -49,7 +50,7 @@ namespace SharpWnfDump.Library
 
             if (string.IsNullOrEmpty(wnfName))
             {
-                if (nameLifeTime == WNF_STATE_NAME_LIFETIME.WnfWellKnownStateName)
+                if (nameLifeTime == WNF_STATE_NAME_LIFETIME.WellKnown)
                 {
                     wnfName = string.Format("{0}.{1} 0x{2}",
                         Encoding.ASCII.GetString(tag).Trim('\0'),
@@ -64,6 +65,7 @@ namespace SharpWnfDump.Library
 
             return wnfName;
         }
+
 
         public static ulong GetWnfStateName(string name)
         {
@@ -89,13 +91,6 @@ namespace SharpWnfDump.Library
             return value;
         }
 
-        public static bool IsValidInternalName(ulong stateName)
-        {
-            var wnfStateName = new WNF_STATE_NAME { Data = stateName };
-
-            return ((wnfStateName.GetNameLifeTime() < WNF_STATE_NAME_LIFETIME.WnfMaxStateName) &&
-                (wnfStateName.GetNameLifeTime() < WNF_STATE_NAME_LIFETIME.WnfMaxStateName));
-        }
 
         public static bool IsWritable(ulong stateName)
         {
@@ -111,6 +106,7 @@ namespace SharpWnfDump.Library
             return (ntstatus == Win32Consts.STATUS_OPERATION_FAILED);
         }
 
+
         public static bool PrintWnfRuntimeStatus(
             ulong stateName,
             IntPtr pSecurityDescriptor,
@@ -120,12 +116,22 @@ namespace SharpWnfDump.Library
         {
             bool bReadable;
             bool bWritable;
+            Char dataScopeTag;
+            WNF_DATA_SCOPE dataScope;
             long exists = 2;
             int SDDL_REVISION_1 = 1;
             var wnfStateName = new WNF_STATE_NAME { Data = stateName };
 
-            if (!IsValidInternalName(stateName))
+
+            if (!wnfStateName.IsValid())
                 return false;
+
+            dataScope = wnfStateName.GetDataScope();
+
+            if ((dataScope == WNF_DATA_SCOPE.Session) || (dataScope == WNF_DATA_SCOPE.PhysicalMachine))
+                dataScopeTag = dataScope.ToString().ToLower()[0];
+            else
+                dataScopeTag = dataScope.ToString()[0];
 
             bReadable = ReadWnfData(
                 stateName,
@@ -144,8 +150,8 @@ namespace SharpWnfDump.Library
             Console.WriteLine(
                 "| {0,-64}| {1} | {2} | {3} | {4} | {5} | {6,7} | {7,7} | {8,7} |",
                 GetWnfName(stateName),
-                ((WNF_DATA_SCOPE_Brief)wnfStateName.GetDataScope()).ToString()[0],
-                ((WNF_STATE_NAME_LIFETIME_Brief)wnfStateName.GetNameLifeTime()).ToString()[0],
+                dataScopeTag,
+                wnfStateName.GetNameLifeTime().ToString()[0],
                 (wnfStateName.GetPermanentData() != 0) ? 'Y' : 'N',
                 bReadable && bWritable ? "RW" : (bReadable ? "RO" : (bWritable ? "WO" : "NA")),
                 exists == 1 ? 'A' : (exists == 2 ? 'U' : 'I'),
@@ -181,6 +187,7 @@ namespace SharpWnfDump.Library
             return true;
         }
 
+
         public static int QueryWnfInfoClass(
             ulong stateName,
             WNF_STATE_NAME_INFORMATION nameInfoClass)
@@ -195,6 +202,7 @@ namespace SharpWnfDump.Library
 
             return (ntstatus == Win32Consts.STATUS_SUCCESS) ? exists : 0;
         }
+
 
         public static bool ReadWnfData(
             ulong stateName,
@@ -225,6 +233,7 @@ namespace SharpWnfDump.Library
 
             return (ntstatus == Win32Consts.STATUS_SUCCESS);
         }
+
 
         public static bool WriteWnfData(ulong stateName, IntPtr dataBuffer, int dataSize)
         {

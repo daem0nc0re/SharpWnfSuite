@@ -10,7 +10,7 @@ namespace SharpWnfDump.Interop
         public WNF_STATE_NAME(
             uint Version,
             WNF_STATE_NAME_LIFETIME NameLifeTime,
-            uint DataScope,
+            WNF_DATA_SCOPE DataScope,
             uint PermanentData,
             uint SequenceNumber,
             uint OwnerTag)
@@ -34,9 +34,9 @@ namespace SharpWnfDump.Interop
             return (WNF_STATE_NAME_LIFETIME)(((Data ^ 0x41C64E6DA3BC0074UL) >> 4) & 0x3);
         }
 
-        public uint GetDataScope()
+        public WNF_DATA_SCOPE GetDataScope()
         {
-            return (uint)(((Data ^ 0x41C64E6DA3BC0074UL) >> 6) & 0xF);
+            return (WNF_DATA_SCOPE)((((uint)Data ^ 0x41C64E6DA3BC0074UL) >> 6) & 0xF);
         }
 
         public uint GetPermanentData()
@@ -100,6 +100,14 @@ namespace SharpWnfDump.Interop
             Data &= 0x00000000FFFFFFFFUL;
             Data |= (ownerTag << 32);
             Data ^= 0x41C64E6DA3BC0074UL;
+        }
+
+        public bool IsValid()
+        {
+            var nameLifeTime = (uint)GetNameLifeTime();
+            var dataScope = (uint)GetDataScope();
+
+            return ((nameLifeTime < (uint)WNF_STATE_NAME_LIFETIME.Max) && (dataScope < (uint)WNF_DATA_SCOPE.Max));
         }
     }
 }

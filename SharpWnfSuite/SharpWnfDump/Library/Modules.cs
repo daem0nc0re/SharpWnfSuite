@@ -14,9 +14,9 @@ namespace SharpWnfDump.Library
         {
             long exists;
             var tableIndex = new StringBuilder();
-            var wnfStateName = new WNF_STATE_NAME(1, WNF_STATE_NAME_LIFETIME.WnfTemporaryStateName, 0, 0, 0, 0);
+            var wnfStateName = new WNF_STATE_NAME(1, WNF_STATE_NAME_LIFETIME.Temporary, 0, 0, 0, 0);
 
-            for (var scope = 0u; scope < (uint)WNF_DATA_SCOPE.WnfMaxScope; scope++)
+            for (var scope = 0u; scope < (uint)WNF_DATA_SCOPE.Max; scope++)
             {
                 wnfStateName.SetDataScope(scope);
 
@@ -49,7 +49,7 @@ namespace SharpWnfDump.Library
             var wnfStateName = new WNF_STATE_NAME { Data = stateName }; 
             var output = new StringBuilder();
 
-            if (wnfStateName.GetNameLifeTime() != WNF_STATE_NAME_LIFETIME.WnfTemporaryStateName)
+            if (wnfStateName.GetNameLifeTime() != WNF_STATE_NAME_LIFETIME.Temporary)
             {
                 ntstatus = NativeMethods.RegOpenKeyEx(
                     Win32Consts.HKEY_LOCAL_MACHINE,
@@ -127,7 +127,7 @@ namespace SharpWnfDump.Library
             ulong stateName;
             bool status = true;
             var output = new StringBuilder();
-            var lpValueName = new StringBuilder((int)lpcValueName);
+            var lpValueName = new StringBuilder(lpcValueName);
 
             for (var idx = 0; idx < Globals.LifetimeKeyNames.Length; idx++)
             {
