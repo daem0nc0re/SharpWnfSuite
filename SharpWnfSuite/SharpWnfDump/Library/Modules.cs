@@ -43,75 +43,73 @@ namespace SharpWnfDump.Library
 
         public static bool DumpKeyInfo(ulong stateName, bool showSd, bool showData)
         {
-            NTSTATUS ntstatus;
-            IntPtr dataBuffer;
-            int dataSize = 0;
+            int error;
             var wnfStateName = new WNF_STATE_NAME { Data = stateName }; 
-            var output = new StringBuilder();
 
-            if (wnfStateName.GetNameLifeTime() != WNF_STATE_NAME_LIFETIME.Temporary)
+            if (wnfStateName.GetNameLifeTime() == WNF_STATE_NAME_LIFETIME.Temporary)
             {
-                ntstatus = NativeMethods.RegOpenKeyEx(
+                Console.WriteLine("[-] Temporary WNF State Name is not supported.");
+                return false;
+            }
+
+            error = NativeMethods.RegOpenKeyEx(
                     Win32Consts.HKEY_LOCAL_MACHINE,
                     Globals.LifetimeKeyNames[(uint)wnfStateName.GetNameLifeTime()],
                     0,
                     Win32Consts.KEY_READ,
                     out IntPtr phkResult);
 
-                if (ntstatus != Win32Consts.ERROR_SUCCESS)
-                    return false;
-
-                dataBuffer = NativeMethods.VirtualAlloc(
-                        IntPtr.Zero, 0x1000, Win32Consts.MEM_COMMIT, Win32Consts.PAGE_READWRITE);
-
-                if (dataBuffer == IntPtr.Zero)
-                {
-                    NativeMethods.RegCloseKey(phkResult);
-                    return false;
-                }
-
-                ntstatus = NativeMethods.RegQueryValueEx(
-                    phkResult,
-                    string.Format("{0}", stateName.ToString("X16")),
-                    0,
-                    IntPtr.Zero,
-                    IntPtr.Zero,
-                    ref dataSize);
-
-                if (ntstatus != Win32Consts.ERROR_SUCCESS)
-                {
-                    NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
-                    NativeMethods.RegCloseKey(phkResult);
-                    return false;
-                }
-
-                ntstatus = NativeMethods.RegQueryValueEx(
-                    phkResult,
-                    string.Format("{0}", stateName.ToString("X16")),
-                    0,
-                    IntPtr.Zero,
-                    dataBuffer,
-                    ref dataSize);
-
-                if (ntstatus != Win32Consts.ERROR_SUCCESS)
-                {
-                    NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
-                    NativeMethods.RegCloseKey(phkResult);
-                    return false;
-                }
-
-                output.Append("\n");
-                output.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n",
-                    "WNF State Name");
-                output.Append(new string('-', 118));
-
-                Console.WriteLine(output);
-
-                Helpers.DumpWnfData(stateName, dataBuffer, showSd, showData);
-
-                NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
-                NativeMethods.RegCloseKey(phkResult);
+            if (error != Win32Consts.ERROR_SUCCESS)
+            {
+                Console.WriteLine("[-] Failed to open regitry key (Error = 0x{0}).", error.ToString("X8"));
+                return false;
             }
+
+            do
+            {
+                IntPtr pInfoBuffer;
+                int nInfoLength = 0;
+                var output = new StringBuilder();
+                error = NativeMethods.RegQueryValueEx(
+                    phkResult,
+                    stateName.ToString("X16"),
+                    0,
+                    IntPtr.Zero,
+                    IntPtr.Zero,
+                    ref nInfoLength);
+
+                if (error != Win32Consts.ERROR_SUCCESS)
+                {
+                    Console.WriteLine("[-] Failed to query registry value (Error = 0x{0}).", error.ToString("X8"));
+                    break;
+                }
+
+                pInfoBuffer = Marshal.AllocHGlobal(nInfoLength);
+                error = NativeMethods.RegQueryValueEx(
+                    phkResult,
+                    stateName.ToString("X16"),
+                    0,
+                    IntPtr.Zero,
+                    pInfoBuffer,
+                    ref nInfoLength);
+
+                if (error != Win32Consts.ERROR_SUCCESS)
+                {
+                    Console.WriteLine("[-] Failed to query registry value (Error = 0x{0}).", error.ToString("X8"));
+                }
+                else
+                {
+                    output.Append("\n");
+                    output.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n", "WNF State Name");
+                    output.Append(new string('-', 118));
+                    Console.WriteLine(output);
+                    Helpers.DumpWnfData(stateName, pInfoBuffer, showSd, showData);
+                }
+
+                Marshal.FreeHGlobal(pInfoBuffer);
+            } while (false);
+
+            NativeMethods.RegCloseKey(phkResult);
 
             return true;
         }
