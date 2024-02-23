@@ -6,46 +6,52 @@ namespace SharpWnfDump.Library
 {
     internal class HexDump
     {
-        public static void Dump(byte[] data, int nIndentCount)
+        public static string Dump(byte[] data, int nIndentCount)
         {
+            string output;
+            IntPtr pBufferToRead = Marshal.AllocHGlobal(data.Length);
+            Marshal.Copy(data, 0, pBufferToRead, data.Length);
+            
+            output = Dump(pBufferToRead, new IntPtr(-1), (uint)data.Length, nIndentCount);
+            Marshal.FreeHGlobal(pBufferToRead);
+
+            return output;
+        }
+
+
+        public static string Dump(byte[] data, uint nRange, int nIndentCount)
+        {
+            string output;
             IntPtr pBufferToRead = Marshal.AllocHGlobal(data.Length);
             Marshal.Copy(data, 0, pBufferToRead, data.Length);
 
-            Dump(pBufferToRead, new IntPtr(-1), (uint)data.Length, nIndentCount);
-
+            output = Dump(pBufferToRead, new IntPtr(-1), nRange, nIndentCount);
             Marshal.FreeHGlobal(pBufferToRead);
+
+            return output;
         }
 
 
-        public static void Dump(byte[] data, uint nRange, int nIndentCount)
+        public static string Dump(byte[] data, IntPtr pBaseAddress, uint nRange, int nIndentCount)
         {
+            string output;
             IntPtr pBufferToRead = Marshal.AllocHGlobal(data.Length);
             Marshal.Copy(data, 0, pBufferToRead, data.Length);
 
-            Dump(pBufferToRead, new IntPtr(-1), nRange, nIndentCount);
-
+            output = Dump(pBufferToRead, pBaseAddress, nRange, nIndentCount);
             Marshal.FreeHGlobal(pBufferToRead);
+
+            return output;
         }
 
 
-        public static void Dump(byte[] data, IntPtr pBaseAddress, uint nRange, int nIndentCount)
+        public static string Dump(IntPtr pBufferToRead, uint nRange, int nIndentCount)
         {
-            IntPtr pBufferToRead = Marshal.AllocHGlobal(data.Length);
-            Marshal.Copy(data, 0, pBufferToRead, data.Length);
-
-            Dump(pBufferToRead, pBaseAddress, nRange, nIndentCount);
-
-            Marshal.FreeHGlobal(pBufferToRead);
+            return Dump(pBufferToRead, new IntPtr(-1), nRange, nIndentCount);
         }
 
 
-        public static void Dump(IntPtr pBufferToRead, uint nRange, int nIndentCount)
-        {
-            Dump(pBufferToRead, new IntPtr(-1), nRange, nIndentCount);
-        }
-
-
-        public static void Dump(IntPtr pBufferToRead, IntPtr pBaseAddress, uint nRange, int nIndentCount)
+        public static string Dump(IntPtr pBufferToRead, IntPtr pBaseAddress, uint nRange, int nIndentCount)
         {
             string addressFormat;
             string headFormat;
@@ -69,41 +75,39 @@ namespace SharpWnfDump.Library
             }
 
             if (nRange > 0)
-            {
                 outputBuilder.AppendFormat(headFormat, string.Empty, "00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F");
 
-                for (var idx = 0; idx < nRange; idx++)
+            for (var idx = 0; idx < nRange; idx++)
+            {
+                var address = pBaseAddress.ToInt64() + (idx & (~0x0Fu));
+                var readByte = Marshal.ReadByte(pBufferToRead, idx);
+                hexBuilder.Append(readByte.ToString("X2"));
+                charBuilder.Append(IsPrintable((char)readByte) ? (char)readByte : '.');
+
+                if ((idx % 16 == 15) || (idx == (nRange - 1)))
                 {
-                    var address = pBaseAddress.ToInt64() + (idx & (~0x0Fu));
-                    var readByte = Marshal.ReadByte(pBufferToRead, idx);
-                    hexBuilder.Append(readByte.ToString("X2"));
-                    charBuilder.Append(IsPrintable((char)readByte) ? (char)readByte : '.');
-
-                    if ((idx % 16 == 15) || (idx == (nRange - 1)))
-                    {
-                        outputBuilder.AppendFormat(
-                            lineFormat,
-                            address.ToString(addressFormat),
-                            hexBuilder.ToString(),
-                            charBuilder.ToString());
-                        hexBuilder.Clear();
-                        charBuilder.Clear();
-                    }
-                    else if ((idx % 16 == 7) && (idx != (nRange - 1)))
-                    {
-                        hexBuilder.Append("-");
-                        charBuilder.Append(" ");
-                    }
-                    else
-                    {
-                        hexBuilder.Append(" ");
-                    }
+                    outputBuilder.AppendFormat(
+                        lineFormat,
+                        address.ToString(addressFormat),
+                        hexBuilder.ToString(),
+                        charBuilder.ToString());
+                    hexBuilder.Clear();
+                    charBuilder.Clear();
                 }
-
-                Console.WriteLine(outputBuilder.ToString());
-                outputBuilder.Clear();
+                else if ((idx % 16 == 7) && (idx != (nRange - 1)))
+                {
+                    hexBuilder.Append("-");
+                    charBuilder.Append(" ");
+                }
+                else
+                {
+                    hexBuilder.Append(" ");
+                }
             }
+
+            return outputBuilder.ToString();
         }
+
 
         private static bool IsPrintable(char code)
         {

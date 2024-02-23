@@ -9,35 +9,99 @@ namespace SharpWnfDump.Library
 
     internal class Helpers
     {
-        public static bool DumpWnfData(
+        public static string DumpWnfData(
             ulong stateName,
             IntPtr pSecurityDescriptor,
             bool showSd,
             bool showData)
         {
-            int maxSize = -1;
-            int sdSize;
+            int nMaxSize = -1;
+            var outputBuilder = new StringBuilder();
 
             if (pSecurityDescriptor != IntPtr.Zero)
             {
                 if (NativeMethods.IsValidSecurityDescriptor(pSecurityDescriptor))
                 {
-                    sdSize = NativeMethods.GetSecurityDescriptorLength(pSecurityDescriptor);
-                    maxSize = Marshal.ReadInt32(pSecurityDescriptor, sdSize);
+                    var nSdSize = NativeMethods.GetSecurityDescriptorLength(pSecurityDescriptor);
+                    nMaxSize = Marshal.ReadInt32(pSecurityDescriptor, nSdSize);
                 }
                 else
                 {
                     pSecurityDescriptor = IntPtr.Zero;
-                    maxSize = 0;
+                    nMaxSize = 0;
                 }
             }
 
-            return PrintWnfRuntimeStatus(
-                stateName,
-                pSecurityDescriptor,
-                showSd,
-                maxSize,
-                showData);
+            do
+            {
+                long exists = 2;
+                bool bReadable;
+                bool bWritable;
+                Char dataScopeTag;
+                WNF_DATA_SCOPE dataScope;
+                var wnfStateName = new WNF_STATE_NAME { Data = stateName };
+
+                if (!wnfStateName.IsValid())
+                {
+                    outputBuilder.Append("[!] WNF State Name is invalid.\n");
+                    break;
+                }
+
+                dataScope = wnfStateName.GetDataScope();
+
+                if ((dataScope == WNF_DATA_SCOPE.Session) || (dataScope == WNF_DATA_SCOPE.PhysicalMachine))
+                    dataScopeTag = dataScope.ToString().ToLower()[0];
+                else
+                    dataScopeTag = dataScope.ToString()[0];
+
+                bReadable = ReadWnfData(
+                    stateName,
+                    out int changeStamp,
+                    out IntPtr pInfoBuffer,
+                    out uint nInfoLength);
+                bWritable = IsWritable(stateName);
+
+                if (bWritable)
+                {
+                    exists = QueryWnfInfoClass(
+                        stateName,
+                        WNF_STATE_NAME_INFORMATION.WnfInfoSubscribersPresent);
+                }
+
+                outputBuilder.AppendFormat(
+                    "| {0,-64}| {1} | {2} | {3} | {4} | {5} | {6,7} | {7,7} | {8,7} |\n",
+                    GetWnfName(stateName),
+                    dataScopeTag,
+                    wnfStateName.GetNameLifeTime().ToString()[0],
+                    (wnfStateName.GetPermanentData() != 0) ? 'Y' : 'N',
+                    bReadable && bWritable ? "RW" : (bReadable ? "RO" : (bWritable ? "WO" : "NA")),
+                    exists == 1 ? 'A' : (exists == 2 ? 'U' : 'I'),
+                    nInfoLength,
+                    nMaxSize == -1 ? "?" : nMaxSize.ToString("D"),
+                    changeStamp);
+
+                if (showSd && pSecurityDescriptor != IntPtr.Zero)
+                {
+                    NativeMethods.ConvertSecurityDescriptorToStringSecurityDescriptor(
+                        pSecurityDescriptor,
+                        Win32Consts.SDDL_REVISION_1,
+                        SECURITY_INFORMATION.DACL_SECURITY_INFORMATION | SECURITY_INFORMATION.SACL_SECURITY_INFORMATION | SECURITY_INFORMATION.LABEL_SECURITY_INFORMATION,
+                        out StringBuilder sdString,
+                        IntPtr.Zero);
+                    outputBuilder.AppendFormat("\n        {0}\n\n", sdString.ToString());
+                }
+
+                if (showData && bReadable && (nInfoLength != 0))
+                {
+                    var hexDump = HexDump.Dump(pInfoBuffer, nInfoLength, 2);
+                    outputBuilder.AppendFormat("\n{0}\n", string.IsNullOrEmpty(hexDump) ? "Failed to get hexdump." : hexDump);
+                }
+
+                if (pInfoBuffer != IntPtr.Zero)
+                    Marshal.FreeHGlobal(pInfoBuffer);
+            } while (false);
+
+            return outputBuilder.ToString();
         }
 
 
@@ -104,87 +168,6 @@ namespace SharpWnfDump.Library
                 1);
 
             return (ntstatus == Win32Consts.STATUS_OPERATION_FAILED);
-        }
-
-
-        public static bool PrintWnfRuntimeStatus(
-            ulong stateName,
-            IntPtr pSecurityDescriptor,
-            bool showSd,
-            int maxSize,
-            bool showData)
-        {
-            bool bReadable;
-            bool bWritable;
-            Char dataScopeTag;
-            WNF_DATA_SCOPE dataScope;
-            long exists = 2;
-            int SDDL_REVISION_1 = 1;
-            var wnfStateName = new WNF_STATE_NAME { Data = stateName };
-
-
-            if (!wnfStateName.IsValid())
-                return false;
-
-            dataScope = wnfStateName.GetDataScope();
-
-            if ((dataScope == WNF_DATA_SCOPE.Session) || (dataScope == WNF_DATA_SCOPE.PhysicalMachine))
-                dataScopeTag = dataScope.ToString().ToLower()[0];
-            else
-                dataScopeTag = dataScope.ToString()[0];
-
-            bReadable = ReadWnfData(
-                stateName,
-                out int changeStamp,
-                out IntPtr dataBuffer,
-                out uint bufferSize);
-            bWritable = IsWritable(stateName);
-
-            if (bWritable)
-            {
-                exists = QueryWnfInfoClass(
-                    stateName,
-                    WNF_STATE_NAME_INFORMATION.WnfInfoSubscribersPresent);
-            }
-
-            Console.WriteLine(
-                "| {0,-64}| {1} | {2} | {3} | {4} | {5} | {6,7} | {7,7} | {8,7} |",
-                GetWnfName(stateName),
-                dataScopeTag,
-                wnfStateName.GetNameLifeTime().ToString()[0],
-                (wnfStateName.GetPermanentData() != 0) ? 'Y' : 'N',
-                bReadable && bWritable ? "RW" : (bReadable ? "RO" : (bWritable ? "WO" : "NA")),
-                exists == 1 ? 'A' : (exists == 2 ? 'U' : 'I'),
-                bufferSize,
-                maxSize == -1 ? "?" : maxSize.ToString("D"),
-                changeStamp);
-
-            if (showSd && pSecurityDescriptor != IntPtr.Zero)
-            {
-                NativeMethods.ConvertSecurityDescriptorToStringSecurityDescriptor(
-                    pSecurityDescriptor,
-                    SDDL_REVISION_1,
-                    SECURITY_INFORMATION.DACL_SECURITY_INFORMATION | SECURITY_INFORMATION.SACL_SECURITY_INFORMATION | SECURITY_INFORMATION.LABEL_SECURITY_INFORMATION,
-                    out StringBuilder StringSecurityDescriptor,
-                    IntPtr.Zero);
-                Console.WriteLine("\n\t{0}", StringSecurityDescriptor);
-            }
-
-            if (showData && bReadable && bufferSize != 0)
-            {
-                Console.WriteLine();
-                HexDump.Dump(dataBuffer, (uint)bufferSize, 2);
-                Console.WriteLine();
-            }
-            else if (showSd)
-            {
-                Console.WriteLine();
-            }
-
-            if (dataBuffer != IntPtr.Zero)
-                Marshal.FreeHGlobal(dataBuffer);
-
-            return true;
         }
 
 

@@ -7,6 +7,8 @@ namespace SharpWnfDump.Interop
     internal class Win32Consts
     {
         public const int ERROR_SUCCESS = 0;
+        public const int ERROR_MORE_DATA = 0x000000EA;
+        public const int SDDL_REVISION_1 = 1;
         public static readonly IntPtr HKEY_LOCAL_MACHINE = new IntPtr(-2147483646);
         public const int KEY_READ = 0x20019;
         public const uint MEM_COMMIT = 0x00001000;

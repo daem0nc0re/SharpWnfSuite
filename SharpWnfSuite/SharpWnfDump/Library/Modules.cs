@@ -6,8 +6,6 @@ using SharpWnfDump.Interop;
 
 namespace SharpWnfDump.Library
 {
-    using NTSTATUS = Int32;
-
     internal class Modules
     {
         public static void BruteForceWnfNames(bool showData)
@@ -35,7 +33,7 @@ namespace SharpWnfDump.Library
                         WNF_STATE_NAME_INFORMATION.WnfInfoStateNameExist);
 
                     if (exists != 0)
-                        Helpers.DumpWnfData(wnfStateName.Data, IntPtr.Zero, false, showData);
+                        Console.Write(Helpers.DumpWnfData(wnfStateName.Data, IntPtr.Zero, false, showData));
                 }
             }
         }
@@ -69,7 +67,7 @@ namespace SharpWnfDump.Library
             {
                 IntPtr pInfoBuffer;
                 int nInfoLength = 0;
-                var output = new StringBuilder();
+                var outputBuilder = new StringBuilder();
                 error = NativeMethods.RegQueryValueEx(
                     phkResult,
                     stateName.ToString("X16"),
@@ -99,11 +97,11 @@ namespace SharpWnfDump.Library
                 }
                 else
                 {
-                    output.Append("\n");
-                    output.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n", "WNF State Name");
-                    output.Append(new string('-', 118));
-                    Console.WriteLine(output);
-                    Helpers.DumpWnfData(stateName, pInfoBuffer, showSd, showData);
+                    outputBuilder.Append("\n");
+                    outputBuilder.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n", "WNF State Name");
+                    outputBuilder.Append(new string('-', 118));
+                    outputBuilder.Append(Helpers.DumpWnfData(stateName, pInfoBuffer, showSd, showData));
+                    Console.WriteLine(outputBuilder.ToString());
                 }
 
                 Marshal.FreeHGlobal(pInfoBuffer);
@@ -115,92 +113,71 @@ namespace SharpWnfDump.Library
         }
 
 
-        public static bool DumpWnfNames(bool showSd, bool showData)
+        public static void DumpWnfNames(bool showSd, bool showData)
         {
-            NTSTATUS ntstatus;
-            IntPtr lpBuffer;
-            int count;
-            int lpcValueName = 255;
-            int bufferSize = 0x1000;
-            ulong stateName;
-            bool status = true;
-            var output = new StringBuilder();
-            var lpValueName = new StringBuilder(lpcValueName);
+            var outputBuilder = new StringBuilder();
 
             for (var idx = 0; idx < Globals.LifetimeKeyNames.Length; idx++)
             {
-                ntstatus = NativeMethods.RegOpenKeyEx(
+                int error = NativeMethods.RegOpenKeyEx(
                     Win32Consts.HKEY_LOCAL_MACHINE,
                     Globals.LifetimeKeyNames[idx],
                     0,
                     Win32Consts.KEY_READ,
                     out IntPtr phkResult);
 
-                if (ntstatus != Win32Consts.ERROR_SUCCESS)
+                if (error != Win32Consts.ERROR_SUCCESS)
+                    continue;
+
+                if (idx > 0)
+                    outputBuilder.Append("\n");
+
+                outputBuilder.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n",
+                    string.Format("WNF State Name [{0} Lifetime]", ((WNF_STATE_NAME_LIFETIME)idx).ToString()));
+                outputBuilder.AppendLine(new string('-', 118));
+
+                for (var count = 0; true; count++)
                 {
-                    return false;
-                }
+                    IntPtr pInfoBuffer;
+                    var nNameLength = 255;
+                    var nameBuilder = new StringBuilder(nNameLength);
+                    error = Win32Consts.ERROR_MORE_DATA;
 
-                output.Clear();
-                output.Append("\n");
-                output.AppendFormat(
-                    "| {0,-64}",
-                    string.Format("WNF State Name [{0} Lifetime]",
-                    Enum.GetName(typeof(WNF_STATE_NAME_LIFETIME), idx)));
-                output.Append("| S | L | P | AC | N | CurSize | MaxSize | Changes |");
-                output.Append("\n");
-                output.Append(new string('-', 118));
-
-                Console.WriteLine(output);
-                count = 0;
-
-                while (true)
-                {
-                    lpcValueName = 255;
-                    bufferSize = 0x1000;
-                    lpBuffer = NativeMethods.VirtualAlloc(
-                        IntPtr.Zero, bufferSize, Win32Consts.MEM_COMMIT, Win32Consts.PAGE_READWRITE);
-
-                    if (lpBuffer == IntPtr.Zero)
+                    for (var trial = 0; (error == Win32Consts.ERROR_MORE_DATA); trial++)
                     {
-                        NativeMethods.RegCloseKey(phkResult);
-                        return false;
+                        int nInfoLength = 0x1000 * trial;
+                        pInfoBuffer = Marshal.AllocHGlobal(nInfoLength);
+                        error = NativeMethods.RegEnumValue(
+                            phkResult,
+                            count,
+                            nameBuilder,
+                            ref nNameLength,
+                            IntPtr.Zero,
+                            IntPtr.Zero,
+                            pInfoBuffer,
+                            ref nInfoLength);
+
+                        if (error == Win32Consts.ERROR_SUCCESS)
+                        {
+                            try
+                            {
+                                var stateName = Convert.ToUInt64(nameBuilder.ToString(), 16);
+                                outputBuilder.Append(Helpers.DumpWnfData(stateName, pInfoBuffer, showSd, showData));
+                            }
+                            catch { }
+                        }
+
+                        Marshal.FreeHGlobal(pInfoBuffer);
                     }
 
-                    ntstatus = NativeMethods.RegEnumValue(
-                        phkResult,
-                        count,
-                        lpValueName,
-                        ref lpcValueName,
-                        IntPtr.Zero,
-                        IntPtr.Zero,
-                        lpBuffer,
-                        ref bufferSize);
-
-                    if (ntstatus != Win32Consts.ERROR_SUCCESS)
+                    if (error != Win32Consts.ERROR_SUCCESS)
                         break;
-
-                    count++;
-
-                    try
-                    {
-                        stateName = Convert.ToUInt64(lpValueName.ToString(), 16);
-                        status = Helpers.DumpWnfData(stateName, lpBuffer, showSd, showData);
-                    }
-                    catch
-                    {
-                        continue;
-                    }
-                    finally
-                    {
-                        NativeMethods.VirtualFree(lpBuffer, 0, Win32Consts.MEM_RELEASE);
-                    }
                 }
 
                 NativeMethods.RegCloseKey(phkResult);
             }
 
-            return status;
+            Console.WriteLine(outputBuilder.ToString());
         }
 
 
@@ -218,7 +195,7 @@ namespace SharpWnfDump.Library
 
                 if (pInfoBuffer != IntPtr.Zero)
                 {
-                    HexDump.Dump(pInfoBuffer, nInfoLength, 1);
+                    Console.Write(HexDump.Dump(pInfoBuffer, nInfoLength, 1));
                     Marshal.FreeHGlobal(pInfoBuffer);
                 }
                 else
