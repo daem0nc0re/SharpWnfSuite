@@ -99,7 +99,7 @@ namespace SharpWnfDump.Library
                 {
                     outputBuilder.Append("\n");
                     outputBuilder.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n", "WNF State Name");
-                    outputBuilder.Append(new string('-', 118));
+                    outputBuilder.AppendLine(new string('-', 118));
                     outputBuilder.Append(Helpers.DumpWnfData(stateName, pInfoBuffer, showSd, showData));
                     Console.WriteLine(outputBuilder.ToString());
                 }
