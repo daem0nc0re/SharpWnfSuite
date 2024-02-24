@@ -34,11 +34,12 @@ namespace SharpWnfDump.Library
 
             do
             {
-                long exists = 2;
                 bool bReadable;
                 bool bWritable;
                 Char dataScopeTag;
                 WNF_DATA_SCOPE dataScope;
+                int exists = 2;
+                var additionalInfoBuilder = new StringBuilder();
                 var wnfStateName = new WNF_STATE_NAME { Data = stateName };
 
                 if (!wnfStateName.IsValid())
@@ -84,14 +85,19 @@ namespace SharpWnfDump.Library
                         SECURITY_INFORMATION.DACL_SECURITY_INFORMATION | SECURITY_INFORMATION.SACL_SECURITY_INFORMATION | SECURITY_INFORMATION.LABEL_SECURITY_INFORMATION,
                         out StringBuilder sdString,
                         IntPtr.Zero);
-                    outputBuilder.AppendFormat("\n        {0}\n\n", sdString.ToString());
+                    additionalInfoBuilder.AppendLine();
+                    additionalInfoBuilder.AppendFormat("        {0}\n", sdString);
                 }
 
                 if (showData && bReadable && (nInfoLength != 0))
                 {
                     var hexDump = HexDump.Dump(pInfoBuffer, nInfoLength, 2);
-                    outputBuilder.AppendFormat("\n{0}\n", string.IsNullOrEmpty(hexDump) ? "Failed to get hexdump." : hexDump);
+                    additionalInfoBuilder.AppendLine();
+                    additionalInfoBuilder.Append(string.IsNullOrEmpty(hexDump) ? "Failed to get hexdump.\n" : hexDump);
                 }
+
+                if (additionalInfoBuilder.Length > 0)
+                    outputBuilder.AppendFormat("{0}\n", additionalInfoBuilder.ToString());
 
                 if (pInfoBuffer != IntPtr.Zero)
                     Marshal.FreeHGlobal(pInfoBuffer);
@@ -143,7 +149,6 @@ namespace SharpWnfDump.Library
                 }
                 catch
                 {
-                    Console.WriteLine("\n[-] Failed to resolve WNF State Name.\n");
                     value = 0;
                 }
             }
