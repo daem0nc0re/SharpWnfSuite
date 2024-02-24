@@ -77,7 +77,7 @@ namespace SharpWnfDump.Interop
             in ulong StateName,
             WNF_STATE_NAME_INFORMATION NameInfoClass,
             IntPtr ExplicitScope,
-            ref int InfoBuffer,
+            IntPtr InfoBuffer,
             int InfoBufferSize);
 
         [DllImport("ntdll.dll")]

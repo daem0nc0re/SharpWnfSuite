@@ -62,11 +62,7 @@ namespace SharpWnfDump.Library
                 bWritable = IsWritable(stateName);
 
                 if (bWritable)
-                {
-                    exists = QueryWnfInfoClass(
-                        stateName,
-                        WNF_STATE_NAME_INFORMATION.WnfInfoSubscribersPresent);
-                }
+                    exists = GetWnfSubscribersPresenceInfo(stateName);
 
                 outputBuilder.AppendFormat(
                     "| {0,-64}| {1} | {2} | {3} | {4} | {5} | {6,7} | {7,7} | {8,7} |\n",
@@ -171,19 +167,19 @@ namespace SharpWnfDump.Library
         }
 
 
-        public static int QueryWnfInfoClass(
-            ulong stateName,
-            WNF_STATE_NAME_INFORMATION nameInfoClass)
+        public static int GetWnfSubscribersPresenceInfo(ulong stateName)
         {
-            int exists = 2;
+            IntPtr pInfoBuffer = Marshal.AllocHGlobal(4);
             NTSTATUS ntstatus = NativeMethods.NtQueryWnfStateNameInformation(
                 in stateName,
-                nameInfoClass,
+                WNF_STATE_NAME_INFORMATION.WnfInfoSubscribersPresent,
                 IntPtr.Zero,
-                ref exists,
+                pInfoBuffer,
                 4);
+            int present = Marshal.ReadInt32(pInfoBuffer);
+            Marshal.FreeHGlobal(pInfoBuffer);
 
-            return (ntstatus == Win32Consts.STATUS_SUCCESS) ? exists : 0;
+            return (ntstatus == Win32Consts.STATUS_SUCCESS) ? present : 0;
         }
 
 

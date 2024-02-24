@@ -10,7 +10,6 @@ namespace SharpWnfDump.Library
     {
         public static void BruteForceWnfNames(bool showData)
         {
-            long exists;
             var wnfStateName = new WNF_STATE_NAME(1, WNF_STATE_NAME_LIFETIME.Temporary, 0, 0, 0, 0);
 
             for (var dataScope = 0u; dataScope < (uint)WNF_DATA_SCOPE.Max; dataScope++)
@@ -28,11 +27,8 @@ namespace SharpWnfDump.Library
                 for (var number = 0u; number < 0x200000u; number++)
                 {
                     wnfStateName.SetSequenceNumber(number);
-                    exists = Helpers.QueryWnfInfoClass(
-                        wnfStateName.Data,
-                        WNF_STATE_NAME_INFORMATION.WnfInfoStateNameExist);
 
-                    if (exists != 0)
+                    if (Helpers.GetWnfSubscribersPresenceInfo(wnfStateName.Data) != 0)
                     {
                         var dataDump = Helpers.DumpWnfData(wnfStateName.Data, IntPtr.Zero, false, showData);
                         outputBuilder.Append(dataDump);
