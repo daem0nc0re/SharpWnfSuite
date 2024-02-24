@@ -16,7 +16,6 @@ namespace SharpWnfDump.Handler
             if (options.GetFlag("help"))
             {
                 options.GetHelp();
-
                 return;
             }
             
@@ -70,10 +69,7 @@ namespace SharpWnfDump.Handler
 
                     if (stateName == 0)
                     {
-                        Console.WriteLine(
-                            "\n[-] Failed to resolve WNF State Name ({0}).\n",
-                            wnfName);
-
+                        Console.WriteLine("[-] Failed to resolve WNF State Name ({0}).", wnfName);
                         return;
                     }
 
@@ -86,15 +82,13 @@ namespace SharpWnfDump.Handler
 
                     if (string.IsNullOrEmpty(wnfName))
                     {
-                        Console.WriteLine("\n[!] Missing WNF State Name.\n");
-
+                        Console.WriteLine("[!] Missing WNF State Name.");
                         return;
                     }
 
                     if (string.IsNullOrEmpty(fileName))
                     {
-                        Console.WriteLine("\n[!] Missing data source file.\n");
-
+                        Console.WriteLine("[!] Missing data source file.");
                         return;
                     }
 
@@ -109,10 +103,7 @@ namespace SharpWnfDump.Handler
 
                     if (stateName == 0)
                     {
-                        Console.WriteLine(
-                            "\n[-] Failed to resolve WNF State Name ({0}).\n",
-                            wnfName);
-
+                        Console.WriteLine("\n[-] Failed to resolve WNF State Name ({0}).\n", wnfName);
                         return;
                     }
 
@@ -121,12 +112,8 @@ namespace SharpWnfDump.Handler
                 else
                 {
                     options.GetHelp();
-
-                    return;
                 }
             }
-
-            Console.WriteLine();
         }
     }
 }

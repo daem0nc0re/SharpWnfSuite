@@ -11,19 +11,19 @@ namespace SharpWnfDump.Library
         public static void BruteForceWnfNames(bool showData)
         {
             long exists;
-            var tableIndex = new StringBuilder();
             var wnfStateName = new WNF_STATE_NAME(1, WNF_STATE_NAME_LIFETIME.Temporary, 0, 0, 0, 0);
 
-            for (var scope = 0u; scope < (uint)WNF_DATA_SCOPE.Max; scope++)
+            for (var dataScope = 0u; dataScope < (uint)WNF_DATA_SCOPE.Max; dataScope++)
             {
-                wnfStateName.SetDataScope(scope);
+                var outputBuilder = new StringBuilder();
+                wnfStateName.SetDataScope(dataScope);
 
-                tableIndex.Clear();
-                tableIndex.Append("\n");
-                tableIndex.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n",
-                    string.Format("WNF State Name [{0} Scope]", ((WNF_DATA_SCOPE)scope).ToString()));
-                tableIndex.Append(new string('-', 118));
-                Console.WriteLine(tableIndex);
+                if (dataScope > 0)
+                    outputBuilder.AppendLine();
+
+                outputBuilder.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n",
+                    string.Format("WNF State Name [{0} Scope]", ((WNF_DATA_SCOPE)dataScope).ToString()));
+                outputBuilder.AppendLine(new string('-', 118));
 
                 for (var number = 0u; number < 0x200000u; number++)
                 {
@@ -33,8 +33,13 @@ namespace SharpWnfDump.Library
                         WNF_STATE_NAME_INFORMATION.WnfInfoStateNameExist);
 
                     if (exists != 0)
-                        Console.Write(Helpers.DumpWnfData(wnfStateName.Data, IntPtr.Zero, false, showData));
+                    {
+                        var dataDump = Helpers.DumpWnfData(wnfStateName.Data, IntPtr.Zero, false, showData);
+                        outputBuilder.Append(dataDump);
+                    }
                 }
+
+                Console.Write(outputBuilder.ToString());
             }
         }
 
@@ -97,8 +102,7 @@ namespace SharpWnfDump.Library
                 }
                 else
                 {
-                    outputBuilder.Append("\n");
-                    outputBuilder.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n", "WNF State Name");
+                    outputBuilder.AppendFormat("\n| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n", "WNF State Name");
                     outputBuilder.AppendLine(new string('-', 118));
                     outputBuilder.Append(Helpers.DumpWnfData(stateName, pInfoBuffer, showSd, showData));
                     Console.WriteLine(outputBuilder.ToString());
@@ -130,7 +134,7 @@ namespace SharpWnfDump.Library
                     continue;
 
                 if (idx > 0)
-                    outputBuilder.Append("\n");
+                    outputBuilder.AppendLine();
 
                 outputBuilder.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n",
                     string.Format("WNF State Name [{0} Lifetime]", ((WNF_STATE_NAME_LIFETIME)idx).ToString()));
@@ -216,8 +220,8 @@ namespace SharpWnfDump.Library
             string fullFilePath = Path.GetFullPath(filePath);
             Console.WriteLine();
             Console.WriteLine("[>] Trying to write data.");
-            Console.WriteLine("    |-> Target WNF Name : {0}", nameString);
-            Console.WriteLine("    |-> Data Source     : {0}", fullFilePath);
+            Console.WriteLine("    [*] Target WNF Name : {0}", nameString);
+            Console.WriteLine("    [*] Data Source     : {0}", fullFilePath);
 
             if (!Helpers.IsWritable(stateName))
             {
