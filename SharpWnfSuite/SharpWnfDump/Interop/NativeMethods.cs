@@ -57,22 +57,6 @@ namespace SharpWnfDump.Interop
             ref int lpcbData);
 
         /*
-         * kernel32.dll
-         */
-        [DllImport("kernel32", SetLastError = true)]
-        public static extern IntPtr VirtualAlloc(
-            IntPtr lpAddress,
-            int dwSize,
-            uint flAllocationType,
-            uint flProtect);
-
-        [DllImport("kernel32", SetLastError = true)]
-        public static extern bool VirtualFree(
-            IntPtr lpAddress,
-            int dwSize,
-            uint dwFreeType);
-
-        /*
          * ntdll.dll
          * 
          * Reference:

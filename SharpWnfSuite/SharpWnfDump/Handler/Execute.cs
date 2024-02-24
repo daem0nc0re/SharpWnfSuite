@@ -18,6 +18,8 @@ namespace SharpWnfDump.Handler
                 options.GetHelp();
                 return;
             }
+
+            Console.WriteLine();
             
             if (options.GetFlag("info"))
             {
@@ -33,7 +35,7 @@ namespace SharpWnfDump.Handler
 
                 if (stateName == 0)
                 {
-                    Console.WriteLine("\n[!] Failed to resolve WNF State Name.\n");
+                    Console.WriteLine("[!] Failed to resolve WNF State Name.");
                     return;
                 }
 
@@ -103,7 +105,7 @@ namespace SharpWnfDump.Handler
 
                     if (stateName == 0)
                     {
-                        Console.WriteLine("\n[-] Failed to resolve WNF State Name ({0}).\n", wnfName);
+                        Console.WriteLine("[-] Failed to resolve WNF State Name ({0}).", wnfName);
                         return;
                     }
 
@@ -114,6 +116,8 @@ namespace SharpWnfDump.Handler
                     options.GetHelp();
                 }
             }
+
+            Console.WriteLine();
         }
     }
 }

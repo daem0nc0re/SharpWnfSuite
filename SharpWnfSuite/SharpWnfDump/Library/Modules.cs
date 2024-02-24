@@ -216,54 +216,44 @@ namespace SharpWnfDump.Library
 
         public static void OperationWrite(ulong stateName, string filePath)
         {
+            IntPtr pDataBuffer;
+            byte[] dataBytes;
             string nameString = Helpers.GetWnfName(stateName);
             string fullFilePath = Path.GetFullPath(filePath);
-            Console.WriteLine();
+
             Console.WriteLine("[>] Trying to write data.");
             Console.WriteLine("    [*] Target WNF Name : {0}", nameString);
             Console.WriteLine("    [*] Data Source     : {0}", fullFilePath);
 
             if (!Helpers.IsWritable(stateName))
             {
-                Console.WriteLine("[!] {0} is not writable.\n", nameString);
+                Console.WriteLine("[!] {0} is not writable.", nameString);
                 return;
             }
 
             if (!File.Exists(fullFilePath))
             {
-                Console.WriteLine("[!] {0} is not found.\n", fullFilePath);
+                Console.WriteLine("[!] {0} is not found.", fullFilePath);
                 return;
             }
 
-            byte[] dataBytes = File.ReadAllBytes(fullFilePath);
+            dataBytes = File.ReadAllBytes(fullFilePath);
 
             if (dataBytes.Length > 4096)
             {
-                Console.WriteLine("[!] Data size cannot be above 4 KB.\n");
+                Console.WriteLine("[!] Data size cannot be above 4 KB.");
                 return;
             }
 
-            IntPtr dataBuffer = NativeMethods.VirtualAlloc(
-                IntPtr.Zero,
-                dataBytes.Length,
-                Win32Consts.MEM_COMMIT,
-                Win32Consts.PAGE_READWRITE);
+            pDataBuffer = Marshal.AllocHGlobal(dataBytes.Length);
+            Marshal.Copy(dataBytes, 0, pDataBuffer, dataBytes.Length);
 
-            if (dataBuffer == IntPtr.Zero)
-            {
-                Console.WriteLine("\n[-] Failed to allocate buffer (error = {0}).\n",
-                    Marshal.GetLastWin32Error());
-                return;
-            }
-
-            Marshal.Copy(dataBytes, 0, dataBuffer, dataBytes.Length);
-
-            if (Helpers.WriteWnfData(stateName, dataBuffer, dataBytes.Length))
-                Console.WriteLine("\n[+] Data is written successfully.\n");
+            if (Helpers.WriteWnfData(stateName, pDataBuffer, dataBytes.Length))
+                Console.WriteLine("[+] Data is written successfully.");
             else
-                Console.WriteLine("\n[-] Failed to write data (The data size may exceed the maximum size of the target WNF object).\n");
+                Console.WriteLine("[-] Failed to write data (The data size may exceed the maximum size of the target WNF object).");
 
-            NativeMethods.VirtualFree(dataBuffer, 0, Win32Consts.MEM_RELEASE);
+            Marshal.FreeHGlobal(pDataBuffer);
         }
     }
 }
