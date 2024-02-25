@@ -215,7 +215,7 @@ namespace SharpWnfServer.Library
         {
             var output = new StringBuilder();
 
-            output.Append("\n");
+            output.AppendLine();
             output.AppendFormat(
                 "Encoded State Name: 0x{0}, Decoded State Name: 0x{1}\n",
                 this.StateName.ToString("X16"),
@@ -228,7 +228,7 @@ namespace SharpWnfServer.Library
                 this.InternalName.PermanentData != 0 ? "YES" : "NO",
                 this.InternalName.SequenceNumber.ToString("X"),
                 this.InternalName.OwnerTag.ToString("X"));
-            output.Append("\n");
+            output.AppendLine();
 
             Console.WriteLine(output.ToString());
         }
@@ -433,29 +433,27 @@ namespace SharpWnfServer.Library
             IntPtr pBuffer,
             int nBufferSize)
         {
+            var outputBuilder = new StringBuilder();
             NotifyContext context = (NotifyContext)Marshal.PtrToStructure(pCallbackContext, typeof(NotifyContext));
 
             if (pBuffer == IntPtr.Zero && nBufferSize == 0 && nChangeStamp == 0)
             {
-                Console.WriteLine();
-                Console.WriteLine("[*] WNF State Name is destroyed.");
-                Console.WriteLine("[*] Shutting down client...");
-                Console.WriteLine();
+                outputBuilder.AppendLine();
+                outputBuilder.AppendLine("[*] WNF State Name is destroyed.");
+                outputBuilder.AppendLine("[*] Shutting down client...\n");
                 context.Destroyed = true;
             }
             else
             {
-                Console.WriteLine();
-                Console.WriteLine("[>] Received data from server.");
-                Console.WriteLine("    |-> Timestamp : {0}", nChangeStamp);
-                Console.WriteLine("    |-> Buffer Size : {0} byte(s)", nBufferSize);
-                Console.WriteLine("    |-> Data :\n");
-
-                HexDump.Dump(pBuffer, (uint)nBufferSize, 2);
-
-                Console.WriteLine();
+                outputBuilder.AppendLine();
+                outputBuilder.AppendLine("[>] Received data from server.");
+                outputBuilder.AppendFormat("    [*] Timestamp : {0}\n", nChangeStamp);
+                outputBuilder.AppendFormat("    [*] Buffer Size : {0} byte(s)\n", nBufferSize);
+                outputBuilder.AppendLine("    [*] Data :\n");
+                outputBuilder.AppendLine(HexDump.Dump(pBuffer, (uint)nBufferSize, 2));
             }
 
+            Console.WriteLine(outputBuilder.ToString());
             Marshal.StructureToPtr(context, pCallbackContext, true);
 
             return Win32Consts.STATUS_SUCCESS;

@@ -11,10 +11,7 @@ namespace SharpWnfScan.Library
         public static bool EnableDebugPrivilege()
         {
             int error;
-            NativeMethods.LookupPrivilegeValue(
-                null,
-                "SeDebugPrivilege",
-                out LUID luid);
+            NativeMethods.LookupPrivilegeValue(null, "SeDebugPrivilege", out LUID luid);
 
             TOKEN_PRIVILEGES tp = new TOKEN_PRIVILEGES(1);
             tp.Privileges[0].Luid = luid;

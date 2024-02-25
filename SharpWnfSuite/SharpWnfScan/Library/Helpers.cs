@@ -111,14 +111,10 @@ namespace SharpWnfScan.Library
 
         public static bool IsWin11()
         {
-            int MajorVersion = 0;
-            int MinorVersion = 0;
-            int BuildNumber = 0;
+            NativeMethods.RtlGetNtVersionNumbers(out int majorVersion, out int _, out int buildNumber);
+            buildNumber &= 0xFFFF;
 
-            NativeMethods.RtlGetNtVersionNumbers(ref MajorVersion, ref MinorVersion, ref BuildNumber);
-            BuildNumber &= 0xFFFF;
-
-            return ((MajorVersion >= 10) && (BuildNumber >= 22000));
+            return ((majorVersion >= 10) && (buildNumber >= 22000));
         }
 
 

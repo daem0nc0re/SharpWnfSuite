@@ -52,19 +52,6 @@ namespace SharpWnfScan.Interop
         /*
          * kernel32.dll
          */
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern int FormatMessage(
-            uint dwFlags,
-            IntPtr lpSource,
-            int dwMessageId,
-            int dwLanguageId,
-            StringBuilder lpBuffer,
-            int nSize,
-            IntPtr Arguments);
-
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern IntPtr LoadLibrary(string lpLibFileName);
-
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr LocalFree(IntPtr hMem);
 
@@ -86,36 +73,9 @@ namespace SharpWnfScan.Interop
          *
          */
         [DllImport("ntdll.dll")]
-        public static extern NTSTATUS NtQueryWnfStateData(
-            in ulong StateName,
-            IntPtr TypeId,
-            IntPtr ExplicitScope,
-            out int ChangeStamp,
-            IntPtr Buffer,
-            ref int BufferSize);
-
-        [DllImport("ntdll.dll")]
-        public static extern NTSTATUS NtQueryWnfStateNameInformation(
-            in ulong StateName,
-            WNF_STATE_NAME_INFORMATION NameInfoClass,
-            IntPtr ExplicitScope,
-            ref int InfoBuffer,
-            int InfoBufferSize);
-
-        [DllImport("ntdll.dll")]
-        public static extern NTSTATUS NtUpdateWnfStateData(
-            in ulong StateName,
-            IntPtr Buffer,
-            int Length,
-            IntPtr TypeId,
-            IntPtr ExplicitScope,
-            int MatchingChangeScope,
-            int CheckStamp);
-
-        [DllImport("ntdll.dll")]
         public static extern void RtlGetNtVersionNumbers(
-            ref int MajorVersion,
-            ref int MinorVersion,
-            ref int BuildNumber);
+            out int MajorVersion,
+            out int MinorVersion,
+            out int BuildNumber);
     }
 }
