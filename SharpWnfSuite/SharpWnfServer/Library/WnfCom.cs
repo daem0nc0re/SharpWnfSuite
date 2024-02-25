@@ -75,6 +75,8 @@ namespace SharpWnfServer.Library
         private WNF_STATE_NAME_INTERNAL InternalName;
         private readonly IntPtr Callback;
         private readonly IntPtr SecurityDescriptor;
+        private IntPtr Dacl;
+        private IntPtr Sid;
 
         /*
          * Constructors
@@ -107,6 +109,8 @@ namespace SharpWnfServer.Library
          */
         public void Dispose()
         {
+            Marshal.FreeHGlobal(this.Dacl);
+            Marshal.FreeHGlobal(this.Sid);
             Marshal.FreeHGlobal(this.SecurityDescriptor);
         }
 
@@ -215,20 +219,16 @@ namespace SharpWnfServer.Library
         {
             var output = new StringBuilder();
 
-            output.AppendLine();
-            output.AppendFormat(
-                "Encoded State Name: 0x{0}, Decoded State Name: 0x{1}\n",
+            output.AppendFormat("Encoded State Name: 0x{0}, Decoded State Name: 0x{1}\n",
                 this.StateName.ToString("X16"),
                 (this.StateName ^ Win32Consts.WNF_STATE_KEY).ToString("X"));
-            output.AppendFormat(
-                "    Version: {0}, Lifetime: {1}, Scope: {2}, Permanent: {3}, Sequence Number: 0x{4}, Owner Tag: 0x{5}",
+            output.AppendFormat("    Version: {0}, Lifetime: {1}, Scope: {2}, Permanent: {3}, Sequence Number: 0x{4}, Owner Tag: 0x{5}\n",
                 this.InternalName.Version,
                 Enum.GetName(typeof(WNF_STATE_NAME_LIFETIME_Brief), this.InternalName.NameLifeTime),
                 Enum.GetName(typeof(WNF_DATA_SCOPE_TYPE), this.InternalName.DataScope),
                 this.InternalName.PermanentData != 0 ? "YES" : "NO",
                 this.InternalName.SequenceNumber.ToString("X"),
                 this.InternalName.OwnerTag.ToString("X"));
-            output.AppendLine();
 
             Console.WriteLine(output.ToString());
         }
@@ -368,31 +368,31 @@ namespace SharpWnfServer.Library
                     Marshal.SizeOf(typeof(ACCESS_ALLOWED_ACE)) -
                     Marshal.SizeOf(typeof(int)) +
                     cbSid;
-            IntPtr pSid = Marshal.AllocHGlobal(cbSid);
-            IntPtr pDacl = Marshal.AllocHGlobal(cbDacl);
             var pSecurityDescriptor = IntPtr.Zero;
+            this.Dacl = Marshal.AllocHGlobal(cbDacl);
+            this.Sid = Marshal.AllocHGlobal(cbSid);
 
             do
             {
                 status = NativeMethods.CreateWellKnownSid(
                     WELL_KNOWN_SID_TYPE.WinWorldSid, 
                     IntPtr.Zero,
-                    pSid,
+                    this.Sid,
                     ref cbSid);
 
                 if (!status)
                     break;
 
-                status = NativeMethods.InitializeAcl(pDacl, cbDacl, Win32Consts.ACL_REVISION);
+                status = NativeMethods.InitializeAcl(this.Dacl, cbDacl, Win32Consts.ACL_REVISION);
 
                 if (!status)
                     break;
 
                 status = NativeMethods.AddAccessAllowedAce(
-                    pDacl,
+                    this.Dacl,
                     Win32Consts.ACL_REVISION,
                     ACCESS_MASK.GENERIC_ALL,
-                    pSid);
+                    this.Sid);
 
                 if (!status)
                     break;
@@ -408,7 +408,7 @@ namespace SharpWnfServer.Library
                 status = NativeMethods.SetSecurityDescriptorDacl(
                     pSecurityDescriptor,
                     true,
-                    pDacl,
+                    this.Dacl,
                     false);
             } while (false);
 
@@ -417,9 +417,6 @@ namespace SharpWnfServer.Library
                 Marshal.FreeHGlobal(pSecurityDescriptor);
                 pSecurityDescriptor = IntPtr.Zero;
             }
-
-            Marshal.FreeHGlobal(pDacl);
-            Marshal.FreeHGlobal(pSid);
 
             return pSecurityDescriptor;
         }
@@ -453,7 +450,7 @@ namespace SharpWnfServer.Library
                 outputBuilder.AppendLine(HexDump.Dump(pBuffer, (uint)nBufferSize, 2));
             }
 
-            Console.WriteLine(outputBuilder.ToString());
+            Console.Write(outputBuilder.ToString());
             Marshal.StructureToPtr(context, pCallbackContext, true);
 
             return Win32Consts.STATUS_SUCCESS;
