@@ -98,10 +98,10 @@ namespace SharpWnfDump.Library
                 }
                 else
                 {
-                    outputBuilder.AppendFormat("\n| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n", "WNF State Name");
+                    outputBuilder.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n", "WNF State Name");
                     outputBuilder.AppendLine(new string('-', 118));
                     outputBuilder.Append(Helpers.DumpWnfData(stateName, pInfoBuffer, showSd, showData));
-                    Console.WriteLine(outputBuilder.ToString());
+                    Console.Write(outputBuilder.ToString());
                 }
 
                 Marshal.FreeHGlobal(pInfoBuffer);
