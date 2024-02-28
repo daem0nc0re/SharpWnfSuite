@@ -29,20 +29,6 @@ namespace SharpWnfScan.Interop
     }
 
     [Flags]
-    internal enum SECURITY_INFORMATION : uint
-    {
-        OWNER_SECURITY_INFORMATION = 0x00000001,
-        GROUP_SECURITY_INFORMATION = 0x00000002,
-        DACL_SECURITY_INFORMATION = 0x00000004,
-        SACL_SECURITY_INFORMATION = 0x00000008,
-        LABEL_SECURITY_INFORMATION = 0x00000010,
-        UNPROTECTED_SACL_SECURITY_INFORMATION = 0x10000000,
-        UNPROTECTED_DACL_SECURITY_INFORMATION = 0x20000000,
-        PROTECTED_SACL_SECURITY_INFORMATION = 0x40000000,
-        PROTECTED_DACL_SECURITY_INFORMATION = 0x80000000
-    }
-
-    [Flags]
     internal enum SYM_OPTIONS : uint
     {
         SYMOPT_CASE_INSENSITIVE = 0x00000001,
@@ -75,20 +61,22 @@ namespace SharpWnfScan.Interop
 
     internal enum WNF_STATE_NAME_LIFETIME : uint
     {
-        WnfWellKnownStateName = 0,
-        WnfPermanentStateName = 1,
-        WnfPersistentStateName = 2,
-        WnfTemporaryStateName = 3
+        WellKnown = 0,
+        Permanent,
+        Volataile, // Persistent
+        Temporary,
+        Max
     }
 
     internal enum WNF_DATA_SCOPE : uint
     {
-        WnfDataScopeSystem = 0,
-        WnfDataScopeSession = 1,
-        WnfDataScopeUser = 2,
-        WnfDataScopeProcess = 3,
-        WnfDataScopeMachine = 4,
-        WnfDataScopePhysicalMachine = 5
+        System = 0,
+        Session,
+        User,
+        Process,
+        Machine,
+        PhysicalMachine,
+        Max
     }
 
     internal enum WNF_STATE_NAME_INFORMATION : uint

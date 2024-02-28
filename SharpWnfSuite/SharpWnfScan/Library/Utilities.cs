@@ -268,9 +268,7 @@ namespace SharpWnfScan.Library
         public static IntPtr GetSubscriptionTablePointerAddress(PeProcess proc)
         {
             if (proc.GetCurrentModuleName() != "ntdll.dll")
-            {
                 proc.SetBaseModule("ntdll.dll");
-            }
 
             IntPtr pDataSection = proc.GetSectionAddress(".data");
             uint nSizeSubscriptionTable;

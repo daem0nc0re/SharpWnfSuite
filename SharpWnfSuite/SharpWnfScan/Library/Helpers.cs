@@ -8,32 +8,6 @@ namespace SharpWnfScan.Library
 {
     internal class Helpers
     {
-        private struct WNF_STATE_NAME_DATA
-        {
-            public ulong Version;
-            public ulong NameLifeTime;
-            public ulong DataScope;
-            public ulong PermanentData;
-            public ulong SequenceNumber;
-            public ulong OwnerTag;
-        }
-
-
-        private static WNF_STATE_NAME_DATA ConvertFromStateNameToStateData(ulong stateName)
-        {
-            WNF_STATE_NAME_DATA stateData;
-            stateName ^= Win32Consts.WNF_STATE_KEY;
-            stateData.Version = (stateName & 0xF);
-            stateData.NameLifeTime = ((stateName >> 4) & 0x3);
-            stateData.DataScope = ((stateName >> 6) & 0xF);
-            stateData.PermanentData = ((stateName >> 10) & 0x1);
-            stateData.SequenceNumber = ((stateName >> 11) & 0x1FFFFF);
-            stateData.OwnerTag = ((stateName >> 32) & 0xFFFFFFFF);
-
-            return stateData;
-        }
-
-
         public static string GetSymbolPath(IntPtr hProcess, IntPtr pointer)
         {
             string symbol;
@@ -70,9 +44,7 @@ namespace SharpWnfScan.Library
             }
 
             if (string.IsNullOrEmpty(symbol))
-            {
                 symbol = "N/A";
-            }
 
             NativeMethods.SymCleanup(hProcess);
 
@@ -82,21 +54,17 @@ namespace SharpWnfScan.Library
 
         public static string GetWnfName(ulong stateName)
         {
-            string wnfName;
-            WNF_STATE_NAME_DATA data = ConvertFromStateNameToStateData(stateName);
-            byte[] tag = BitConverter.GetBytes((uint)data.OwnerTag);
-            bool isWellKnown = data.NameLifeTime ==
-                (ulong)WNF_STATE_NAME_LIFETIME.WnfWellKnownStateName;
+            string wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME), stateName);
+            var wnfStateName = new WNF_STATE_NAME { Data = stateName };
+            var tag = BitConverter.GetBytes(wnfStateName.GetOwnerTag());
 
-            wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME), stateName);
-
-            if (string.IsNullOrEmpty(wnfName))
+            if (string.IsNullOrEmpty(wnfName) && wnfStateName.IsValid())
             {
-                if (isWellKnown)
+                if (wnfStateName.GetNameLifeTime() == WNF_STATE_NAME_LIFETIME.WellKnown)
                 {
                     wnfName = string.Format("{0}.{1} 0x{2}",
                         Encoding.ASCII.GetString(tag).Trim('\0'),
-                        data.SequenceNumber.ToString("D3"),
+                        wnfStateName.GetSequenceNumber().ToString("D3"),
                         stateName.ToString("X8"));
                 }
                 else
@@ -120,33 +88,15 @@ namespace SharpWnfScan.Library
 
         public static void PrintProcessInformation(PROCESS_INFORMATION processInfo)
         {
-            if (string.IsNullOrEmpty(processInfo.ErrorMessage))
-            {
-                Console.WriteLine("Process Name  : {0}", processInfo.ProcessName);
-                Console.WriteLine("Process ID    : {0}", processInfo.ProcessId);
-                Console.WriteLine("Architecture  : {0}\n", processInfo.Architecture);
-            }
-            else
-            {
-                Console.WriteLine("Process Name  : {0}", processInfo.ProcessName);
-                Console.WriteLine("Process ID    : {0}", processInfo.ProcessId);
-                Console.WriteLine("Architecture  : {0}", processInfo.Architecture);
-                Console.WriteLine("Error Message : {0}\n", processInfo.ErrorMessage);
-            }
-        }
+            var outputBuilder = new StringBuilder();
+            outputBuilder.AppendFormat("Process Name  : {0}\n", processInfo.ProcessName);
+            outputBuilder.AppendFormat("Process ID    : {0}\n", processInfo.ProcessId);
+            outputBuilder.AppendFormat("Architecture  : {0}\n", processInfo.Architecture);
 
+            if (!string.IsNullOrEmpty(processInfo.ErrorMessage))
+                outputBuilder.AppendFormat("Error Message : {0}\n", processInfo.ErrorMessage);
 
-        public static void ZeroMemory(IntPtr buffer, int size)
-        {
-            var nullBytes = new byte[size];
-            Marshal.Copy(nullBytes, 0, buffer, size);
-        }
-
-
-        public static void ZeroMemory(ref byte[] bytes, int size)
-        {
-            var nullBytes = new byte[size];
-            Buffer.BlockCopy(nullBytes, 0, bytes, 0, size);
+            Console.WriteLine(outputBuilder.ToString());
         }
     }
 }
