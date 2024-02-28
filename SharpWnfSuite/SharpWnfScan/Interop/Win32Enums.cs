@@ -2,6 +2,12 @@
 
 namespace SharpWnfScan.Interop
 {
+    internal enum BOOLEAN : byte
+    {
+        FALSE,
+        TRUE
+    }
+
     [Flags]
     internal enum PrivilegeAttributeFlags : uint
     {

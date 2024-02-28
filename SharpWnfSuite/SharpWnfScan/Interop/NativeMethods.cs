@@ -11,15 +11,6 @@ namespace SharpWnfScan.Interop
         /*
          * advapi32.dll
          */
-        [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool AdjustTokenPrivileges(
-            IntPtr TokenHandle,
-            bool DisableAllPrivileges,
-            IntPtr NewState, // ref TOKEN_PRIVILEGES
-            int BufferLength,
-            IntPtr PreviousState, // out TOKEN_PRIVILEGES
-            IntPtr ReturnLength); // out int
-
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern bool LookupPrivilegeValue(
             string lpSystemName,
@@ -72,6 +63,15 @@ namespace SharpWnfScan.Interop
          *   + https://github.com/processhacker/processhacker/blob/master/phnt/include/ntexapi.h
          *
          */
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtAdjustPrivilegesToken(
+            IntPtr TokenHandle,
+            BOOLEAN DisableAllPrivileges,
+            IntPtr /* PTOKEN_PRIVILEGES */ TokenPrivileges,
+            uint PreviousPrivilegesLength,
+            IntPtr /* PTOKEN_PRIVILEGES */ PreviousPrivileges,
+            IntPtr /* out uint */ RequiredLength);
+
         [DllImport("ntdll.dll")]
         public static extern void RtlGetNtVersionNumbers(
             out int MajorVersion,

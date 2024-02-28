@@ -6,38 +6,30 @@ using SharpWnfScan.Interop;
 
 namespace SharpWnfScan.Library
 {
+    using NTSTATUS = Int32;
+
     internal class Utilities
     {
         public static bool EnableDebugPrivilege()
         {
-            int error;
-            NativeMethods.LookupPrivilegeValue(null, "SeDebugPrivilege", out LUID luid);
-
-            TOKEN_PRIVILEGES tp = new TOKEN_PRIVILEGES(1);
-            tp.Privileges[0].Luid = luid;
+            NTSTATUS ntstatus;
+            IntPtr pTokenPrivilege = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(TOKEN_PRIVILEGES)));
+            var tp = new TOKEN_PRIVILEGES(1);
+            tp.Privileges[0].Luid.LowPart = 0x00000014;
+            tp.Privileges[0].Luid.HighPart = 0;
             tp.Privileges[0].Attributes = (uint)PrivilegeAttributeFlags.SE_PRIVILEGE_ENABLED;
-
-            IntPtr pTokenPrivilege = Marshal.AllocHGlobal(Marshal.SizeOf(tp));
             Marshal.StructureToPtr(tp, pTokenPrivilege, true);
 
-            if (!NativeMethods.AdjustTokenPrivileges(
+            ntstatus = NativeMethods.NtAdjustPrivilegesToken(
                 WindowsIdentity.GetCurrent().Token,
-                false,
+                BOOLEAN.FALSE,
                 pTokenPrivilege,
-                0,
+                0u,
                 IntPtr.Zero,
-                IntPtr.Zero))
-            {
-                return false;
-            }
-
-            error = Marshal.GetLastWin32Error();
+                IntPtr.Zero);
             Marshal.FreeHGlobal(pTokenPrivilege);
 
-            if (error != 0)
-                return false;
-
-            return true;
+            return (ntstatus == Win32Consts.STATUS_SUCCESS);
         }
 
 
