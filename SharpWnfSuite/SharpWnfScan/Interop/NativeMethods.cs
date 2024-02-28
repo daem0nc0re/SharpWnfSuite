@@ -9,15 +9,6 @@ namespace SharpWnfScan.Interop
     internal class NativeMethods
     {
         /*
-         * advapi32.dll
-         */
-        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern bool LookupPrivilegeValue(
-            string lpSystemName,
-            string lpName,
-            out LUID lpLuid);
-
-        /*
          * Dbghelp.dll
          */
         [DllImport("Dbghelp.dll", SetLastError = true)]
