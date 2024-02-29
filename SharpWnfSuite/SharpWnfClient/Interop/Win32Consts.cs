@@ -14,6 +14,5 @@ namespace SharpWnfClient.Interop
         public const int SECURITY_DESCRIPTOR_REVISION = 1;
         public const int SECURITY_MAX_SID_SIZE = 68;
         public const NTSTATUS STATUS_SUCCESS = 0;
-        public const ulong WNF_STATE_KEY = 0x41C64E6DA3BC0074;
     }
 }

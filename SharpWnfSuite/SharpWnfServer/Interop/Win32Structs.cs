@@ -149,5 +149,4 @@ namespace SharpWnfServer.Interop
             return ((nameLifeTime < (uint)WNF_STATE_NAME_LIFETIME.Max) && (dataScope < (uint)WNF_DATA_SCOPE.Max));
         }
     }
-
 }

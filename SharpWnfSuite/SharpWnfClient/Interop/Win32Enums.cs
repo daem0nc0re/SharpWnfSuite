@@ -108,22 +108,24 @@ namespace SharpWnfClient.Interop
         WinBuiltinTerminalServerLicenseServersSid = 60
     }
 
-    internal enum WNF_STATE_NAME_LIFETIME : uint
-    {
-        WnfWellKnownStateName = 0,
-        WnfPermanentStateName = 1,
-        WnfPersistentStateName = 2,
-        WnfTemporaryStateName = 3
-    }
-
     internal enum WNF_DATA_SCOPE : uint
     {
-        WnfDataScopeSystem = 0,
-        WnfDataScopeSession = 1,
-        WnfDataScopeUser = 2,
-        WnfDataScopeProcess = 3,
-        WnfDataScopeMachine = 4,
-        WnfDataScopePhysicalMachine = 5
+        System = 0,
+        Session,
+        User,
+        Process,
+        Machine,
+        PhysicalMachine,
+        Max
+    }
+
+    internal enum WNF_STATE_NAME_LIFETIME : uint
+    {
+        WellKnown = 0,
+        Permanent,
+        Volataile, // Persistent
+        Temporary,
+        Max
     }
 
     internal enum WELL_KNOWN_WNF_NAME : ulong
