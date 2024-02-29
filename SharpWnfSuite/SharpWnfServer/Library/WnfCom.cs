@@ -11,27 +11,6 @@ namespace SharpWnfServer.Library
     internal class WnfCom : IDisposable
     {
         /*
-         * Enums
-         */
-        private enum WNF_DATA_SCOPE_TYPE
-        {
-            System,
-            Session,
-            User,
-            Process,
-            Machine,
-            PhysicalMachine
-        }
-
-        private enum WNF_STATE_NAME_LIFETIME_Brief
-        {
-            WellKnown,
-            Permanent,
-            Persistent,
-            Temporary
-        }
-
-        /*
          * Structs
          */
         private struct NotifyContext
@@ -44,16 +23,6 @@ namespace SharpWnfServer.Library
                 this.Destroyed = _destroyed;
                 this.Event = _event;
             }
-        }
-
-        private struct WNF_STATE_NAME_INTERNAL
-        {
-            public ulong Version;
-            public ulong NameLifeTime;
-            public ulong DataScope;
-            public ulong PermanentData;
-            public ulong SequenceNumber;
-            public ulong OwnerTag;
         }
 
         /*
@@ -71,8 +40,7 @@ namespace SharpWnfServer.Library
         /*
          * Global Variables
          */
-        private ulong StateName;
-        private WNF_STATE_NAME_INTERNAL InternalName;
+        private WNF_STATE_NAME StateName;
         private readonly IntPtr Callback;
         private readonly IntPtr SecurityDescriptor;
         private IntPtr Dacl;
@@ -83,8 +51,7 @@ namespace SharpWnfServer.Library
          */
         public WnfCom()
         {
-            this.StateName = 0UL;
-            this.InternalName = new WNF_STATE_NAME_INTERNAL();
+            this.StateName = new WNF_STATE_NAME();
             this.Callback = Marshal.GetFunctionPointerForDelegate(new CallbackDelegate(NotifyCallback));
             this.SecurityDescriptor = GetWorldAllowedSecurityDescriptor();
 
@@ -120,9 +87,9 @@ namespace SharpWnfServer.Library
         public ulong CreateServer()
         {
             NTSTATUS ntstatus = NativeMethods.NtCreateWnfStateName(
-                out this.StateName,
-                WNF_STATE_NAME_LIFETIME.WnfTemporaryStateName,
-                WNF_DATA_SCOPE.WnfDataScopeMachine,
+                out this.StateName.Data,
+                WNF_STATE_NAME_LIFETIME.Temporary,
+                WNF_DATA_SCOPE.Machine,
                 false,
                 IntPtr.Zero,
                 0x1000,
@@ -130,16 +97,15 @@ namespace SharpWnfServer.Library
 
             if (ntstatus == Win32Consts.STATUS_SUCCESS)
             {
-                SetInternalName();
-                Console.WriteLine("\n[+] New WNF State Name is created successfully : 0x{0}\n", this.StateName.ToString("X16"));
+                Console.WriteLine("\n[+] New WNF State Name is created successfully : 0x{0}\n", this.StateName.Data.ToString("X16"));
             }
             else
             {
                 Console.WriteLine("\n[-] Failed to create a new WNF State Name (NTSTATUS = 0x{0}).\n", ntstatus.ToString("X8"));
-                this.StateName = 0UL;
+                this.StateName.Data = 0UL;
             }
 
-            return this.StateName;
+            return this.StateName.Data;
         }
 
 
@@ -154,7 +120,7 @@ namespace SharpWnfServer.Library
 
             do
             {
-                if (this.StateName == 0)
+                if (this.StateName.Data == 0UL)
                 {
                     Console.WriteLine("\n[-] Server is not initialized.\n");
                     break;
@@ -174,7 +140,7 @@ namespace SharpWnfServer.Library
 
                 ntstatus = NativeMethods.RtlSubscribeWnfStateChangeNotification(
                     out pSubscription,
-                    this.StateName,
+                    this.StateName.Data,
                     0,
                     this.Callback,
                     pContextBuffer,
@@ -220,15 +186,15 @@ namespace SharpWnfServer.Library
             var output = new StringBuilder();
 
             output.AppendFormat("Encoded State Name: 0x{0}, Decoded State Name: 0x{1}\n",
-                this.StateName.ToString("X16"),
-                (this.StateName ^ Win32Consts.WNF_STATE_KEY).ToString("X"));
+                this.StateName.Data.ToString("X16"),
+                (this.StateName.Data ^ 0x41C64E6DA3BC0074UL).ToString("X"));
             output.AppendFormat("    Version: {0}, Lifetime: {1}, Scope: {2}, Permanent: {3}, Sequence Number: 0x{4}, Owner Tag: 0x{5}\n",
-                this.InternalName.Version,
-                Enum.GetName(typeof(WNF_STATE_NAME_LIFETIME_Brief), this.InternalName.NameLifeTime),
-                Enum.GetName(typeof(WNF_DATA_SCOPE_TYPE), this.InternalName.DataScope),
-                this.InternalName.PermanentData != 0 ? "YES" : "NO",
-                this.InternalName.SequenceNumber.ToString("X"),
-                this.InternalName.OwnerTag.ToString("X"));
+                this.StateName.GetVersion(),
+                this.StateName.GetNameLifeTime().ToString(),
+                this.StateName.GetDataScope().ToString(),
+                (this.StateName.GetPermanentData() != 0) ? "YES" : "NO",
+                this.StateName.GetSequenceNumber().ToString("X"),
+                this.StateName.GetOwnerTag().ToString("X"));
 
             Console.WriteLine(output.ToString());
         }
@@ -244,7 +210,7 @@ namespace SharpWnfServer.Library
 
             do
             {
-                if (this.StateName == 0)
+                if (this.StateName.Data == 0UL)
                 {
                     Console.WriteLine("\n[-] Server is not initialized.\n");
                     break;
@@ -260,13 +226,12 @@ namespace SharpWnfServer.Library
                     break;
 
                 ntstatus = NativeMethods.NtQueryWnfStateData(
-                    in this.StateName,
+                    in this.StateName.Data,
                     IntPtr.Zero,
                     IntPtr.Zero,
                     out nChangeStamp,
                     pDataBuffer,
                     ref nBufferSize);
-
                 status = (ntstatus == Win32Consts.STATUS_SUCCESS);
             } while (false);
 
@@ -293,8 +258,7 @@ namespace SharpWnfServer.Library
 
             if (tmpName != 0)
             {
-                this.StateName = tmpName;
-                SetInternalName();
+                this.StateName.Data = tmpName;
                 status = true;
             }
 
@@ -307,7 +271,7 @@ namespace SharpWnfServer.Library
             NTSTATUS ntstatus;
             IntPtr pDataBuffer;
 
-            if (this.StateName == 0)
+            if (this.StateName.Data == 0UL)
             {
                 Console.WriteLine("\n[-] Server is not initialized.\n");
                 return false;
@@ -319,7 +283,7 @@ namespace SharpWnfServer.Library
             Console.WriteLine("Sending input data to WNF subscriber...\n");
 
             ntstatus = NativeMethods.NtUpdateWnfStateData(
-                in this.StateName,
+                in this.StateName.Data,
                 pDataBuffer,
                 data.Length,
                 IntPtr.Zero,
@@ -454,18 +418,6 @@ namespace SharpWnfServer.Library
             Marshal.StructureToPtr(context, pCallbackContext, true);
 
             return Win32Consts.STATUS_SUCCESS;
-        }
-
-
-        private void SetInternalName()
-        {
-            ulong stateName = this.StateName ^ Win32Consts.WNF_STATE_KEY;
-            this.InternalName.Version = (stateName & 0xF);
-            this.InternalName.NameLifeTime = ((stateName >> 4) & 0x3);
-            this.InternalName.DataScope = ((stateName >> 6) & 0xF);
-            this.InternalName.PermanentData = ((stateName >> 10) & 0x1);
-            this.InternalName.SequenceNumber = ((stateName >> 11) & 0x1FFFFF);
-            this.InternalName.OwnerTag = ((stateName >> 32) & 0xFFFFFFFF);
         }
     }
 }
