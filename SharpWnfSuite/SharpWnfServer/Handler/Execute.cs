@@ -14,12 +14,11 @@ namespace SharpWnfServer.Handler
             }
             else
             {
-                string input;
-
                 using (var wnfServer = new WnfCom())
                 {
                     if (wnfServer.CreateServer() != 0UL)
                     {
+                        string input;
                         wnfServer.PrintInternalName();
                         wnfServer.Write(Encoding.ASCII.GetBytes("Hello, world!"));
 
@@ -29,6 +28,10 @@ namespace SharpWnfServer.Handler
                             input = Console.ReadLine();
                             wnfServer.Write(Encoding.ASCII.GetBytes(input));
                         }
+                    }
+                    else
+                    {
+                        Console.WriteLine("\n[-] Failed to initialize WNF server.\n");
                     }
                 }
             }

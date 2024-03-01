@@ -3,6 +3,8 @@ using System.ComponentModel;
 using System.Text;
 using System.Runtime.InteropServices;
 using SharpWnfServer.Interop;
+using System.Configuration;
+using System.Diagnostics;
 
 namespace SharpWnfServer.Library
 {
@@ -42,9 +44,6 @@ namespace SharpWnfServer.Library
          */
         private WNF_STATE_NAME StateName;
         private readonly IntPtr Callback;
-        private readonly IntPtr SecurityDescriptor;
-        private IntPtr Dacl;
-        private IntPtr Sid;
 
         /*
          * Constructors
@@ -53,10 +52,6 @@ namespace SharpWnfServer.Library
         {
             this.StateName = new WNF_STATE_NAME();
             this.Callback = Marshal.GetFunctionPointerForDelegate(new CallbackDelegate(NotifyCallback));
-            this.SecurityDescriptor = GetWorldAllowedSecurityDescriptor();
-
-            if (this.SecurityDescriptor == IntPtr.Zero)
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to initialize Security Descriptor");
         }
 
 
@@ -64,10 +59,6 @@ namespace SharpWnfServer.Library
         {
             SetStateName(nameString);
             this.Callback = Marshal.GetFunctionPointerForDelegate(new CallbackDelegate(NotifyCallback));
-            this.SecurityDescriptor = GetWorldAllowedSecurityDescriptor();
-
-            if (this.SecurityDescriptor == IntPtr.Zero)
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to initialize Security Descriptor");
         }
 
 
@@ -76,9 +67,6 @@ namespace SharpWnfServer.Library
          */
         public void Dispose()
         {
-            Marshal.FreeHGlobal(this.Dacl);
-            Marshal.FreeHGlobal(this.Sid);
-            Marshal.FreeHGlobal(this.SecurityDescriptor);
         }
 
         /*
@@ -86,14 +74,21 @@ namespace SharpWnfServer.Library
          */
         public ulong CreateServer()
         {
-            NTSTATUS ntstatus = NativeMethods.NtCreateWnfStateName(
+            NTSTATUS ntstatus;
+            IntPtr pSecurityDescriptor = GetWorldAllowedSecurityDescriptor();
+
+            if (pSecurityDescriptor == IntPtr.Zero)
+                return 0UL;
+
+            ntstatus = NativeMethods.NtCreateWnfStateName(
                 out this.StateName.Data,
                 WNF_STATE_NAME_LIFETIME.Temporary,
                 WNF_DATA_SCOPE.Machine,
                 false,
                 IntPtr.Zero,
                 0x1000,
-                this.SecurityDescriptor);
+                pSecurityDescriptor);
+            Marshal.FreeHGlobal(pSecurityDescriptor);
 
             if (ntstatus == Win32Consts.STATUS_SUCCESS)
             {
@@ -327,41 +322,53 @@ namespace SharpWnfServer.Library
         private IntPtr GetWorldAllowedSecurityDescriptor()
         {
             bool status;
+            IntPtr pSecurityDescriptor;
+            IntPtr pSid;
+            IntPtr pDacl;
             int cbSid = Win32Consts.SECURITY_MAX_SID_SIZE;
             int cbDacl = Marshal.SizeOf(typeof(ACL)) + 
                     Marshal.SizeOf(typeof(ACCESS_ALLOWED_ACE)) -
                     Marshal.SizeOf(typeof(int)) +
                     cbSid;
-            var pSecurityDescriptor = IntPtr.Zero;
-            this.Dacl = Marshal.AllocHGlobal(cbDacl);
-            this.Sid = Marshal.AllocHGlobal(cbSid);
+            int nBufferLength = Marshal.SizeOf(typeof(SECURITY_DESCRIPTOR)) + cbSid + cbDacl;
+            pSecurityDescriptor = Marshal.AllocHGlobal(nBufferLength);
+
+            if (Environment.Is64BitProcess)
+            {
+                pSid = new IntPtr(pSecurityDescriptor.ToInt64() + Marshal.SizeOf(typeof(SECURITY_DESCRIPTOR)));
+                pDacl = new IntPtr(pSid.ToInt64() + cbSid);
+            }
+            else
+            {
+                pSid = new IntPtr(pSecurityDescriptor.ToInt32() + Marshal.SizeOf(typeof(SECURITY_DESCRIPTOR)));
+                pDacl = new IntPtr(pSid.ToInt32() + cbSid);
+            }
 
             do
             {
                 status = NativeMethods.CreateWellKnownSid(
                     WELL_KNOWN_SID_TYPE.WinWorldSid, 
                     IntPtr.Zero,
-                    this.Sid,
+                    pSid,
                     ref cbSid);
 
                 if (!status)
                     break;
 
-                status = NativeMethods.InitializeAcl(this.Dacl, cbDacl, Win32Consts.ACL_REVISION);
+                status = NativeMethods.InitializeAcl(pDacl, cbDacl, Win32Consts.ACL_REVISION);
 
                 if (!status)
                     break;
 
                 status = NativeMethods.AddAccessAllowedAce(
-                    this.Dacl,
+                    pDacl,
                     Win32Consts.ACL_REVISION,
                     ACCESS_MASK.GENERIC_ALL,
-                    this.Sid);
+                    pSid);
 
                 if (!status)
                     break;
 
-                pSecurityDescriptor = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(SECURITY_DESCRIPTOR)));
                 status = NativeMethods.InitializeSecurityDescriptor(
                     pSecurityDescriptor,
                     Win32Consts.SECURITY_DESCRIPTOR_REVISION);
@@ -372,7 +379,7 @@ namespace SharpWnfServer.Library
                 status = NativeMethods.SetSecurityDescriptorDacl(
                     pSecurityDescriptor,
                     true,
-                    this.Dacl,
+                    pDacl,
                     false);
             } while (false);
 
