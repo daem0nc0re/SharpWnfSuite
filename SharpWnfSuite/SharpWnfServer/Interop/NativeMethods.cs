@@ -20,19 +20,6 @@ namespace SharpWnfServer.Interop
             bool bInitialState, 
             IntPtr lpName);
 
-        [DllImport("kernel32", SetLastError = true)]
-        public static extern IntPtr VirtualAlloc(
-            IntPtr lpAddress,
-            int dwSize,
-            uint flAllocationType,
-            uint flProtect);
-
-        [DllImport("kernel32", SetLastError = true)]
-        public static extern bool VirtualFree(
-            IntPtr lpAddress,
-            int dwSize,
-            uint dwFreeType);
-
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern int WaitForSingleObject(
             IntPtr hHandle, 
@@ -58,7 +45,7 @@ namespace SharpWnfServer.Interop
             IntPtr ExplicitScope,
             out int ChangeStamp,
             IntPtr Buffer,
-            ref int BufferSize);
+            ref uint BufferSize);
 
         [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtUpdateWnfStateData(

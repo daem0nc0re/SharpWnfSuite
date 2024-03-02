@@ -2,6 +2,7 @@
 using System.Text;
 using System.Runtime.InteropServices;
 using SharpWnfServer.Interop;
+using System.Xml.Linq;
 
 namespace SharpWnfServer.Library
 {
@@ -54,7 +55,7 @@ namespace SharpWnfServer.Library
 
         public WnfCom(string nameString)
         {
-            SetStateName(nameString);
+            this.StateName.Data = GetWnfStateName(nameString);
             this.Callback = Marshal.GetFunctionPointerForDelegate(new CallbackDelegate(NotifyCallback));
         }
 
@@ -185,69 +186,45 @@ namespace SharpWnfServer.Library
         }
 
 
-        public bool Read(out int nChangeStamp, out IntPtr pDataBuffer, out int nBufferSize)
+        public bool Read(out int nChangeStamp, out IntPtr pInfoBuffer, out uint nInfoLength)
         {
             NTSTATUS ntstatus;
-            bool status = false;
-            pDataBuffer = IntPtr.Zero;
             nChangeStamp = 0;
-            nBufferSize = 0x1000;
+            pInfoBuffer = IntPtr.Zero;
+            nInfoLength = 0x1000u;
+
+            if (this.StateName.Data == 0UL)
+            {
+                Console.WriteLine("\n[-] Server is not initialized.\n");
+                nInfoLength = 0;
+                return false;
+            }
 
             do
             {
-                if (this.StateName.Data == 0UL)
-                {
-                    Console.WriteLine("\n[-] Server is not initialized.\n");
-                    break;
-                }
-
-                pDataBuffer = NativeMethods.VirtualAlloc(
-                    IntPtr.Zero,
-                    nBufferSize,
-                    Win32Consts.MEM_COMMIT,
-                    Win32Consts.PAGE_READWRITE);
-
-                if (pDataBuffer == IntPtr.Zero)
-                    break;
-
+                pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
                 ntstatus = NativeMethods.NtQueryWnfStateData(
                     in this.StateName.Data,
                     IntPtr.Zero,
                     IntPtr.Zero,
                     out nChangeStamp,
-                    pDataBuffer,
-                    ref nBufferSize);
-                status = (ntstatus == Win32Consts.STATUS_SUCCESS);
-            } while (false);
+                    pInfoBuffer,
+                    ref nInfoLength);
 
-            if (!status)
-            {
-                nChangeStamp = 0;
-                nBufferSize = 0;
-
-                if (pDataBuffer != IntPtr.Zero)
+                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nInfoLength == 0))
                 {
-                    NativeMethods.VirtualFree(pDataBuffer, 0, Win32Consts.MEM_RELEASE);
-                    pDataBuffer = IntPtr.Zero;
+                    Marshal.FreeHGlobal(pInfoBuffer);
+                    pInfoBuffer = IntPtr.Zero;
                 }
-            }
+            } while (ntstatus == Win32Consts.STATUS_BUFFER_TOO_SMALL);
 
-            return status;
-        }
-
-
-        public bool SetStateName(string name)
-        {
-            bool status = false;
-            ulong tmpName = GetWnfStateName(name);
-
-            if (tmpName != 0)
+            if (ntstatus != Win32Consts.STATUS_SUCCESS)
             {
-                this.StateName.Data = tmpName;
-                status = true;
+                nInfoLength = 0u;
+                nChangeStamp = 0;
             }
 
-            return status;
+            return (ntstatus == Win32Consts.STATUS_SUCCESS);
         }
 
 
