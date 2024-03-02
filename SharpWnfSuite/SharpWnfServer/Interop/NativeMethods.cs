@@ -8,34 +8,6 @@ namespace SharpWnfServer.Interop
     internal class NativeMethods
     {
         /*
-         * advapi32.dll
-         */
-        [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool AddAccessAllowedAce(
-            IntPtr pAcl, 
-            uint dwAceRevision, 
-            ACCESS_MASK AccessMask, 
-            IntPtr pSid);
-
-        [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool InitializeAcl(
-            IntPtr pAcl,
-            int nAclLength,
-            int dwAclRevision);
-
-        [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool InitializeSecurityDescriptor(
-            IntPtr pSecurityDescriptor,
-            int dwRevision);
-
-        [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool SetSecurityDescriptorDacl(
-            IntPtr pSecurityDescriptor, 
-            bool bDaclPresent, 
-            IntPtr pDacl, 
-            bool bDaclDefaulted);
-
-        /*
          * kernel32.dll
          */
         [DllImport("kernel32.dll", SetLastError = true)]

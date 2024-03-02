@@ -37,14 +37,6 @@ namespace SharpWnfServer.Interop
         SUCCESSFUL_ACCESS_ACE_FLAG = 0x80
     }
 
-    [Flags]
-    internal enum ACE_OBJECT_TYPE
-    {
-        NONE,
-        ACE_OBJECT_TYPE_PRESENT,
-        ACE_INHERITED_OBJECT_TYPE_PRESENT
-    }
-
     internal enum ACE_TYPE : byte
     {
         ACCESS_ALLOWED,
