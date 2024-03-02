@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Text;
 using System.Runtime.InteropServices;
 using SharpWnfClient.Interop;
@@ -42,9 +41,6 @@ namespace SharpWnfClient.Library
          */
         private WNF_STATE_NAME StateName;
         private readonly IntPtr Callback;
-        private readonly IntPtr SecurityDescriptor;
-        private IntPtr Dacl;
-        private IntPtr Sid;
 
         /*
          * Constructors
@@ -53,10 +49,6 @@ namespace SharpWnfClient.Library
         {
             this.StateName = new WNF_STATE_NAME();
             this.Callback = Marshal.GetFunctionPointerForDelegate(new CallbackDelegate(NotifyCallback));
-            this.SecurityDescriptor = GetWorldAllowedSecurityDescriptor();
-
-            if (this.SecurityDescriptor == IntPtr.Zero)
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to initialize Security Descriptor");
         }
 
 
@@ -64,28 +56,20 @@ namespace SharpWnfClient.Library
         {
             SetStateName(nameString);
             this.Callback = Marshal.GetFunctionPointerForDelegate(new CallbackDelegate(NotifyCallback));
-            this.SecurityDescriptor = GetWorldAllowedSecurityDescriptor();
-
-            if (this.SecurityDescriptor == IntPtr.Zero)
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to initialize Security Descriptor");
         }
 
 
         /*
          * Destructor
          */
-        public void Dispose()
-        {
-            Marshal.FreeHGlobal(this.Dacl);
-            Marshal.FreeHGlobal(this.Sid);
-            Marshal.FreeHGlobal(this.SecurityDescriptor);
-        }
+        public void Dispose() { }
 
         /*
          * Public Methods
          */
         public ulong CreateServer()
         {
+            IntPtr pSecurityDescriptor = GetWorldAllowedSecurityDescriptor();
             NTSTATUS ntstatus = NativeMethods.NtCreateWnfStateName(
                 out this.StateName.Data,
                 WNF_STATE_NAME_LIFETIME.Temporary,
@@ -93,7 +77,8 @@ namespace SharpWnfClient.Library
                 false,
                 IntPtr.Zero,
                 0x1000,
-                this.SecurityDescriptor);
+                pSecurityDescriptor);
+            Marshal.FreeHGlobal(pSecurityDescriptor);
 
             if (ntstatus == Win32Consts.STATUS_SUCCESS)
             {
@@ -326,61 +311,55 @@ namespace SharpWnfClient.Library
 
         private IntPtr GetWorldAllowedSecurityDescriptor()
         {
-            bool status;
-            int cbSid = Win32Consts.SECURITY_MAX_SID_SIZE;
-            int cbDacl = Marshal.SizeOf(typeof(ACL)) +
-                    Marshal.SizeOf(typeof(ACCESS_ALLOWED_ACE)) -
-                    Marshal.SizeOf(typeof(int)) +
-                    cbSid;
-            var pSecurityDescriptor = IntPtr.Zero;
-            this.Dacl = Marshal.AllocHGlobal(cbDacl);
-            this.Sid = Marshal.AllocHGlobal(cbSid);
-
-            do
+            IntPtr pDacl;
+            IntPtr pAce;
+            var nDaclOffset = Marshal.SizeOf(typeof(SECURITY_DESCRIPTOR));
+            var nSidStartOffset = Marshal.OffsetOf(typeof(ACCESS_ALLOWED_ACE), "SidStart").ToInt32();
+            var everyoneSid = new byte[] { 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 }; // S-1-1-0
+            var nBufferLength = nDaclOffset + Marshal.SizeOf(typeof(ACL)) + nSidStartOffset + everyoneSid.Length;
+            var sd = new SECURITY_DESCRIPTOR
             {
-                status = NativeMethods.CreateWellKnownSid(
-                    WELL_KNOWN_SID_TYPE.WinWorldSid,
-                    IntPtr.Zero,
-                    this.Sid,
-                    ref cbSid);
-
-                if (!status)
-                    break;
-
-                status = NativeMethods.InitializeAcl(this.Dacl, cbDacl, Win32Consts.ACL_REVISION);
-
-                if (!status)
-                    break;
-
-                status = NativeMethods.AddAccessAllowedAce(
-                    this.Dacl,
-                    Win32Consts.ACL_REVISION,
-                    ACCESS_MASK.GENERIC_ALL,
-                    this.Sid);
-
-                if (!status)
-                    break;
-
-                pSecurityDescriptor = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(SECURITY_DESCRIPTOR)));
-                status = NativeMethods.InitializeSecurityDescriptor(
-                    pSecurityDescriptor,
-                    Win32Consts.SECURITY_DESCRIPTOR_REVISION);
-
-                if (!status)
-                    break;
-
-                status = NativeMethods.SetSecurityDescriptorDacl(
-                    pSecurityDescriptor,
-                    true,
-                    this.Dacl,
-                    false);
-            } while (false);
-
-            if (!status)
+                Revision = 1,
+                Control = SECURITY_DESCRIPTOR_CONTROL.SE_DACL_PRESENT | SECURITY_DESCRIPTOR_CONTROL.SE_SELF_RELATIVE,
+                Dacl = nDaclOffset
+            };
+            var ace = new ACCESS_ALLOWED_ACE
             {
-                Marshal.FreeHGlobal(pSecurityDescriptor);
-                pSecurityDescriptor = IntPtr.Zero;
+                Header = new ACE_HEADER
+                {
+                    AceType = ACE_TYPE.ACCESS_ALLOWED,
+                    AceFlags = ACE_FLAGS.NONE,
+                    AceSize = (short)(nSidStartOffset + everyoneSid.Length)
+                },
+                Mask = ACCESS_MASK.GENERIC_ALL
+            };
+            var aclHeader = new ACL
+            {
+                AclRevision = ACL_REVISION.ACL_REVISION,
+                Sbz1 = 0,
+                AclSize = (short)(Marshal.SizeOf(typeof(ACL)) + nSidStartOffset + everyoneSid.Length),
+                AceCount = 1,
+                Sbz2 = 0
+            };
+            var pSecurityDescriptor = Marshal.AllocHGlobal(nBufferLength);
+
+            if (Environment.Is64BitProcess)
+            {
+                pDacl = new IntPtr(pSecurityDescriptor.ToInt64() + nDaclOffset);
+                pAce = new IntPtr(pDacl.ToInt64() + Marshal.SizeOf(typeof(ACL)));
             }
+            else
+            {
+                pDacl = new IntPtr(pSecurityDescriptor.ToInt32() + nDaclOffset);
+                pAce = new IntPtr(pDacl.ToInt32() + Marshal.SizeOf(typeof(ACL)));
+            }
+
+            Marshal.StructureToPtr(sd, pSecurityDescriptor, true);
+            Marshal.StructureToPtr(aclHeader, pDacl, true);
+            Marshal.StructureToPtr(ace, pAce, true);
+
+            for (var oft = 0; oft < everyoneSid.Length; oft++)
+                Marshal.WriteByte(pAce, nSidStartOffset + oft, everyoneSid[oft]);
 
             return pSecurityDescriptor;
         }
