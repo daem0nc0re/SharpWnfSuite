@@ -7,22 +7,22 @@ namespace SharpWnfServer.Interop
     internal struct ACCESS_ALLOWED_ACE
     {
         public ACE_HEADER Header;
-        public int Mask;
+        public ACCESS_MASK Mask;
         public int SidStart;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     internal struct ACE_HEADER
     {
-        public byte AceType;
-        public byte AceFlags;
+        public ACE_TYPE AceType;
+        public ACE_FLAGS AceFlags;
         public short AceSize;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     internal struct ACL
     {
-        public byte AclRevision;
+        public ACL_REVISION AclRevision;
         public byte Sbz1;
         public short AclSize;
         public short AceCount;
@@ -34,11 +34,11 @@ namespace SharpWnfServer.Interop
     {
         public byte Revision;
         public byte Sbz1;
-        public ushort Control; // SECURITY_DESCRIPTOR_CONTROL Enum
-        public IntPtr Owner; // PSID
-        public IntPtr Group; // PSID
-        public IntPtr Sacl; // PACL
-        public IntPtr Dacl; // PACL
+        public SECURITY_DESCRIPTOR_CONTROL Control;
+        public int /* PSID */ Owner; // In this code, use relative offset
+        public int /* PSID */ Group;
+        public int /* PACL */ Sacl;
+        public int /* PACL */ Dacl;
     }
 
     [StructLayout(LayoutKind.Sequential)]

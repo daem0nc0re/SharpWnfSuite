@@ -18,13 +18,6 @@ namespace SharpWnfServer.Interop
             IntPtr pSid);
 
         [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool CreateWellKnownSid(
-            WELL_KNOWN_SID_TYPE WellKnownSidType,
-            IntPtr DomainSid,
-            IntPtr pSid,
-            ref int cbSid);
-
-        [DllImport("advapi32.dll", SetLastError = true)]
         public static extern bool InitializeAcl(
             IntPtr pAcl,
             int nAclLength,
