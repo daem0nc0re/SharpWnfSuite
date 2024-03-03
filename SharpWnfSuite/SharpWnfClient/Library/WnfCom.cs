@@ -52,13 +52,6 @@ namespace SharpWnfClient.Library
         }
 
 
-        public WnfCom(string nameString)
-        {
-            this.StateName.Data = GetWnfStateName(nameString);
-            this.Callback = Marshal.GetFunctionPointerForDelegate(new CallbackDelegate(NotifyCallback));
-        }
-
-
         /*
          * Destructor
          */
@@ -357,7 +350,7 @@ namespace SharpWnfClient.Library
             int nBufferSize)
         {
             var outputBuilder = new StringBuilder();
-            NotifyContext context = (NotifyContext)Marshal.PtrToStructure(pCallbackContext, typeof(NotifyContext));
+            var context = (NotifyContext)Marshal.PtrToStructure(pCallbackContext, typeof(NotifyContext));
 
             if (pBuffer == IntPtr.Zero && nBufferSize == 0 && nChangeStamp == 0)
             {
