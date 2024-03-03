@@ -226,6 +226,12 @@ namespace SharpWnfServer.Library
             return (ntstatus == Win32Consts.STATUS_SUCCESS);
         }
 
+        public bool SetStateName(string stateName)
+        {
+            this.StateName.Data = GetWnfStateName(stateName);
+            return (this.StateName.Data != 0);
+        }
+
 
         public bool Write(byte[] data)
         {
