@@ -2,7 +2,6 @@
 using System.Text;
 using System.Runtime.InteropServices;
 using SharpWnfServer.Interop;
-using System.Xml.Linq;
 
 namespace SharpWnfServer.Library
 {
