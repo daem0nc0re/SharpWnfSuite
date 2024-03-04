@@ -8,12 +8,31 @@ namespace SharpWnfScan.Interop
         TRUE
     }
 
+    internal enum MEMORY_INFORMATION_CLASS
+    {
+        MemoryBasicInformation, // MEMORY_BASIC_INFORMATION
+        MemoryWorkingSetInformation, // MEMORY_WORKING_SET_INFORMATION
+        MemoryMappedFilenameInformation, // UNICODE_STRING
+        MemoryRegionInformation, // MEMORY_REGION_INFORMATION
+        MemoryWorkingSetExInformation, // MEMORY_WORKING_SET_EX_INFORMATION // since VISTA
+        MemorySharedCommitInformation, // MEMORY_SHARED_COMMIT_INFORMATION // since WIN8
+        MemoryImageInformation, // MEMORY_IMAGE_INFORMATION
+        MemoryRegionInformationEx, // MEMORY_REGION_INFORMATION
+        MemoryPrivilegedBasicInformation,
+        MemoryEnclaveImageInformation, // MEMORY_ENCLAVE_IMAGE_INFORMATION // since REDSTONE3
+        MemoryBasicInformationCapped, // 10
+        MemoryPhysicalContiguityInformation, // MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // since 20H1
+        MemoryBadInformation, // since WIN11
+        MemoryBadInformationAllProcesses, // since 22H1
+        MaxMemoryInfoClass
+    }
+
     [Flags]
     internal enum PrivilegeAttributeFlags : uint
     {
-        SE_PRIVILEGE_ENABLED_BY_DEFAULT = 0x00000001,
-        SE_PRIVILEGE_ENABLED = 0x00000002,
-        SE_PRIVILEGE_USED_FOR_ACCESS = 0x80000000
+        ENABLED_BY_DEFAULT = 0x00000001,
+        ENABLED = 0x00000002,
+        USED_FOR_ACCESS = 0x80000000
     }
 
     [Flags]

@@ -223,11 +223,11 @@ namespace SharpWnfScan.Library
                         Console.WriteLine(
                             "\t\tCallback @ 0x{0} ({1})",
                             pCallback.ToString(is64bit ? "X16" : "X8"),
-                            Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallback));
+                            Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallback) ?? "N/A");
                         Console.WriteLine(
                             "\t\tContext  @ 0x{0} ({1})\n",
                             pCallbackContext.ToString(is64bit ? "X16" : "X8"),
-                            Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallbackContext));
+                            Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallbackContext) ?? "N/A");
                     }
                 }
             }

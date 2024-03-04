@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace SharpWnfScan.Interop
 {
     using NTSTATUS = Int32;
+    using SIZE_T = UIntPtr;
 
     internal class NativeMethods
     {
@@ -18,7 +18,7 @@ namespace SharpWnfScan.Interop
         public static extern bool SymFromAddr(
             IntPtr hProcess,
             long Address,
-            IntPtr Displacement,
+            ref long Displacement,
             ref SYMBOL_INFO Symbol);
 
         [DllImport("Dbghelp.dll", SetLastError = true)]
@@ -38,16 +38,6 @@ namespace SharpWnfScan.Interop
         public static extern IntPtr LocalFree(IntPtr hMem);
 
         /*
-         * Psapi.dll
-         */
-        [DllImport("Psapi.dll", SetLastError = true)]
-        public static extern uint GetMappedFileName(
-            IntPtr hProcess,
-            IntPtr fileHandle,
-            StringBuilder lpFilename,
-            uint nSize);
-
-        /*
          * ntdll.dll
          * 
          * Reference:
@@ -62,6 +52,15 @@ namespace SharpWnfScan.Interop
             uint PreviousPrivilegesLength,
             IntPtr /* PTOKEN_PRIVILEGES */ PreviousPrivileges,
             IntPtr /* out uint */ RequiredLength);
+
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtQueryVirtualMemory(
+            IntPtr ProcessHandle,
+            IntPtr BaseAddress,
+            MEMORY_INFORMATION_CLASS MemoryInformationClass,
+            IntPtr MemoryInformation,
+            SIZE_T MemoryInformationLength,
+            out SIZE_T ReturnLength);
 
         [DllImport("ntdll.dll")]
         public static extern void RtlGetNtVersionNumbers(

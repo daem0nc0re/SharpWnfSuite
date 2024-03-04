@@ -17,7 +17,7 @@ namespace SharpWnfScan.Library
             var tp = new TOKEN_PRIVILEGES(1);
             tp.Privileges[0].Luid.LowPart = 0x00000014;
             tp.Privileges[0].Luid.HighPart = 0;
-            tp.Privileges[0].Attributes = (uint)PrivilegeAttributeFlags.SE_PRIVILEGE_ENABLED;
+            tp.Privileges[0].Attributes = (uint)PrivilegeAttributeFlags.ENABLED;
             Marshal.StructureToPtr(tp, pTokenPrivilege, true);
 
             ntstatus = NativeMethods.NtAdjustPrivilegesToken(
@@ -94,8 +94,8 @@ namespace SharpWnfScan.Library
             }
             else if (proc.GetArchitecture() == "x86")
             {
-                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32));
                 WNF_NAME_SUBSCRIPTION32 nameSubscription;
+                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32));                
                 nSizeNameSubscription = (uint)Marshal.SizeOf(
                     typeof(WNF_NAME_SUBSCRIPTION32));
                 nNameTableEntryOffset = (uint)Marshal.OffsetOf(

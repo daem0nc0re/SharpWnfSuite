@@ -1,17 +1,9 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace SharpWnfScan.Interop
 {
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct GUID
-    {
-        public uint Data1;
-        public ushort Data2;
-        public ushort Data3;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
-        public byte[] Data4;
-    }
-
     [StructLayout(LayoutKind.Sequential)]
     internal struct LIST_ENTRY32
     {
@@ -109,6 +101,60 @@ namespace SharpWnfScan.Interop
         {
             PrivilegeCount = _privilegeCount;
             Privileges = new LUID_AND_ATTRIBUTES[1];
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct UNICODE_STRING : IDisposable
+    {
+        public ushort Length;
+        public ushort MaximumLength;
+        private IntPtr buffer;
+
+        public UNICODE_STRING(string s)
+        {
+            byte[] bytes;
+
+            if (string.IsNullOrEmpty(s))
+            {
+                Length = 0;
+                bytes = new byte[2];
+            }
+            else
+            {
+                Length = (ushort)(s.Length * 2);
+                bytes = Encoding.Unicode.GetBytes(s);
+            }
+
+            MaximumLength = (ushort)(Length + 2);
+            buffer = Marshal.AllocHGlobal(MaximumLength);
+
+            Marshal.Copy(new byte[MaximumLength], 0, buffer, MaximumLength);
+            Marshal.Copy(bytes, 0, buffer, bytes.Length);
+        }
+
+        public void Dispose()
+        {
+            Marshal.FreeHGlobal(buffer);
+            buffer = IntPtr.Zero;
+        }
+
+        public override string ToString()
+        {
+            if (buffer == IntPtr.Zero)
+                return null;
+
+            return Marshal.PtrToStringUni(buffer, Length / 2);
+        }
+
+        public IntPtr GetBuffer()
+        {
+            return buffer;
+        }
+
+        public void SetBuffer(IntPtr _buffer)
+        {
+            buffer = _buffer;
         }
     }
 
@@ -443,6 +489,6 @@ namespace SharpWnfScan.Interop
     [StructLayout(LayoutKind.Sequential)]
     internal struct WNF_TYPE_ID
     {
-        public GUID TypeId;
+        public Guid TypeId;
     }
 }
