@@ -18,7 +18,7 @@ namespace SharpWnfScan.Interop
         public static extern bool SymFromAddr(
             IntPtr hProcess,
             long Address,
-            ref long Displacement,
+            out long Displacement,
             ref SYMBOL_INFO Symbol);
 
         [DllImport("Dbghelp.dll", SetLastError = true)]

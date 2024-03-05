@@ -13,9 +13,9 @@ namespace SharpWnfScan.Library
     {
         public static string GetSymbolPath(IntPtr hProcess, IntPtr pBuffer)
         {
-            string symbol = null;
+            var symbolBuilder = new StringBuilder();
             var mappedFileName = new UNICODE_STRING();
-            uint nInfoLength = (uint)(Marshal.SizeOf(typeof(UNICODE_STRING)) + 512);
+            var nInfoLength = (uint)(Marshal.SizeOf(typeof(UNICODE_STRING)) + 512);
             IntPtr pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
             var symbolInfo = new SYMBOL_INFO
             {
@@ -30,7 +30,6 @@ namespace SharpWnfScan.Library
 
             do
             {
-                long nDisplacement = 0L;
                 NTSTATUS ntstatus = NativeMethods.NtQueryVirtualMemory(
                     hProcess,
                     pBuffer,
@@ -49,36 +48,25 @@ namespace SharpWnfScan.Library
                 if (string.IsNullOrEmpty(mappedFileName.ToString()))
                     break;
 
+                symbolBuilder.Append(Path.GetFileNameWithoutExtension(mappedFileName.ToString()));
+
                 if (NativeMethods.SymFromAddr(
                     hProcess,
                     pBuffer.ToInt64(),
-                    ref nDisplacement,
+                    out long nDisplacement,
                     ref symbolInfo))
                 {
-                    if (nDisplacement > 0)
-                    {
-                        symbol = string.Format("{0}!{1}+0x{2}",
-                            Path.GetFileNameWithoutExtension(mappedFileName.ToString()),
-                            Encoding.ASCII.GetString(symbolInfo.Name).Trim('\0'),
-                            nDisplacement.ToString("X"));
-                    }
-                    else
-                    {
-                        symbol = string.Format("{0}!{1}",
-                            Path.GetFileNameWithoutExtension(mappedFileName.ToString()),
-                            Encoding.ASCII.GetString(symbolInfo.Name).Trim('\0'));
-                    }
-                }
-                else
-                {
-                    symbol = Path.GetFileNameWithoutExtension(mappedFileName.ToString());
+                    symbolBuilder.AppendFormat("!{0}", Encoding.ASCII.GetString(symbolInfo.Name).Trim('\0'));
+
+                    if (nDisplacement != 0L)
+                        symbolBuilder.AppendFormat("+0x{0}", nDisplacement.ToString("X"));
                 }
             } while (false);
 
             NativeMethods.SymCleanup(hProcess);
             Marshal.FreeHGlobal(pInfoBuffer);
 
-            return symbol;
+            return (symbolBuilder.Length == 0) ? null : symbolBuilder.ToString();
         }
 
 
