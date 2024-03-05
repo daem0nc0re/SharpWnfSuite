@@ -2,6 +2,12 @@
 
 namespace SharpWnfInject.Interop
 {
+    internal enum BOOLEAN : byte
+    {
+        FALSE,
+        TRUE
+    }
+
     [Flags]
     internal enum FormatMessageFlags : uint
     {
@@ -51,41 +57,9 @@ namespace SharpWnfInject.Interop
     [Flags]
     internal enum PrivilegeAttributeFlags : uint
     {
-        SE_PRIVILEGE_ENABLED_BY_DEFAULT = 0x00000001,
-        SE_PRIVILEGE_ENABLED = 0x00000002,
-        SE_PRIVILEGE_USED_FOR_ACCESS = 0x80000000
-    }
-
-    internal enum SECURITY_DESCRIPTOR_CONTROL : ushort
-    {
-        SE_DACL_AUTO_INHERIT_REQ = 0x0100,
-        SE_DACL_AUTO_INHERITED = 0x0400,
-        SE_DACL_DEFAULTED = 0x0008,
-        SE_DACL_PRESENT = 0x0004,
-        SE_DACL_PROTECTED = 0x1000,
-        SE_GROUP_DEFAULTED = 0x0002,
-        SE_OWNER_DEFAULTED = 0x0001,
-        SE_RM_CONTROL_VALID = 0x4000,
-        SE_SACL_AUTO_INHERIT_REQ = 0x0200,
-        SE_SACL_AUTO_INHERITED = 0x0800,
-        SE_SACL_DEFAULTED = 0x0008,
-        SE_SACL_PRESENT = 0x0010,
-        SE_SACL_PROTECTED = 0x2000,
-        SE_SELF_RELATIVE = 0x8000
-    }
-
-    [Flags]
-    internal enum SECURITY_INFORMATION : uint
-    {
-        OWNER_SECURITY_INFORMATION = 0x00000001,
-        GROUP_SECURITY_INFORMATION = 0x00000002,
-        DACL_SECURITY_INFORMATION = 0x00000004,
-        SACL_SECURITY_INFORMATION = 0x00000008,
-        LABEL_SECURITY_INFORMATION = 0x00000010,
-        UNPROTECTED_SACL_SECURITY_INFORMATION = 0x10000000,
-        UNPROTECTED_DACL_SECURITY_INFORMATION = 0x20000000,
-        PROTECTED_SACL_SECURITY_INFORMATION = 0x40000000,
-        PROTECTED_DACL_SECURITY_INFORMATION = 0x80000000
+        ENABLED_BY_DEFAULT = 0x00000001,
+        ENABLED = 0x00000002,
+        USED_FOR_ACCESS = 0x80000000
     }
 
     [Flags]

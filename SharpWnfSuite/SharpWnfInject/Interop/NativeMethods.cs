@@ -9,24 +9,6 @@ namespace SharpWnfInject.Interop
     internal class NativeMethods
     {
         /*
-         * advapi32.dll
-         */
-        [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool AdjustTokenPrivileges(
-            IntPtr TokenHandle,
-            bool DisableAllPrivileges,
-            IntPtr NewState, // ref TOKEN_PRIVILEGES
-            int BufferLength,
-            IntPtr PreviousState, // out TOKEN_PRIVILEGES
-            IntPtr ReturnLength); // out int
-
-        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern bool LookupPrivilegeValue(
-            string lpSystemName,
-            string lpName,
-            out LUID lpLuid);
-
-        /*
          * Dbghelp.dll
          */
         [DllImport("Dbghelp.dll", SetLastError = true)]
@@ -107,7 +89,13 @@ namespace SharpWnfInject.Interop
          *
          */
         [DllImport("ntdll.dll")]
-        public static extern NTSTATUS RtlNtStatusToDosError(int ntstatus);
+        public static extern NTSTATUS NtAdjustPrivilegesToken(
+            IntPtr TokenHandle,
+            BOOLEAN DisableAllPrivileges,
+            IntPtr /* PTOKEN_PRIVILEGES */ TokenPrivileges,
+            uint PreviousPrivilegesLength,
+            IntPtr /* PTOKEN_PRIVILEGES */ PreviousPrivileges,
+            IntPtr /* out uint */ RequiredLength);
 
         [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtQueryWnfStateData(
