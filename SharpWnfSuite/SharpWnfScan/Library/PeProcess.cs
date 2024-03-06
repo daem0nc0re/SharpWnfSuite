@@ -787,20 +787,27 @@ namespace SharpWnfScan.Library
                     "Image base of {0} is not found",
                     this.CurrentModule));
 
+            IntPtr pNtHeader;
+            ushort machine;
+
+            if (Environment.Is64BitProcess)
+                pNtHeader = new IntPtr(this.ImageBase.ToInt64() + Marshal.ReadInt32(this.ImageBase, 0x3C));
+            else
+                pNtHeader = new IntPtr(this.ImageBase.ToInt32() + Marshal.ReadInt32(this.ImageBase, 0x3C));
+
             this.DosHeader = (IMAGE_DOS_HEADER)Marshal.PtrToStructure(
                 this.ImageBase,
                 typeof(IMAGE_DOS_HEADER));
 
-            var lpNtHeader = new IntPtr(this.ImageBase.ToInt64() + this.DosHeader.e_lfanew);
-            var arch = (ushort)this.ReadInt16(lpNtHeader, (uint)Marshal.SizeOf(typeof(int)));
+            machine = (ushort)Marshal.ReadInt16(pNtHeader, 4);
 
-            if (arch == 0x8664 || arch == 0x014C)
+            if (machine == 0x8664 || machine == 0x014C)
             {
                 this.NtHeader32 = (IMAGE_NT_HEADERS32)Marshal.PtrToStructure(
-                    lpNtHeader,
+                    pNtHeader,
                     typeof(IMAGE_NT_HEADERS32));
                 this.NtHeader64 = (IMAGE_NT_HEADERS64)Marshal.PtrToStructure(
-                    lpNtHeader,
+                    pNtHeader,
                     typeof(IMAGE_NT_HEADERS64));
             }
             else
