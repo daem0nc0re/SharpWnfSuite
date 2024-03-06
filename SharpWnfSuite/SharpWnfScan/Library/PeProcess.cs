@@ -763,7 +763,6 @@ namespace SharpWnfScan.Library
         public PeProcess()
         {
             this.IsRemote = false;
-
             this.g_Process = Process.GetCurrentProcess();
             this.hProcess = this.g_Process.Handle;
             this.CurrentModule = this.g_Process.ProcessName;
@@ -776,10 +775,7 @@ namespace SharpWnfScan.Library
 
             foreach (ProcessModule mod in this.g_Process.Modules)
             {
-                if (string.Compare(
-                    Path.GetFileName(mod.ModuleName),
-                    this.CurrentModule,
-                    StringComparison.OrdinalIgnoreCase) == 0)
+                if (string.Compare(Path.GetFileName(mod.ModuleName), this.CurrentModule, true) == 0)
                 {
                     this.ImageBase = mod.BaseAddress;
                     break;
@@ -845,7 +841,6 @@ namespace SharpWnfScan.Library
         public PeProcess(int pid)
         {
             this.IsRemote = true;
-
             this.g_Process = Process.GetProcessById(pid);
             this.hProcess = this.g_Process.Handle;
             this.CurrentModule = this.g_Process.ProcessName;
@@ -858,10 +853,7 @@ namespace SharpWnfScan.Library
 
             foreach (ProcessModule mod in this.g_Process.Modules)
             {
-                if (string.Compare(
-                    Path.GetFileName(mod.ModuleName),
-                    this.CurrentModule,
-                    StringComparison.OrdinalIgnoreCase) == 0)
+                if (string.Compare(Path.GetFileName(mod.ModuleName), this.CurrentModule, true) == 0)
                 {
                     this.ImageBase = mod.BaseAddress;
                     break;
@@ -1017,13 +1009,8 @@ namespace SharpWnfScan.Library
         {
             foreach (var entry in this.SectionHeaders)
             {
-                if (string.Compare(
-                    entry.Name,
-                    sectionName,
-                    StringComparison.OrdinalIgnoreCase) == 0)
-                {
+                if (string.Compare(entry.Name, sectionName, true) == 0)
                     return new IntPtr(this.ImageBase.ToInt64() + entry.VirtualAddress);
-                }
             }
 
             throw new KeyNotFoundException(string.Format(

@@ -37,7 +37,7 @@ namespace SharpWnfScan.Library
             PeProcess proc,
             IntPtr pSubscriptionTable)
         {
-            IntPtr buffer;
+            IntPtr pInfoBuffer;
             IntPtr pFirstNameSubscription;
             IntPtr pNameSubscription;
             IntPtr pCurrentNameSubscription;
@@ -48,94 +48,92 @@ namespace SharpWnfScan.Library
 
             if (proc.GetArchitecture() == "x64")
             {
-                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64));
                 WNF_NAME_SUBSCRIPTION64 nameSubscription;
-                nSizeNameSubscription = (uint)Marshal.SizeOf(
-                    typeof(WNF_NAME_SUBSCRIPTION64));
+                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64));
+                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64));
                 nNameTableEntryOffset = (uint)Marshal.OffsetOf(
                     typeof(WNF_NAME_SUBSCRIPTION64),
                     "NamesTableEntry").ToInt32();
-                buffer = proc.ReadMemory(pSubscriptionTable, nSizeSubscriptionTable);
+                pInfoBuffer = proc.ReadMemory(pSubscriptionTable, nSizeSubscriptionTable);
 
-                if (buffer == IntPtr.Zero)
+                if (pInfoBuffer == IntPtr.Zero)
                 {
                     Console.WriteLine("[-] Failed to read WNF_SUBSCRIPTION_TABLE.");
-
-                    return results;
                 }
-
-                var subscriptionTable = (WNF_SUBSCRIPTION_TABLE64)Marshal.PtrToStructure(
-                    buffer,
-                    typeof(WNF_SUBSCRIPTION_TABLE64));
-                NativeMethods.LocalFree(buffer);
-
-                pFirstNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Flink - nNameTableEntryOffset);
-                pNameSubscription = pFirstNameSubscription;
-
-                while (true)
+                else
                 {
-                    pCurrentNameSubscription = pNameSubscription;
-                    buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
+                    var subscriptionTable = (WNF_SUBSCRIPTION_TABLE64)Marshal.PtrToStructure(
+                        pInfoBuffer,
+                        typeof(WNF_SUBSCRIPTION_TABLE64));
+                    NativeMethods.LocalFree(pInfoBuffer);
 
-                    if (buffer == IntPtr.Zero)
-                        break;
+                    pFirstNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Flink - nNameTableEntryOffset);
+                    pNameSubscription = pFirstNameSubscription;
 
-                    nameSubscription = (WNF_NAME_SUBSCRIPTION64)Marshal.PtrToStructure(
-                        buffer,
-                        typeof(WNF_NAME_SUBSCRIPTION64));
-                    NativeMethods.LocalFree(buffer);
-                    pNameSubscription = new IntPtr(nameSubscription.NamesTableEntry.Flink - nNameTableEntryOffset);
+                    while (true)
+                    {
+                        pCurrentNameSubscription = pNameSubscription;
+                        pInfoBuffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
 
-                    if (pNameSubscription == pFirstNameSubscription)
-                        break;
+                        if (pInfoBuffer == IntPtr.Zero)
+                            break;
 
-                    results.Add(nameSubscription.StateName, pCurrentNameSubscription);
+                        nameSubscription = (WNF_NAME_SUBSCRIPTION64)Marshal.PtrToStructure(
+                            pInfoBuffer,
+                            typeof(WNF_NAME_SUBSCRIPTION64));
+                        NativeMethods.LocalFree(pInfoBuffer);
+                        pNameSubscription = new IntPtr(nameSubscription.NamesTableEntry.Flink - nNameTableEntryOffset);
+
+                        if (pNameSubscription == pFirstNameSubscription)
+                            break;
+
+                        results.Add(nameSubscription.StateName, pCurrentNameSubscription);
+                    }
                 }
             }
             else if (proc.GetArchitecture() == "x86")
             {
                 WNF_NAME_SUBSCRIPTION32 nameSubscription;
                 nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32));                
-                nSizeNameSubscription = (uint)Marshal.SizeOf(
-                    typeof(WNF_NAME_SUBSCRIPTION32));
+                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32));
                 nNameTableEntryOffset = (uint)Marshal.OffsetOf(
                     typeof(WNF_NAME_SUBSCRIPTION32),
                     "NamesTableEntry").ToInt32();
-                buffer = proc.ReadMemory(pSubscriptionTable, nSizeSubscriptionTable);
+                pInfoBuffer = proc.ReadMemory(pSubscriptionTable, nSizeSubscriptionTable);
 
-                if (buffer == IntPtr.Zero)
+                if (pInfoBuffer == IntPtr.Zero)
                 {
                     Console.WriteLine("[-] Failed to read WNF_SUBSCRIPTION_TABLE.");
-
-                    return results;
                 }
-
-                var subscriptionTable = (WNF_SUBSCRIPTION_TABLE32)Marshal.PtrToStructure(
-                    buffer,
-                    typeof(WNF_SUBSCRIPTION_TABLE32));
-                NativeMethods.LocalFree(buffer);
-
-                pFirstNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Flink - nNameTableEntryOffset);
-                pNameSubscription = pFirstNameSubscription;
-
-                while (true)
+                else
                 {
-                    pCurrentNameSubscription = pNameSubscription;
-                    buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
+                    var subscriptionTable = (WNF_SUBSCRIPTION_TABLE32)Marshal.PtrToStructure(
+                        pInfoBuffer,
+                        typeof(WNF_SUBSCRIPTION_TABLE32));
+                    NativeMethods.LocalFree(pInfoBuffer);
 
-                    if (buffer == IntPtr.Zero)
-                        break;
+                    pFirstNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Flink - nNameTableEntryOffset);
+                    pNameSubscription = pFirstNameSubscription;
 
-                    nameSubscription = (WNF_NAME_SUBSCRIPTION32)Marshal.PtrToStructure(
-                        buffer,
-                        typeof(WNF_NAME_SUBSCRIPTION32));
-                    NativeMethods.LocalFree(buffer);
-                    pNameSubscription = new IntPtr(nameSubscription.NamesTableEntry.Flink - nNameTableEntryOffset);
+                    while (true)
+                    {
+                        pCurrentNameSubscription = pNameSubscription;
+                        pInfoBuffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
 
-                    if (pNameSubscription == pFirstNameSubscription)
-                        break;
+                        if (pInfoBuffer == IntPtr.Zero)
+                            break;
 
-                    results.Add(nameSubscription.StateName, pCurrentNameSubscription);
+                        nameSubscription = (WNF_NAME_SUBSCRIPTION32)Marshal.PtrToStructure(
+                            pInfoBuffer,
+                            typeof(WNF_NAME_SUBSCRIPTION32));
+                        NativeMethods.LocalFree(pInfoBuffer);
+                        pNameSubscription = new IntPtr(nameSubscription.NamesTableEntry.Flink - nNameTableEntryOffset);
+
+                        if (pNameSubscription == pFirstNameSubscription)
+                            break;
+
+                        results.Add(nameSubscription.StateName, pCurrentNameSubscription);
+                    }
                 }
             }
             else
@@ -168,7 +166,6 @@ namespace SharpWnfScan.Library
                 if (buffer == IntPtr.Zero)
                 {
                     Console.WriteLine("[-] Failed to read WNF_SUBSCRIPTION_TABLE.");
-
                     return results;
                 }
 
@@ -191,7 +188,6 @@ namespace SharpWnfScan.Library
                 if (buffer == IntPtr.Zero)
                 {
                     Console.WriteLine("[-] Failed to read WNF_SUBSCRIPTION_TABLE.");
-
                     return results;
                 }
 
