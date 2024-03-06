@@ -45,7 +45,7 @@ namespace SharpWnfScan.Handler
                 }
             }
 
-            Header.g_IsWin11 = Helpers.IsWin11();
+            Globals.IsWin11 = Helpers.IsWin11();
 
             if (options.GetFlag("all"))
             {

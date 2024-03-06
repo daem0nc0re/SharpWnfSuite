@@ -59,7 +59,7 @@ namespace SharpWnfScan.Library
             {
                 processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
                 processInfo.ErrorMessage = ex.Message;
-                Header.g_ProcessInfo.Add(processInfo);
+                Globals.ProcessInfo.Add(processInfo);
 
                 if (stateNameFilter == 0UL)
                     Helpers.PrintProcessInformation(processInfo);
@@ -69,7 +69,7 @@ namespace SharpWnfScan.Library
             catch (ArgumentException ex)
             {
                 processInfo.ErrorMessage = ex.Message;
-                Header.g_ProcessInfo.Add(processInfo);
+                Globals.ProcessInfo.Add(processInfo);
 
                 if (stateNameFilter == 0UL)
                     Helpers.PrintProcessInformation(processInfo);
@@ -80,7 +80,7 @@ namespace SharpWnfScan.Library
             {
                 processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
                 processInfo.ErrorMessage = ex.Message;
-                Header.g_ProcessInfo.Add(processInfo);
+                Globals.ProcessInfo.Add(processInfo);
 
                 if (stateNameFilter == 0UL)
                     Helpers.PrintProcessInformation(processInfo);
@@ -92,15 +92,15 @@ namespace SharpWnfScan.Library
 
             if (is64bit)
             {
-                if (Header.g_SubscriptionTablePointerAddressX64 == IntPtr.Zero)
+                if (Globals.SubscriptionTablePointerAddressX64 == IntPtr.Zero)
                 {
-                    Header.g_SubscriptionTablePointerAddressX64 = Utilities.GetSubscriptionTablePointerAddress(proc);
+                    Globals.SubscriptionTablePointerAddressX64 = Utilities.GetSubscriptionTablePointerAddress(proc);
 
-                    if (Header.g_SubscriptionTablePointerAddressX64 == IntPtr.Zero)
+                    if (Globals.SubscriptionTablePointerAddressX64 == IntPtr.Zero)
                     {
                         processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
                         processInfo.ErrorMessage = "Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.";
-                        Header.g_ProcessInfo.Add(processInfo);
+                        Globals.ProcessInfo.Add(processInfo);
                         proc.Dispose();
 
                         if (stateNameFilter == 0UL)
@@ -112,7 +112,7 @@ namespace SharpWnfScan.Library
 
                 pSubscriptionTable = Utilities.GetSubscriptionTable(
                     proc,
-                    Header.g_SubscriptionTablePointerAddressX64,
+                    Globals.SubscriptionTablePointerAddressX64,
                     out processInfo.ErrorMessage);
 
                 if (pSubscriptionTable == IntPtr.Zero)
@@ -125,15 +125,15 @@ namespace SharpWnfScan.Library
             }
             else
             {
-                if (Header.g_SubscriptionTablePointerAddressX86 == IntPtr.Zero)
+                if (Globals.SubscriptionTablePointerAddressX86 == IntPtr.Zero)
                 {
-                    Header.g_SubscriptionTablePointerAddressX86 = Utilities.GetSubscriptionTablePointerAddress(proc);
+                    Globals.SubscriptionTablePointerAddressX86 = Utilities.GetSubscriptionTablePointerAddress(proc);
 
-                    if (Header.g_SubscriptionTablePointerAddressX86 == IntPtr.Zero)
+                    if (Globals.SubscriptionTablePointerAddressX86 == IntPtr.Zero)
                     {
                         processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
                         processInfo.ErrorMessage = "Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.";
-                        Header.g_ProcessInfo.Add(processInfo);
+                        Globals.ProcessInfo.Add(processInfo);
                         proc.Dispose();
 
                         if (stateNameFilter == 0UL)
@@ -145,7 +145,7 @@ namespace SharpWnfScan.Library
 
                 pSubscriptionTable = Utilities.GetSubscriptionTable(
                     proc,
-                    Header.g_SubscriptionTablePointerAddressX86,
+                    Globals.SubscriptionTablePointerAddressX86,
                     out processInfo.ErrorMessage);
 
                 if (pSubscriptionTable == IntPtr.Zero)
@@ -167,7 +167,7 @@ namespace SharpWnfScan.Library
                     pSubscriptionTable.ToString(is64bit ? "X16" : "X8"));
             }
 
-            if (Header.g_IsWin11)
+            if (Globals.IsWin11)
                 nameSubscriptions = Utilities.GetNameSubscriptionsWin11(proc, pSubscriptionTable);
             else
                 nameSubscriptions = Utilities.GetNameSubscriptions(proc, pSubscriptionTable);
@@ -201,7 +201,7 @@ namespace SharpWnfScan.Library
                 if (brief)
                     continue;
 
-                if (Header.g_IsWin11)
+                if (Globals.IsWin11)
                     userSubscriptions = Utilities.GetUserSubscriptionsWin11(proc, pNameSubscription);
                 else
                     userSubscriptions = Utilities.GetUserSubscriptions(proc, pNameSubscription);
@@ -296,7 +296,7 @@ namespace SharpWnfScan.Library
                 {
                     processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
                     processInfo.ErrorMessage = ex.Message;
-                    Header.g_ProcessInfo.Add(processInfo);
+                    Globals.ProcessInfo.Add(processInfo);
 
                     if (string.Compare(
                         processInfo.ErrorMessage.TrimEnd(),
@@ -311,7 +311,7 @@ namespace SharpWnfScan.Library
                 catch (ArgumentException ex)
                 {
                     processInfo.ErrorMessage = ex.Message;
-                    Header.g_ProcessInfo.Add(processInfo);
+                    Globals.ProcessInfo.Add(processInfo);
 
                     continue;
                 }
@@ -319,7 +319,7 @@ namespace SharpWnfScan.Library
                 {
                     processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
                     processInfo.ErrorMessage = ex.Message;
-                    Header.g_ProcessInfo.Add(processInfo);
+                    Globals.ProcessInfo.Add(processInfo);
 
                     continue;
                 }
@@ -328,15 +328,15 @@ namespace SharpWnfScan.Library
 
                 if (is64bit)
                 {
-                    if (Header.g_SubscriptionTablePointerAddressX64 == IntPtr.Zero)
+                    if (Globals.SubscriptionTablePointerAddressX64 == IntPtr.Zero)
                     {
-                        Header.g_SubscriptionTablePointerAddressX64 = Utilities.GetSubscriptionTablePointerAddress(proc);
+                        Globals.SubscriptionTablePointerAddressX64 = Utilities.GetSubscriptionTablePointerAddress(proc);
 
-                        if (Header.g_SubscriptionTablePointerAddressX64 == IntPtr.Zero)
+                        if (Globals.SubscriptionTablePointerAddressX64 == IntPtr.Zero)
                         {
                             processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
                             processInfo.ErrorMessage = "Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.";
-                            Header.g_ProcessInfo.Add(processInfo);
+                            Globals.ProcessInfo.Add(processInfo);
                             proc.Dispose();
 
                             continue;
@@ -345,7 +345,7 @@ namespace SharpWnfScan.Library
 
                     pSubscriptionTable = Utilities.GetSubscriptionTable(
                         proc,
-                        Header.g_SubscriptionTablePointerAddressX64,
+                        Globals.SubscriptionTablePointerAddressX64,
                         out processInfo.ErrorMessage);
 
                     if (pSubscriptionTable == IntPtr.Zero)
@@ -353,15 +353,15 @@ namespace SharpWnfScan.Library
                 }
                 else
                 {
-                    if (Header.g_SubscriptionTablePointerAddressX86 == IntPtr.Zero)
+                    if (Globals.SubscriptionTablePointerAddressX86 == IntPtr.Zero)
                     {
-                        Header.g_SubscriptionTablePointerAddressX86 = Utilities.GetSubscriptionTablePointerAddress(proc);
+                        Globals.SubscriptionTablePointerAddressX86 = Utilities.GetSubscriptionTablePointerAddress(proc);
 
-                        if (Header.g_SubscriptionTablePointerAddressX86 == IntPtr.Zero)
+                        if (Globals.SubscriptionTablePointerAddressX86 == IntPtr.Zero)
                         {
                             processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
                             processInfo.ErrorMessage = "Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.";
-                            Header.g_ProcessInfo.Add(processInfo);
+                            Globals.ProcessInfo.Add(processInfo);
                             proc.Dispose();
 
                             continue;
@@ -370,14 +370,14 @@ namespace SharpWnfScan.Library
 
                     pSubscriptionTable = Utilities.GetSubscriptionTable(
                         proc,
-                        Header.g_SubscriptionTablePointerAddressX86,
+                        Globals.SubscriptionTablePointerAddressX86,
                         out processInfo.ErrorMessage);
 
                     if (pSubscriptionTable == IntPtr.Zero)
                         continue;
                 }
 
-                if (Header.g_IsWin11)
+                if (Globals.IsWin11)
                     nameSubscriptions = Utilities.GetNameSubscriptionsWin11(proc, pSubscriptionTable);
                 else
                     nameSubscriptions = Utilities.GetNameSubscriptions(proc, pSubscriptionTable);
