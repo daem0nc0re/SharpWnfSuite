@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using SharpWnfScan.Interop;
@@ -148,7 +147,6 @@ namespace SharpWnfScan.Library
             uint nSizeSubscriptionTable;
             uint nNameTableEntryOffset;
             var results = new Dictionary<ulong, IntPtr>();
-            Console.WriteLine("Win11");
 
             if (proc.GetArchitecture() == "x64")
             {

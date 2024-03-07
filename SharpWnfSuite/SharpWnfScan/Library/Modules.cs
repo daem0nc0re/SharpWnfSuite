@@ -8,9 +8,7 @@ namespace SharpWnfScan.Library
 {
     internal class Modules
     {
-        public static void DumpAllWnfSubscriptionInformation(
-            ulong stateName,
-            bool brief)
+        public static void DumpAllWnfSubscriptionInformation(ulong stateName, bool brief)
         {
             Process[] procs = Process.GetProcesses();
 
@@ -18,13 +16,6 @@ namespace SharpWnfScan.Library
                 DumpWnfSubscriptionInformation(procs[idx].Id, stateName, brief);
         }
 
-
-        public static void DumpWnfSubscriptionInformation(
-            ulong stateName,
-            bool brief)
-        {
-            DumpWnfSubscriptionInformation(Process.GetCurrentProcess().Id, stateName, brief);
-        }
 
         public static void DumpWnfSubscriptionInformation(
             int pid,
