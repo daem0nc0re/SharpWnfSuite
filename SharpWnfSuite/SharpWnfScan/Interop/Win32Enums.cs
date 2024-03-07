@@ -44,6 +44,31 @@ namespace SharpWnfScan.Interop
         CEE = 0xC0EE
     }
 
+    [Flags]
+    internal enum MEMORY_ALLOCATION_TYPE : uint
+    {
+        NONE = 0x00000000,
+        MEM_COMMIT = 0x00001000,
+        MEM_RESERVE = 0x00002000,
+        MEM_DECOMMIT = 0x00004000,
+        MEM_RELEASE = 0x00008000,
+        MEM_FREE = 0x00010000,
+        MEM_PRIVATE = 0x00020000,
+        MEM_MAPPED = 0x00040000,
+        MEM_RESET = 0x00080000,
+        MEM_TOP_DOWN = 0x00100000,
+        MEM_WRITE_WATCH = 0x00200000,
+        MEM_PHYSICAL = 0x00400000,
+        MEM_ROTATE = 0x00800000,
+        MEM_DIFFERENT_IMAGE_BASE_OK = 0x00800000,
+        MEM_IMAGE = 0x01000000,
+        // MEM_RESET_UNDO = 0x01000000,
+        MEM_LARGE_PAGES = 0x20000000,
+        MEM_DOS_LIM = 0x40000000,
+        MEM_4MB_PAGES = 0x80000000,
+        MEM_64K_PAGES = (MEM_LARGE_PAGES | MEM_PHYSICAL)
+    }
+
     internal enum MEMORY_INFORMATION_CLASS
     {
         MemoryBasicInformation, // MEMORY_BASIC_INFORMATION
@@ -61,6 +86,23 @@ namespace SharpWnfScan.Interop
         MemoryBadInformation, // since WIN11
         MemoryBadInformationAllProcesses, // since 22H1
         MaxMemoryInfoClass
+    }
+
+    [Flags]
+    internal enum MEMORY_PROTECTION : uint
+    {
+        NONE = 0x00000000,
+        PAGE_NOACCESS = 0x00000001,
+        PAGE_READONLY = 0x00000002,
+        PAGE_READWRITE = 0x00000004,
+        PAGE_WRITECOPY = 0x00000008,
+        PAGE_EXECUTE = 0x00000010,
+        PAGE_EXECUTE_READ = 0x00000020,
+        PAGE_EXECUTE_READWRITE = 0x00000040,
+        PAGE_EXECUTE_WRITECOPY = 0x00000080,
+        PAGE_GUARD = 0x00000100,
+        PAGE_NOCACHE = 0x00000200,
+        PAGE_WRITECOMBINE = 0x00000400
     }
 
     [Flags]

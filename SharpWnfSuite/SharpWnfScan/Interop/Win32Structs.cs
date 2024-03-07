@@ -4,6 +4,8 @@ using System.Text;
 
 namespace SharpWnfScan.Interop
 {
+    using SIZE_T = UIntPtr;
+
     [StructLayout(LayoutKind.Sequential)]
     internal struct LIST_ENTRY32
     {
@@ -36,6 +38,18 @@ namespace SharpWnfScan.Interop
     {
         public LUID Luid;
         public uint Attributes;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct MEMORY_BASIC_INFORMATION
+    {
+        public IntPtr BaseAddress;
+        public IntPtr AllocationBase;
+        public MEMORY_PROTECTION AllocationProtect;
+        public SIZE_T RegionSize;
+        public MEMORY_ALLOCATION_TYPE State;
+        public MEMORY_PROTECTION Protect;
+        public MEMORY_ALLOCATION_TYPE Type;
     }
 
     [StructLayout(LayoutKind.Sequential)]

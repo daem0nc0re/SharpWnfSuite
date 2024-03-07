@@ -126,6 +126,33 @@ namespace SharpWnfScan.Library
         }
 
 
+        public static bool IsHeapAddress(IntPtr hProcess, IntPtr pBuffer)
+        {
+            var nInfoLength = (uint)Marshal.SizeOf(typeof(MEMORY_BASIC_INFORMATION));
+            IntPtr pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
+            NTSTATUS ntstatus = NativeMethods.NtQueryVirtualMemory(
+                hProcess,
+                pBuffer,
+                MEMORY_INFORMATION_CLASS.MemoryBasicInformation,
+                pInfoBuffer,
+                new SIZE_T(nInfoLength),
+                out SIZE_T _);
+            bool bIsHeapAddress = false;
+
+            if (ntstatus == Win32Consts.STATUS_SUCCESS)
+            {
+                var info = (MEMORY_BASIC_INFORMATION)Marshal.PtrToStructure(
+                    pInfoBuffer,
+                    typeof(MEMORY_BASIC_INFORMATION));
+                bIsHeapAddress = (info.State == MEMORY_ALLOCATION_TYPE.MEM_COMMIT) &&
+                    (info.Type == MEMORY_ALLOCATION_TYPE.MEM_PRIVATE) &&
+                    (info.Protect == MEMORY_PROTECTION.PAGE_READWRITE);
+            }
+
+            return bIsHeapAddress;
+        }
+
+
         public static void PrintProcessInformation(PROCESS_INFORMATION processInfo)
         {
             var outputBuilder = new StringBuilder();
