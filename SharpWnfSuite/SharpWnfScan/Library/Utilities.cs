@@ -34,112 +34,105 @@ namespace SharpWnfScan.Library
 
 
         public static Dictionary<ulong, IntPtr> GetNameSubscriptions(
-            PeProcess proc,
+            IntPtr hProcess,
             IntPtr pSubscriptionTable)
         {
             IntPtr pInfoBuffer;
-            IntPtr pFirstNameSubscription;
-            IntPtr pNameSubscription;
-            IntPtr pCurrentNameSubscription;
-            uint nSizeSubscriptionTable;
-            uint nSizeNameSubscription;
-            uint nNameTableEntryOffset;
             var results = new Dictionary<ulong, IntPtr>();
 
-            if (proc.GetArchitecture() == "x64")
+            do
             {
-                WNF_NAME_SUBSCRIPTION64 nameSubscription;
-                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64));
-                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64));
-                nNameTableEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(WNF_NAME_SUBSCRIPTION64),
-                    "NamesTableEntry").ToInt32();
-                pInfoBuffer = proc.ReadMemory(pSubscriptionTable, nSizeSubscriptionTable);
+                NTSTATUS ntstatus;
+                IntPtr pRootNameSubscription;
+                IntPtr pNameSubscription;
+                uint nSubscriptionTableSize;
+                uint nNameSubscriptionSize;
+                uint nNamesTableEntryOffset;
+                bool bIs32BitProcess = Helpers.Is32BitProcess(hProcess);
+                string fieldName = "NamesTableEntry";
 
-                if (pInfoBuffer == IntPtr.Zero)
+                if (!bIs32BitProcess)
                 {
-                    Console.WriteLine("[-] Failed to read WNF_SUBSCRIPTION_TABLE.");
+                    nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64));
+                    nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64));
+                    nNamesTableEntryOffset = (uint)Marshal.OffsetOf(typeof(WNF_NAME_SUBSCRIPTION64), fieldName).ToInt32();
                 }
                 else
                 {
-                    var subscriptionTable = (WNF_SUBSCRIPTION_TABLE64)Marshal.PtrToStructure(
+                    nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32));
+                    nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32));
+                    nNamesTableEntryOffset = (uint)Marshal.OffsetOf(typeof(WNF_NAME_SUBSCRIPTION32), fieldName).ToInt32();
+                }
+
+                pInfoBuffer = Marshal.AllocHGlobal((int)nSubscriptionTableSize);
+                ntstatus = NativeMethods.NtReadVirtualMemory(
+                    hProcess,
+                    pSubscriptionTable,
+                    pInfoBuffer,
+                    nSubscriptionTableSize,
+                    out uint nReturnedSize);
+
+                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nSubscriptionTableSize != nReturnedSize))
+                    break;
+
+                if (!bIs32BitProcess)
+                {
+                    var subscriptionTable64 = (WNF_SUBSCRIPTION_TABLE64)Marshal.PtrToStructure(
                         pInfoBuffer,
                         typeof(WNF_SUBSCRIPTION_TABLE64));
-                    NativeMethods.LocalFree(pInfoBuffer);
-
-                    pFirstNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Flink - nNameTableEntryOffset);
-                    pNameSubscription = pFirstNameSubscription;
-
-                    while (true)
-                    {
-                        pCurrentNameSubscription = pNameSubscription;
-                        pInfoBuffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
-
-                        if (pInfoBuffer == IntPtr.Zero)
-                            break;
-
-                        nameSubscription = (WNF_NAME_SUBSCRIPTION64)Marshal.PtrToStructure(
-                            pInfoBuffer,
-                            typeof(WNF_NAME_SUBSCRIPTION64));
-                        NativeMethods.LocalFree(pInfoBuffer);
-                        pNameSubscription = new IntPtr(nameSubscription.NamesTableEntry.Flink - nNameTableEntryOffset);
-
-                        if (pNameSubscription == pFirstNameSubscription)
-                            break;
-
-                        results.Add(nameSubscription.StateName, pCurrentNameSubscription);
-                    }
-                }
-            }
-            else if (proc.GetArchitecture() == "x86")
-            {
-                WNF_NAME_SUBSCRIPTION32 nameSubscription;
-                nSizeSubscriptionTable = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32));                
-                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32));
-                nNameTableEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(WNF_NAME_SUBSCRIPTION32),
-                    "NamesTableEntry").ToInt32();
-                pInfoBuffer = proc.ReadMemory(pSubscriptionTable, nSizeSubscriptionTable);
-
-                if (pInfoBuffer == IntPtr.Zero)
-                {
-                    Console.WriteLine("[-] Failed to read WNF_SUBSCRIPTION_TABLE.");
+                    pRootNameSubscription = new IntPtr(subscriptionTable64.NamesTableEntry.Flink - nNamesTableEntryOffset);
                 }
                 else
                 {
-                    var subscriptionTable = (WNF_SUBSCRIPTION_TABLE32)Marshal.PtrToStructure(
+                    var subscriptionTable32 = (WNF_SUBSCRIPTION_TABLE32)Marshal.PtrToStructure(
                         pInfoBuffer,
                         typeof(WNF_SUBSCRIPTION_TABLE32));
-                    NativeMethods.LocalFree(pInfoBuffer);
+                    pRootNameSubscription = new IntPtr(subscriptionTable32.NamesTableEntry.Flink - (int)nNamesTableEntryOffset);
+                }
 
-                    pFirstNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Flink - nNameTableEntryOffset);
-                    pNameSubscription = pFirstNameSubscription;
+                pNameSubscription = pRootNameSubscription;
+                Marshal.FreeHGlobal(pInfoBuffer);
+                pInfoBuffer = Marshal.AllocHGlobal((int)nNameSubscriptionSize);
 
-                    while (true)
+                while (true)
+                {
+                    ulong stateName;
+                    IntPtr pNameSubsctiptionSaved = pNameSubscription;
+                    ntstatus = NativeMethods.NtReadVirtualMemory(
+                        hProcess,
+                        pNameSubscription,
+                        pInfoBuffer,
+                        nNameSubscriptionSize,
+                        out nReturnedSize);
+
+                    if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nNameSubscriptionSize != nReturnedSize))
+                        break;
+
+                    if (!bIs32BitProcess)
                     {
-                        pCurrentNameSubscription = pNameSubscription;
-                        pInfoBuffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
-
-                        if (pInfoBuffer == IntPtr.Zero)
-                            break;
-
-                        nameSubscription = (WNF_NAME_SUBSCRIPTION32)Marshal.PtrToStructure(
+                        var nameSubscription64 = (WNF_NAME_SUBSCRIPTION64)Marshal.PtrToStructure(
+                            pInfoBuffer,
+                            typeof(WNF_NAME_SUBSCRIPTION64));
+                        pNameSubscription = new IntPtr(nameSubscription64.NamesTableEntry.Flink - nNamesTableEntryOffset);
+                        stateName = nameSubscription64.StateName;
+                    }
+                    else
+                    {
+                        var nameSubscription32 = (WNF_NAME_SUBSCRIPTION32)Marshal.PtrToStructure(
                             pInfoBuffer,
                             typeof(WNF_NAME_SUBSCRIPTION32));
-                        NativeMethods.LocalFree(pInfoBuffer);
-                        pNameSubscription = new IntPtr(nameSubscription.NamesTableEntry.Flink - nNameTableEntryOffset);
-
-                        if (pNameSubscription == pFirstNameSubscription)
-                            break;
-
-                        results.Add(nameSubscription.StateName, pCurrentNameSubscription);
+                        pNameSubscription = new IntPtr(nameSubscription32.NamesTableEntry.Flink - (int)nNamesTableEntryOffset);
+                        stateName = nameSubscription32.StateName;
                     }
+
+                    if (pNameSubscription == pRootNameSubscription)
+                        break;
+
+                    results.Add(stateName, pNameSubsctiptionSaved);
                 }
-            }
-            else
-            {
-                Console.WriteLine("[-] Unsupported architecture.");
-            }
+            } while (false);
+
+            Marshal.FreeHGlobal(pInfoBuffer);
 
             return results;
         }

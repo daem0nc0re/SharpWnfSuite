@@ -54,6 +54,14 @@ namespace SharpWnfScan.Interop
             IntPtr /* out uint */ RequiredLength);
 
         [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtQueryInformationProcess(
+            IntPtr ProcessHandle,
+            PROCESSINFOCLASS ProcessInformationClass,
+            IntPtr pProcessInformation,
+            uint ProcessInformationLength,
+            out uint ReturnLength);
+
+        [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtQueryVirtualMemory(
             IntPtr ProcessHandle,
             IntPtr BaseAddress,
@@ -61,6 +69,14 @@ namespace SharpWnfScan.Interop
             IntPtr MemoryInformation,
             SIZE_T MemoryInformationLength,
             out SIZE_T ReturnLength);
+
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtReadVirtualMemory(
+            IntPtr ProcessHandle,
+            IntPtr BaseAddress,
+            IntPtr Buffer,
+            uint NumberOfBytesToRead,
+            out uint NumberOfBytesReaded);
 
         [DllImport("ntdll.dll")]
         public static extern void RtlGetNtVersionNumbers(

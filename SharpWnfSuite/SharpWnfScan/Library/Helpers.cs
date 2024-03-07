@@ -104,6 +104,29 @@ namespace SharpWnfScan.Library
         }
 
 
+        public static bool Is32BitProcess(IntPtr hProcess)
+        {
+            NTSTATUS ntstatus;
+            bool b32BitProcess = false;
+            IntPtr pInfoBuffer = Marshal.AllocHGlobal(IntPtr.Size);
+
+            if (!Environment.Is64BitOperatingSystem)
+                return true;
+
+            ntstatus = NativeMethods.NtQueryInformationProcess(
+                hProcess,
+                PROCESSINFOCLASS.ProcessWow64Information,
+                pInfoBuffer,
+                (uint)IntPtr.Size,
+                out uint _);
+
+            if (ntstatus == Win32Consts.STATUS_SUCCESS)
+                b32BitProcess = (Marshal.ReadIntPtr(pInfoBuffer) != IntPtr.Zero);
+
+            return b32BitProcess;
+        }
+
+
         public static void PrintProcessInformation(PROCESS_INFORMATION processInfo)
         {
             var outputBuilder = new StringBuilder();
