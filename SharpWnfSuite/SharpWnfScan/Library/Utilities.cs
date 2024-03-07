@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using SharpWnfScan.Interop;
@@ -147,6 +148,7 @@ namespace SharpWnfScan.Library
             uint nSizeSubscriptionTable;
             uint nNameTableEntryOffset;
             var results = new Dictionary<ulong, IntPtr>();
+            Console.WriteLine("Win11");
 
             if (proc.GetArchitecture() == "x64")
             {
@@ -168,7 +170,7 @@ namespace SharpWnfScan.Library
                 NativeMethods.LocalFree(buffer);
 
                 pNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Root - nNameTableEntryOffset);
-                ListWin11NameSubscriptions(proc, pNameSubscription, ref results);
+                ListWin11NameSubscriptions(proc.GetProcessHandle(), pNameSubscription, ref results);
             }
             else if (proc.GetArchitecture() == "x86")
             {
@@ -190,7 +192,7 @@ namespace SharpWnfScan.Library
                 NativeMethods.LocalFree(buffer);
 
                 pNameSubscription = new IntPtr(subscriptionTable.NamesTableEntry.Root - nNameTableEntryOffset);
-                ListWin11NameSubscriptions(proc, pNameSubscription, ref results);
+                ListWin11NameSubscriptions(proc.GetProcessHandle(), pNameSubscription, ref results);
             }
             else
             {
@@ -599,83 +601,85 @@ namespace SharpWnfScan.Library
 
 
         public static void ListWin11NameSubscriptions(
-            PeProcess proc,
+            IntPtr hProcess,
             IntPtr pNameSubscription,
             ref Dictionary<ulong, IntPtr> nameSubscriptions)
         {
-            uint nSizeNameSubscription;
-            uint nNameTableEntryOffset;
-            IntPtr pNameSubscriptionLeft;
-            IntPtr pNameSubscriptionRight;
-            IntPtr buffer;
+            NTSTATUS ntstatus;
+            IntPtr pInfoBuffer;
+            uint nNameSubscriptionSize;
+            uint nNamesTableEntryOffset;
+            bool b32BitProcess = Helpers.Is32BitProcess(hProcess);
+            string fieldName = "NamesTableEntry";
 
-            if (!proc.IsHeapAddress(pNameSubscription))
-                return;
-
-            if (proc.GetArchitecture() == "x64")
+            if (!b32BitProcess)
             {
-                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64_WIN11));
-                nNameTableEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(WNF_NAME_SUBSCRIPTION64_WIN11),
-                    "NamesTableEntry").ToInt32();
-                buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
-
-                if (buffer == IntPtr.Zero)
-                    return;
-
-                var entry = (WNF_NAME_SUBSCRIPTION64_WIN11)Marshal.PtrToStructure(
-                    buffer,
-                    typeof(WNF_NAME_SUBSCRIPTION64_WIN11));
-
-                if (!nameSubscriptions.ContainsKey(entry.StateName))
-                    nameSubscriptions.Add(entry.StateName, pNameSubscription);
-
-                if (entry.NamesTableEntry.Left != 0L)
-                {
-                    pNameSubscriptionLeft = new IntPtr(entry.NamesTableEntry.Left - nNameTableEntryOffset);
-                    ListWin11NameSubscriptions(proc, pNameSubscriptionLeft, ref nameSubscriptions);
-                }
-
-                if (entry.NamesTableEntry.Right != 0L)
-                {
-                    pNameSubscriptionRight = new IntPtr(entry.NamesTableEntry.Right - nNameTableEntryOffset);
-                    ListWin11NameSubscriptions(proc, pNameSubscriptionRight, ref nameSubscriptions);
-                }
-
-                NativeMethods.LocalFree(buffer);
+                nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64_WIN11));
+                nNamesTableEntryOffset = (uint)Marshal.OffsetOf(typeof(WNF_NAME_SUBSCRIPTION64_WIN11), fieldName).ToInt32();
             }
-            else if (proc.GetArchitecture() == "x86")
+            else
             {
-                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32_WIN11));
-                nNameTableEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(WNF_NAME_SUBSCRIPTION32_WIN11),
-                    "NamesTableEntry").ToInt32();
-                buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
-
-                if (buffer == IntPtr.Zero)
-                    return;
-
-                var entry = (WNF_NAME_SUBSCRIPTION32_WIN11)Marshal.PtrToStructure(
-                    buffer,
-                    typeof(WNF_NAME_SUBSCRIPTION32_WIN11));
-
-                if (!nameSubscriptions.ContainsKey(entry.StateName))
-                    nameSubscriptions.Add(entry.StateName, pNameSubscription);
-
-                if (entry.NamesTableEntry.Left != 0)
-                {
-                    pNameSubscriptionLeft = new IntPtr(entry.NamesTableEntry.Left - nNameTableEntryOffset);
-                    ListWin11NameSubscriptions(proc, pNameSubscriptionLeft, ref nameSubscriptions);
-                }
-
-                if (entry.NamesTableEntry.Right != 0)
-                {
-                    pNameSubscriptionRight = new IntPtr(entry.NamesTableEntry.Right - nNameTableEntryOffset);
-                    ListWin11NameSubscriptions(proc, pNameSubscriptionRight, ref nameSubscriptions);
-                }
-
-                NativeMethods.LocalFree(buffer);
+                nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32_WIN11));
+                nNamesTableEntryOffset = (uint)Marshal.OffsetOf(typeof(WNF_NAME_SUBSCRIPTION32_WIN11), fieldName).ToInt32();
             }
+
+            pInfoBuffer = Marshal.AllocHGlobal((int)nNameSubscriptionSize);
+            ntstatus = NativeMethods.NtReadVirtualMemory(
+                hProcess,
+                pNameSubscription,
+                pInfoBuffer,
+                nNameSubscriptionSize,
+                out uint nReturnedSize);
+
+            if ((ntstatus == Win32Consts.STATUS_SUCCESS) || (nReturnedSize == nNameSubscriptionSize))
+            {
+                IntPtr pNextNameSubscription;
+
+                if (!b32BitProcess)
+                {
+                    var nameSubscription64 = (WNF_NAME_SUBSCRIPTION64_WIN11)Marshal.PtrToStructure(
+                        pInfoBuffer,
+                        typeof(WNF_NAME_SUBSCRIPTION64_WIN11));
+
+                    if (!nameSubscriptions.ContainsKey(nameSubscription64.StateName))
+                        nameSubscriptions.Add(nameSubscription64.StateName, pNameSubscription);
+
+                    if (nameSubscription64.NamesTableEntry.Left != 0L)
+                    {
+                        pNextNameSubscription = new IntPtr(nameSubscription64.NamesTableEntry.Left - nNamesTableEntryOffset);
+                        ListWin11NameSubscriptions(hProcess, pNextNameSubscription, ref nameSubscriptions);
+                    }
+
+                    if (nameSubscription64.NamesTableEntry.Right != 0L)
+                    {
+                        pNextNameSubscription = new IntPtr(nameSubscription64.NamesTableEntry.Right - nNamesTableEntryOffset);
+                        ListWin11NameSubscriptions(hProcess, pNextNameSubscription, ref nameSubscriptions);
+                    }
+                }
+                else
+                {
+                    var nameSubscription32 = (WNF_NAME_SUBSCRIPTION32_WIN11)Marshal.PtrToStructure(
+                        pInfoBuffer,
+                        typeof(WNF_NAME_SUBSCRIPTION32_WIN11));
+
+                    if (!nameSubscriptions.ContainsKey(nameSubscription32.StateName))
+                        nameSubscriptions.Add(nameSubscription32.StateName, pNameSubscription);
+
+                    if (nameSubscription32.NamesTableEntry.Left != 0L)
+                    {
+                        pNextNameSubscription = new IntPtr(nameSubscription32.NamesTableEntry.Left - nNamesTableEntryOffset);
+                        ListWin11NameSubscriptions(hProcess, pNextNameSubscription, ref nameSubscriptions);
+                    }
+
+                    if (nameSubscription32.NamesTableEntry.Right != 0L)
+                    {
+                        pNextNameSubscription = new IntPtr(nameSubscription32.NamesTableEntry.Right - nNamesTableEntryOffset);
+                        ListWin11NameSubscriptions(hProcess, pNextNameSubscription, ref nameSubscriptions);
+                    }
+                }
+            }
+
+            Marshal.FreeHGlobal(pInfoBuffer);
         }
     }
 }
