@@ -159,7 +159,7 @@ namespace SharpWnfScan.Library
             }
 
             if (Globals.IsWin11)
-                nameSubscriptions = Utilities.GetNameSubscriptionsWin11(proc, pSubscriptionTable);
+                nameSubscriptions = Utilities.GetNameSubscriptionsWin11(proc.GetProcessHandle(), pSubscriptionTable);
             else
                 nameSubscriptions = Utilities.GetNameSubscriptions(proc.GetProcessHandle(), pSubscriptionTable);
 
@@ -369,7 +369,7 @@ namespace SharpWnfScan.Library
                 }
 
                 if (Globals.IsWin11)
-                    nameSubscriptions = Utilities.GetNameSubscriptionsWin11(proc, pSubscriptionTable);
+                    nameSubscriptions = Utilities.GetNameSubscriptionsWin11(proc.GetProcessHandle(), pSubscriptionTable);
                 else
                     nameSubscriptions = Utilities.GetNameSubscriptions(proc.GetProcessHandle(), pSubscriptionTable);
 
