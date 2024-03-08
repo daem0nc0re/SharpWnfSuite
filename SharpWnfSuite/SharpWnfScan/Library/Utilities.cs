@@ -200,48 +200,63 @@ namespace SharpWnfScan.Library
         }
 
 
-        public static IntPtr GetSubscriptionTable(
-            PeProcess proc,
-            IntPtr pSubscriptionTablePointer,
-            out string errorMessage)
+        public static IntPtr GetSubscriptionTable(IntPtr hProcess, IntPtr pTablePointer)
         {
-            IntPtr buffer;
-            WNF_CONTEXT_HEADER header;
             IntPtr pSubscriptionTable;
-            errorMessage = null;
-            pSubscriptionTable = proc.ReadIntPtr(pSubscriptionTablePointer);
 
-            if (proc.IsHeapAddress(pSubscriptionTable))
+            do
             {
-                buffer = proc.ReadMemory(pSubscriptionTable, 4);
+                WNF_CONTEXT_HEADER header;
+                var nInfoLength = (uint)IntPtr.Size;
+                IntPtr pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
+                NTSTATUS ntstatus = NativeMethods.NtReadVirtualMemory(
+                    hProcess,
+                    pTablePointer,
+                    pInfoBuffer,
+                    nInfoLength,
+                    out uint nReturnedLength);
+                pSubscriptionTable = Marshal.ReadIntPtr(pInfoBuffer);
+                Marshal.FreeHGlobal(pInfoBuffer);
+
+                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nInfoLength != nReturnedLength))
+                {
+                    pSubscriptionTable = IntPtr.Zero;
+                    break;
+                }
+
+                if (!Helpers.IsHeapAddress(hProcess, pSubscriptionTable))
+                {
+                    pSubscriptionTable = IntPtr.Zero;
+                    break;
+                }
+
+                nInfoLength = (uint)Marshal.SizeOf(typeof(WNF_CONTEXT_HEADER));
+                pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
+                ntstatus = NativeMethods.NtReadVirtualMemory(
+                    hProcess,
+                    pSubscriptionTable,
+                    pInfoBuffer,
+                    nInfoLength,
+                    out nReturnedLength);
                 header = (WNF_CONTEXT_HEADER)Marshal.PtrToStructure(
-                    buffer,
+                    pInfoBuffer,
                     typeof(WNF_CONTEXT_HEADER));
-                NativeMethods.LocalFree(buffer);
+                Marshal.FreeHGlobal(pInfoBuffer);
 
-                if (header.NodeTypeCode == Win32Consts.WNF_NODE_SUBSCRIPTION_TABLE ||
-                    header.NodeByteSize == Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64)))
+                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nInfoLength != nReturnedLength))
                 {
-                    if (proc.GetArchitecture() == "x86" && Environment.Is64BitProcess)
-                    {
-                        errorMessage = "To get detailed symbol information of WOW64 process, should be built as 32 bit binary.";
-                    }
-
-                    return pSubscriptionTable;
+                    pSubscriptionTable = IntPtr.Zero;
+                    break;
                 }
-                else
+
+                if ((header.NodeTypeCode != Win32Consts.WNF_NODE_SUBSCRIPTION_TABLE) &&
+                    (header.NodeByteSize != Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64))))
                 {
-                    errorMessage = "Failed to get valid WNF_SUBSCRIPTION_TABLE";
-
-                    return IntPtr.Zero;
+                    pSubscriptionTable = IntPtr.Zero;
                 }
-            }
-            else
-            {
-                errorMessage = "Passed invalid pointer to WNF_SUBSCRIPTION_TABLE";
+            } while (false);
 
-                return IntPtr.Zero;
-            }
+            return pSubscriptionTable;
         }
 
 

@@ -102,9 +102,8 @@ namespace SharpWnfScan.Library
                 }
 
                 pSubscriptionTable = Utilities.GetSubscriptionTable(
-                    proc,
-                    Globals.SubscriptionTablePointerAddressX64,
-                    out processInfo.ErrorMessage);
+                    proc.GetProcessHandle(),
+                    Globals.SubscriptionTablePointerAddressX64);
 
                 if (pSubscriptionTable == IntPtr.Zero)
                 {
@@ -135,9 +134,8 @@ namespace SharpWnfScan.Library
                 }
 
                 pSubscriptionTable = Utilities.GetSubscriptionTable(
-                    proc,
-                    Globals.SubscriptionTablePointerAddressX86,
-                    out processInfo.ErrorMessage);
+                    proc.GetProcessHandle(),
+                    Globals.SubscriptionTablePointerAddressX86);
 
                 if (pSubscriptionTable == IntPtr.Zero)
                 {
@@ -335,9 +333,8 @@ namespace SharpWnfScan.Library
                     }
 
                     pSubscriptionTable = Utilities.GetSubscriptionTable(
-                        proc,
-                        Globals.SubscriptionTablePointerAddressX64,
-                        out processInfo.ErrorMessage);
+                        proc.GetProcessHandle(),
+                        Globals.SubscriptionTablePointerAddressX64);
 
                     if (pSubscriptionTable == IntPtr.Zero)
                         continue;
@@ -360,9 +357,8 @@ namespace SharpWnfScan.Library
                     }
 
                     pSubscriptionTable = Utilities.GetSubscriptionTable(
-                        proc,
-                        Globals.SubscriptionTablePointerAddressX86,
-                        out processInfo.ErrorMessage);
+                        proc.GetProcessHandle(),
+                        Globals.SubscriptionTablePointerAddressX86);
 
                     if (pSubscriptionTable == IntPtr.Zero)
                         continue;
