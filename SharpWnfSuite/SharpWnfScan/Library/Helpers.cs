@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System.Runtime.InteropServices;
 using SharpWnfScan.Interop;
+using System.Net.NetworkInformation;
 
 namespace SharpWnfScan.Library
 {
@@ -217,8 +218,10 @@ namespace SharpWnfScan.Library
             IntPtr hProcess,
             IntPtr pModuleBase)
         {
+            NTSTATUS ntstatus;
             IntPtr pInfoBuffer;
-            var pSectionBase = IntPtr.Zero;
+            ushort nNumberOfSections = 0;
+            var pSectionHeader = IntPtr.Zero;
             var nInfoLength = 0x40u;
             var headers = new Dictionary<string, IMAGE_SECTION_HEADER>();
 
@@ -229,13 +232,9 @@ namespace SharpWnfScan.Library
 
             do
             {
-                int e_lfanew;
-                ushort nNumberOfSections;
-                ushort nSizeOfOptionalHeader;
                 IntPtr pNtHeaders;
-                IntPtr pSectionHeader;
-                int nSectionHeaderSize = Marshal.SizeOf(typeof(IMAGE_SECTION_HEADER));
-                NTSTATUS ntstatus = NativeMethods.NtReadVirtualMemory(
+                ushort nSizeOfOptionalHeader;
+                ntstatus = NativeMethods.NtReadVirtualMemory(
                     hProcess,
                     pModuleBase,
                     pInfoBuffer,
@@ -248,13 +247,12 @@ namespace SharpWnfScan.Library
                 if (Marshal.ReadInt16(pInfoBuffer) != 0x5A4D)
                     break;
 
-                e_lfanew = Marshal.ReadInt32(pInfoBuffer, 0x3C);
                 nInfoLength = 0x18u;
 
                 if (Environment.Is64BitProcess)
-                    pNtHeaders = new IntPtr(pModuleBase.ToInt64() + e_lfanew);
+                    pNtHeaders = new IntPtr(pModuleBase.ToInt64() + Marshal.ReadInt32(pInfoBuffer, 0x3C));
                 else
-                    pNtHeaders = new IntPtr(pModuleBase.ToInt32() + e_lfanew);
+                    pNtHeaders = new IntPtr(pModuleBase.ToInt32() + Marshal.ReadInt32(pInfoBuffer, 0x3C));
 
                 ntstatus = NativeMethods.NtReadVirtualMemory(
                     hProcess,
@@ -270,38 +268,43 @@ namespace SharpWnfScan.Library
                 nSizeOfOptionalHeader = (ushort)Marshal.ReadInt16(pInfoBuffer, 0x14);
 
                 if (Environment.Is64BitProcess)
-                    pSectionHeader = new IntPtr(pModuleBase.ToInt64() + e_lfanew + 0x18 + nSizeOfOptionalHeader);
+                    pSectionHeader = new IntPtr(pNtHeaders.ToInt64() + 0x18 + nSizeOfOptionalHeader);
                 else
-                    pSectionHeader = new IntPtr(pModuleBase.ToInt32() + e_lfanew + 0x18 + nSizeOfOptionalHeader);
+                    pSectionHeader = new IntPtr(pNtHeaders.ToInt32() + 0x18 + nSizeOfOptionalHeader);
+            } while (false);
 
+            Marshal.FreeHGlobal(pInfoBuffer);
+
+            if (pSectionHeader != IntPtr.Zero)
+            {
+                int nSectionHeaderSize = Marshal.SizeOf(typeof(IMAGE_SECTION_HEADER));
                 nInfoLength = (uint)(nSectionHeaderSize * nNumberOfSections);
-                Marshal.FreeHGlobal(pInfoBuffer);
                 pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
                 ntstatus = NativeMethods.NtReadVirtualMemory(
                     hProcess,
                     pSectionHeader,
                     pInfoBuffer,
                     nInfoLength,
-                    out nReturnedLength);
+                    out uint nReturnedLength);
 
-                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nReturnedLength != nInfoLength))
-                    break;
-
-                for (var idx = 0; idx < nNumberOfSections; idx++)
+                if ((ntstatus == Win32Consts.STATUS_SUCCESS) && (nReturnedLength == nInfoLength))
                 {
-                    if (Environment.Is64BitProcess)
-                        pSectionHeader = new IntPtr(pInfoBuffer.ToInt64() + (nSectionHeaderSize * idx));
-                    else
-                        pSectionHeader = new IntPtr(pInfoBuffer.ToInt32() + (int)(nSectionHeaderSize * idx));
+                    for (var idx = 0; idx < nNumberOfSections; idx++)
+                    {
+                        if (Environment.Is64BitProcess)
+                            pSectionHeader = new IntPtr(pInfoBuffer.ToInt64() + (nSectionHeaderSize * idx));
+                        else
+                            pSectionHeader = new IntPtr(pInfoBuffer.ToInt32() + (int)(nSectionHeaderSize * idx));
 
-                    var info = (IMAGE_SECTION_HEADER)Marshal.PtrToStructure(
-                        pSectionHeader,
-                        typeof(IMAGE_SECTION_HEADER));
-                    headers.Add(info.Name, info);
+                        var info = (IMAGE_SECTION_HEADER)Marshal.PtrToStructure(
+                            pSectionHeader,
+                            typeof(IMAGE_SECTION_HEADER));
+                        headers.Add(info.Name, info);
+                    }
                 }
-            } while (false);
 
-            Marshal.FreeHGlobal(pInfoBuffer);
+                Marshal.FreeHGlobal(pInfoBuffer);
+            }
 
             return headers;
         }
