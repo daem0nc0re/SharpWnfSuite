@@ -187,10 +187,7 @@ namespace SharpWnfScan.Library
                 if (brief)
                     continue;
 
-                if (Globals.IsWin11)
-                    userSubscriptions = Utilities.GetUserSubscriptionsWin11(proc, pNameSubscription);
-                else
-                    userSubscriptions = Utilities.GetUserSubscriptions(proc.GetProcessHandle(), pNameSubscription);
+                userSubscriptions = Utilities.GetUserSubscriptions(proc.GetProcessHandle(), pNameSubscription);
 
                 foreach (var userEntry in userSubscriptions)
                 {

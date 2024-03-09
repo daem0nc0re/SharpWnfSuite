@@ -378,17 +378,26 @@ namespace SharpWnfScan.Library
             int nListEntryOffset;
             string fieldName = "SubscriptionsListEntry";
             bool bIs32BitProcess = Helpers.Is32BitProcess(hProcess);
+            bool bIsWin11 = Helpers.IsWin11();
             var subscriptions = new Dictionary<IntPtr, KeyValuePair<IntPtr, IntPtr>>();
 
             if (!bIs32BitProcess)
             {
-                nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64));
+                if (bIsWin11)
+                    nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64_WIN11));
+                else
+                    nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64));
+
                 nUserSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_USER_SUBSCRIPTION64));
                 nListEntryOffset = Marshal.OffsetOf(typeof(WNF_USER_SUBSCRIPTION64), fieldName).ToInt32();
             }
             else
             {
-                nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32));
+                if (bIsWin11)
+                    nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32_WIN11));
+                else
+                    nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32));
+
                 nUserSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_USER_SUBSCRIPTION32));
                 nListEntryOffset = Marshal.OffsetOf(typeof(WNF_USER_SUBSCRIPTION32), fieldName).ToInt32();
             }
@@ -412,25 +421,53 @@ namespace SharpWnfScan.Library
 
                 if (!bIs32BitProcess)
                 {
-                    var nameSubscription = (WNF_NAME_SUBSCRIPTION64)Marshal.PtrToStructure(
-                        pInfoBuffer,
-                        typeof(WNF_NAME_SUBSCRIPTION64));
+                    if (bIsWin11)
+                    {
+                        var nameSubscription = (WNF_NAME_SUBSCRIPTION64_WIN11)Marshal.PtrToStructure(
+                          pInfoBuffer,
+                          typeof(WNF_NAME_SUBSCRIPTION64_WIN11));
 
-                    if (nameSubscription.Header.NodeTypeCode != Win32Consts.WNF_NODE_NAME_SUBSCRIPTION)
-                        break;
+                        if (nameSubscription.Header.NodeTypeCode != Win32Consts.WNF_NODE_NAME_SUBSCRIPTION)
+                            break;
 
-                    pRootUserSubscription = new IntPtr(nameSubscription.SubscriptionsListHead.Flink - nListEntryOffset);
+                        pRootUserSubscription = new IntPtr(nameSubscription.SubscriptionsListHead.Flink - nListEntryOffset);
+                    }
+                    else
+                    {
+                        var nameSubscription = (WNF_NAME_SUBSCRIPTION64)Marshal.PtrToStructure(
+                          pInfoBuffer,
+                          typeof(WNF_NAME_SUBSCRIPTION64));
+
+                        if (nameSubscription.Header.NodeTypeCode != Win32Consts.WNF_NODE_NAME_SUBSCRIPTION)
+                            break;
+
+                        pRootUserSubscription = new IntPtr(nameSubscription.SubscriptionsListHead.Flink - nListEntryOffset);
+                    }
                 }
                 else
                 {
-                    var nameSubscription = (WNF_NAME_SUBSCRIPTION32)Marshal.PtrToStructure(
-                        pInfoBuffer,
-                        typeof(WNF_NAME_SUBSCRIPTION32));
+                    if (bIsWin11)
+                    {
+                        var nameSubscription = (WNF_NAME_SUBSCRIPTION32_WIN11)Marshal.PtrToStructure(
+                          pInfoBuffer,
+                          typeof(WNF_NAME_SUBSCRIPTION32_WIN11));
 
-                    if (nameSubscription.Header.NodeTypeCode != Win32Consts.WNF_NODE_NAME_SUBSCRIPTION)
-                        break;
+                        if (nameSubscription.Header.NodeTypeCode != Win32Consts.WNF_NODE_NAME_SUBSCRIPTION)
+                            break;
 
-                    pRootUserSubscription = new IntPtr(nameSubscription.SubscriptionsListHead.Flink - nListEntryOffset);
+                        pRootUserSubscription = new IntPtr(nameSubscription.SubscriptionsListHead.Flink - nListEntryOffset);
+                    }
+                    else
+                    {
+                        var nameSubscription = (WNF_NAME_SUBSCRIPTION32)Marshal.PtrToStructure(
+                          pInfoBuffer,
+                          typeof(WNF_NAME_SUBSCRIPTION32));
+
+                        if (nameSubscription.Header.NodeTypeCode != Win32Consts.WNF_NODE_NAME_SUBSCRIPTION)
+                            break;
+
+                        pRootUserSubscription = new IntPtr(nameSubscription.SubscriptionsListHead.Flink - nListEntryOffset);
+                    }
                 }
 
                 pUserSubscription = pRootUserSubscription;
@@ -477,149 +514,6 @@ namespace SharpWnfScan.Library
             Marshal.FreeHGlobal(pInfoBuffer);
 
             return subscriptions;
-        }
-
-
-        public static Dictionary<IntPtr, KeyValuePair<IntPtr, IntPtr>> GetUserSubscriptionsWin11(
-            PeProcess proc,
-            IntPtr pNameSubscription)
-        {
-            IntPtr buffer;
-            IntPtr pCurrentUserSubscription;
-            IntPtr pFirstUserSubscription;
-            IntPtr pUserSubscription;
-            uint nSizeNameSubscription;
-            uint nSizeUserSubscription;
-            uint nSubscriptionsListEntryOffset;
-            KeyValuePair<IntPtr, IntPtr> callback;
-            var results = new Dictionary<IntPtr, KeyValuePair<IntPtr, IntPtr>>();
-
-            if (proc.GetArchitecture() == "x64")
-            {
-                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64_WIN11));
-                WNF_USER_SUBSCRIPTION64 userSubscription;
-                buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
-
-                if (buffer == IntPtr.Zero)
-                {
-                    Console.WriteLine("[-] Failed to read WNF_NAME_SUBSCRIPTION.");
-
-                    return results;
-                }
-
-                var nameSubscription = (WNF_NAME_SUBSCRIPTION64_WIN11)Marshal.PtrToStructure(
-                    buffer,
-                    typeof(WNF_NAME_SUBSCRIPTION64_WIN11));
-                NativeMethods.LocalFree(buffer);
-
-                nSizeUserSubscription = (uint)Marshal.SizeOf(typeof(WNF_USER_SUBSCRIPTION64));
-                nSubscriptionsListEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(WNF_USER_SUBSCRIPTION64),
-                    "SubscriptionsListEntry").ToInt32();
-
-                if (nameSubscription.Header.NodeTypeCode == Win32Consts.WNF_NODE_NAME_SUBSCRIPTION)
-                {
-                    pFirstUserSubscription = new IntPtr(nameSubscription.SubscriptionsListHead.Flink - nSubscriptionsListEntryOffset);
-                    pUserSubscription = pFirstUserSubscription;
-
-                    while (true)
-                    {
-                        pCurrentUserSubscription = pUserSubscription;
-                        buffer = proc.ReadMemory(pUserSubscription, nSizeUserSubscription);
-
-                        if (buffer == IntPtr.Zero)
-                            break;
-
-                        userSubscription = (WNF_USER_SUBSCRIPTION64)Marshal.PtrToStructure(
-                            buffer,
-                            typeof(WNF_USER_SUBSCRIPTION64));
-                        NativeMethods.LocalFree(buffer);
-                        pUserSubscription = new IntPtr(userSubscription.SubscriptionsListEntry.Flink - nSubscriptionsListEntryOffset);
-
-                        if (pUserSubscription == pFirstUserSubscription)
-                            break;
-
-                        callback = new KeyValuePair<IntPtr, IntPtr>(
-                            new IntPtr(userSubscription.Callback),
-                            new IntPtr(userSubscription.CallbackContext)
-                        );
-
-                        results.Add(
-                            pCurrentUserSubscription,
-                            callback);
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("[-] Failed to get valid WNF_NAME_SUBSCRIPTION.");
-                }
-            }
-            else if (proc.GetArchitecture() == "x86")
-            {
-                nSizeNameSubscription = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32_WIN11));
-                WNF_USER_SUBSCRIPTION32 userSubscription;
-                buffer = proc.ReadMemory(pNameSubscription, nSizeNameSubscription);
-
-                if (buffer == IntPtr.Zero)
-                {
-                    Console.WriteLine("[-] Failed to read WNF_NAME_SUBSCRIPTION.");
-
-                    return results;
-                }
-
-                var nameSubscription = (WNF_NAME_SUBSCRIPTION32_WIN11)Marshal.PtrToStructure(
-                    buffer,
-                    typeof(WNF_NAME_SUBSCRIPTION32_WIN11));
-                NativeMethods.LocalFree(buffer);
-
-                nSizeUserSubscription = (uint)Marshal.SizeOf(typeof(WNF_USER_SUBSCRIPTION32));
-                nSubscriptionsListEntryOffset = (uint)Marshal.OffsetOf(
-                    typeof(WNF_USER_SUBSCRIPTION32),
-                    "SubscriptionsListEntry").ToInt32();
-
-                if (nameSubscription.Header.NodeTypeCode == Win32Consts.WNF_NODE_NAME_SUBSCRIPTION)
-                {
-                    pFirstUserSubscription = new IntPtr(nameSubscription.SubscriptionsListHead.Flink - nSubscriptionsListEntryOffset);
-                    pUserSubscription = pFirstUserSubscription;
-
-                    while (true)
-                    {
-                        pCurrentUserSubscription = pUserSubscription;
-                        buffer = proc.ReadMemory(pUserSubscription, nSizeUserSubscription);
-
-                        if (buffer == IntPtr.Zero)
-                            break;
-
-                        userSubscription = (WNF_USER_SUBSCRIPTION32)Marshal.PtrToStructure(
-                            buffer,
-                            typeof(WNF_USER_SUBSCRIPTION32));
-                        NativeMethods.LocalFree(buffer);
-                        pUserSubscription = new IntPtr(userSubscription.SubscriptionsListEntry.Flink - nSubscriptionsListEntryOffset);
-
-                        if (pUserSubscription == pFirstUserSubscription)
-                            break;
-
-                        callback = new KeyValuePair<IntPtr, IntPtr>(
-                            new IntPtr(userSubscription.Callback),
-                            new IntPtr(userSubscription.CallbackContext)
-                        );
-
-                        results.Add(
-                            pCurrentUserSubscription,
-                            callback);
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("[-] Failed to get valid WNF_NAME_SUBSCRIPTION.");
-                }
-            }
-            else
-            {
-                Console.WriteLine("[-] Unsupported architecture.");
-            }
-
-            return results;
         }
 
 
