@@ -7,6 +7,13 @@ namespace SharpWnfScan.Interop
     using NTSTATUS = Int32;
     using SIZE_T = UIntPtr;
 
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct CLIENT_ID
+    {
+        public IntPtr UniqueProcess;
+        public IntPtr UniqueThread;
+    }
+
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal struct IMAGE_SECTION_HEADER
     {
@@ -67,6 +74,59 @@ namespace SharpWnfScan.Interop
         public MEMORY_ALLOCATION_TYPE State;
         public MEMORY_PROTECTION Protect;
         public MEMORY_ALLOCATION_TYPE Type;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct OBJECT_ATTRIBUTES : IDisposable
+    {
+        public int Length;
+        public IntPtr RootDirectory;
+        private IntPtr objectName;
+        public OBJECT_ATTRIBUTES_FLAGS Attributes;
+        public IntPtr SecurityDescriptor;
+        public IntPtr SecurityQualityOfService;
+
+        public OBJECT_ATTRIBUTES(
+            string name,
+            OBJECT_ATTRIBUTES_FLAGS attrs)
+        {
+            Length = 0;
+            RootDirectory = IntPtr.Zero;
+            objectName = IntPtr.Zero;
+            Attributes = attrs;
+            SecurityDescriptor = IntPtr.Zero;
+            SecurityQualityOfService = IntPtr.Zero;
+
+            Length = Marshal.SizeOf(this);
+            ObjectName = new UNICODE_STRING(name);
+        }
+
+        public UNICODE_STRING ObjectName
+        {
+            get
+            {
+                return (UNICODE_STRING)Marshal.PtrToStructure(
+                 objectName, typeof(UNICODE_STRING));
+            }
+
+            set
+            {
+                bool fDeleteOld = objectName != IntPtr.Zero;
+                if (!fDeleteOld)
+                    objectName = Marshal.AllocHGlobal(Marshal.SizeOf(value));
+                Marshal.StructureToPtr(value, objectName, fDeleteOld);
+            }
+        }
+
+        public void Dispose()
+        {
+            if (objectName != IntPtr.Zero)
+            {
+                Marshal.DestroyStructure(objectName, typeof(UNICODE_STRING));
+                Marshal.FreeHGlobal(objectName);
+                objectName = IntPtr.Zero;
+            }
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]

@@ -255,71 +255,114 @@ namespace SharpWnfScan.Library
         }
 
 
-        public static IntPtr GetSubscriptionTablePointerAddress(PeProcess proc)
+        public static IntPtr GetSubscriptionTablePointerAddress(IntPtr hProcess)
         {
-            if (proc.GetCurrentModuleName() != "ntdll.dll")
-                proc.SetBaseModule("ntdll.dll");
+            IntPtr pNtdll;
+            IntPtr pDataSection;
+            IntPtr pInfoBuffer;
+            uint nIndexLimit;
+            uint nPointerSize;
+            uint nSubscriptionTableSize;
+            Dictionary<string, IMAGE_SECTION_HEADER> sectionHeaders;
+            var pSubscriptionTable = IntPtr.Zero;
+            var modules = Helpers.GetProcessModules(
+                hProcess,
+                out Dictionary<string, IntPtr> wow32Modules);
 
-            IntPtr pDataSection = proc.GetSectionAddress(".data");
-            uint nSizeSubscriptionTable;
-            uint nSizeDataSection = proc.GetSectionVirtualSize(".data");
-            uint count;
-            uint nSizePointer;
-            WNF_CONTEXT_HEADER tableHeader;
-            IntPtr pointer;
-            IntPtr buffer;
-            IntPtr pSubscriptionTable = IntPtr.Zero;
+            if (wow32Modules.Count > 0)
+            {
+                if (!wow32Modules.ContainsKey("ntdll.dll"))
+                    return IntPtr.Zero;
 
-            if (proc.GetArchitecture() == "x64")
-            {
-                nSizeSubscriptionTable = (uint)Marshal.SizeOf(
-                    typeof(WNF_SUBSCRIPTION_TABLE64));
-                nSizePointer = 8u;
-                count = nSizeDataSection / nSizePointer;
-            }
-            else if (proc.GetArchitecture() == "x86")
-            {
-                nSizeSubscriptionTable = (uint)Marshal.SizeOf(
-                    typeof(WNF_SUBSCRIPTION_TABLE32));
-                nSizePointer = 4u;
-                count = nSizeDataSection / nSizePointer;
+                pNtdll = wow32Modules["ntdll.dll"];
+                nPointerSize = 4u;
+                nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32));
             }
             else
             {
-                Console.WriteLine("[-] Unsupported architecture.");
+                if (!modules.ContainsKey("ntdll.dll"))
+                    return IntPtr.Zero;
 
-                return IntPtr.Zero;
+                pNtdll = modules["ntdll.dll"];
+                nPointerSize = Environment.Is64BitProcess ? 8u : 4u;
+
+                if (Environment.Is64BitProcess)
+                    nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64));
+                else
+                    nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32));
             }
 
-            for (var idx = 0u; idx < count; idx++)
+            sectionHeaders = Helpers.GetModuleSectionHeaders(hProcess, pNtdll);
+
+            if (!sectionHeaders.ContainsKey(".data"))
+                return IntPtr.Zero;
+
+            if (Environment.Is64BitProcess)
+                pDataSection = new IntPtr(pNtdll.ToInt64() + sectionHeaders[".data"].VirtualAddress);
+            else
+                pDataSection = new IntPtr(pNtdll.ToInt32() + (int)sectionHeaders[".data"].VirtualAddress);
+
+            nIndexLimit = sectionHeaders[".data"].VirtualSize / nPointerSize;
+            pInfoBuffer = Marshal.AllocHGlobal(8);
+
+            for (var idx = 0; idx < nIndexLimit; idx++)
             {
-                pointer = proc.ReadIntPtr(pDataSection, idx * nSizePointer);
+                uint nInfoLength;
+                NTSTATUS ntstatus;
+                IntPtr pBufferToRead;
 
-                if (proc.IsHeapAddress(pointer))
+                if (Environment.Is64BitProcess)
+                    pBufferToRead = new IntPtr(pDataSection.ToInt64() + (nPointerSize * idx));
+                else
+                    pBufferToRead = new IntPtr(pDataSection.ToInt32() + (int)(nPointerSize * idx));
+
+                nInfoLength = nPointerSize;
+                ntstatus = NativeMethods.NtReadVirtualMemory(
+                    hProcess,
+                    pBufferToRead,
+                    pInfoBuffer,
+                    nInfoLength,
+                    out uint nReturnedLength);
+
+                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nReturnedLength != nInfoLength))
+                    continue;
+
+                if (nPointerSize == 8u)
+                    pBufferToRead = new IntPtr(Marshal.ReadInt64(pInfoBuffer));
+                else
+                    pBufferToRead = new IntPtr(Marshal.ReadInt32(pInfoBuffer));
+
+                if (!Helpers.IsHeapAddress(hProcess, pBufferToRead))
+                    continue;
+
+                nInfoLength = (uint)Marshal.SizeOf(typeof(WNF_CONTEXT_HEADER));
+                ntstatus = NativeMethods.NtReadVirtualMemory(
+                    hProcess,
+                    pBufferToRead,
+                    pInfoBuffer,
+                    nInfoLength,
+                    out nReturnedLength);
+
+                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nReturnedLength != nInfoLength))
+                    continue;
+
+                var tableHeader = (WNF_CONTEXT_HEADER)Marshal.PtrToStructure(
+                    pInfoBuffer,
+                    typeof(WNF_CONTEXT_HEADER));
+
+                if ((tableHeader.NodeTypeCode == Win32Consts.WNF_NODE_SUBSCRIPTION_TABLE) &&
+                    (tableHeader.NodeByteSize == nSubscriptionTableSize))
                 {
-                    buffer = proc.ReadMemory(pointer, nSizeSubscriptionTable);
-
-                    if (buffer != IntPtr.Zero)
-                    {
-                        tableHeader = (WNF_CONTEXT_HEADER)Marshal.PtrToStructure(
-                            buffer,
-                            typeof(WNF_CONTEXT_HEADER));
-
-                        NativeMethods.LocalFree(buffer);
-                    }
+                    if (Environment.Is64BitProcess)
+                        pSubscriptionTable = new IntPtr(pDataSection.ToInt64() + (nPointerSize * idx));
                     else
-                    {
-                        continue;
-                    }
+                        pSubscriptionTable = new IntPtr(pDataSection.ToInt32() + (int)(nPointerSize * idx));
 
-                    if ((tableHeader.NodeTypeCode == Win32Consts.WNF_NODE_SUBSCRIPTION_TABLE) &&
-                        (tableHeader.NodeByteSize == nSizeSubscriptionTable))
-                    {
-                        pSubscriptionTable = new IntPtr(
-                            pDataSection.ToInt64() + idx * nSizePointer);
-                    }
+                    break;
                 }
             }
+
+            Marshal.FreeHGlobal(pInfoBuffer);
 
             return pSubscriptionTable;
         }

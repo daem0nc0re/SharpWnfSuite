@@ -85,7 +85,7 @@ namespace SharpWnfScan.Library
             {
                 if (Globals.SubscriptionTablePointerAddressX64 == IntPtr.Zero)
                 {
-                    Globals.SubscriptionTablePointerAddressX64 = Utilities.GetSubscriptionTablePointerAddress(proc);
+                    Globals.SubscriptionTablePointerAddressX64 = Utilities.GetSubscriptionTablePointerAddress(proc.GetProcessHandle());
 
                     if (Globals.SubscriptionTablePointerAddressX64 == IntPtr.Zero)
                     {
@@ -117,7 +117,7 @@ namespace SharpWnfScan.Library
             {
                 if (Globals.SubscriptionTablePointerAddressX86 == IntPtr.Zero)
                 {
-                    Globals.SubscriptionTablePointerAddressX86 = Utilities.GetSubscriptionTablePointerAddress(proc);
+                    Globals.SubscriptionTablePointerAddressX86 = Utilities.GetSubscriptionTablePointerAddress(proc.GetProcessHandle());
 
                     if (Globals.SubscriptionTablePointerAddressX86 == IntPtr.Zero)
                     {
@@ -319,7 +319,7 @@ namespace SharpWnfScan.Library
                 {
                     if (Globals.SubscriptionTablePointerAddressX64 == IntPtr.Zero)
                     {
-                        Globals.SubscriptionTablePointerAddressX64 = Utilities.GetSubscriptionTablePointerAddress(proc);
+                        Globals.SubscriptionTablePointerAddressX64 = Utilities.GetSubscriptionTablePointerAddress(proc.GetProcessHandle());
 
                         if (Globals.SubscriptionTablePointerAddressX64 == IntPtr.Zero)
                         {
@@ -343,7 +343,7 @@ namespace SharpWnfScan.Library
                 {
                     if (Globals.SubscriptionTablePointerAddressX86 == IntPtr.Zero)
                     {
-                        Globals.SubscriptionTablePointerAddressX86 = Utilities.GetSubscriptionTablePointerAddress(proc);
+                        Globals.SubscriptionTablePointerAddressX86 = Utilities.GetSubscriptionTablePointerAddress(proc.GetProcessHandle());
 
                         if (Globals.SubscriptionTablePointerAddressX86 == IntPtr.Zero)
                         {

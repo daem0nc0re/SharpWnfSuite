@@ -54,6 +54,16 @@ namespace SharpWnfScan.Interop
             IntPtr /* out uint */ RequiredLength);
 
         [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtClose(IntPtr Handle);
+
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtOpenProcess(
+            out IntPtr ProcessHandle,
+            ACCESS_MASK DesiredAccess,
+            in OBJECT_ATTRIBUTES ObjectAttributes,
+            in CLIENT_ID ClientId);
+
+        [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtQueryInformationProcess(
             IntPtr ProcessHandle,
             PROCESSINFOCLASS ProcessInformationClass,
