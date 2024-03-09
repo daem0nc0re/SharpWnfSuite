@@ -4,7 +4,24 @@ using System.Text;
 
 namespace SharpWnfScan.Interop
 {
+    using NTSTATUS = Int32;
     using SIZE_T = UIntPtr;
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    internal struct IMAGE_SECTION_HEADER
+    {
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)]
+        public string Name;
+        public uint VirtualSize;
+        public uint VirtualAddress;
+        public uint SizeOfRawData;
+        public uint PointerToRawData;
+        public uint PointerToRelocations;
+        public uint PointerToLinenumbers;
+        public ushort NumberOfRelocations;
+        public ushort NumberOfLinenumbers;
+        public SectionFlags Characteristics;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     internal struct LIST_ENTRY32
@@ -50,6 +67,17 @@ namespace SharpWnfScan.Interop
         public MEMORY_ALLOCATION_TYPE State;
         public MEMORY_PROTECTION Protect;
         public MEMORY_ALLOCATION_TYPE Type;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct PROCESS_BASIC_INFORMATION
+    {
+        public NTSTATUS ExitStatus;
+        public IntPtr PebBaseAddress;
+        public UIntPtr AffinityMask;
+        public int BasePriority;
+        public UIntPtr UniqueProcessId;
+        public UIntPtr InheritedFromUniqueProcessId;
     }
 
     [StructLayout(LayoutKind.Sequential)]
