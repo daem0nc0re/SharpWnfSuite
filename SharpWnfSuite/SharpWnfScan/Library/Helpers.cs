@@ -105,22 +105,23 @@ namespace SharpWnfScan.Library
 
         public static bool Is32BitProcess(IntPtr hProcess)
         {
-            NTSTATUS ntstatus;
             bool b32BitProcess = false;
-            IntPtr pInfoBuffer = Marshal.AllocHGlobal(IntPtr.Size);
 
-            if (!Environment.Is64BitOperatingSystem)
-                return true;
+            if (Environment.Is64BitOperatingSystem)
+            {
+                IntPtr pInfoBuffer = Marshal.AllocHGlobal(IntPtr.Size);
+                NTSTATUS ntstatus = NativeMethods.NtQueryInformationProcess(
+                    hProcess,
+                    PROCESSINFOCLASS.ProcessWow64Information,
+                    pInfoBuffer,
+                    (uint)IntPtr.Size,
+                    out uint _);
 
-            ntstatus = NativeMethods.NtQueryInformationProcess(
-                hProcess,
-                PROCESSINFOCLASS.ProcessWow64Information,
-                pInfoBuffer,
-                (uint)IntPtr.Size,
-                out uint _);
+                if (ntstatus == Win32Consts.STATUS_SUCCESS)
+                    b32BitProcess = (Marshal.ReadIntPtr(pInfoBuffer) != IntPtr.Zero);
 
-            if (ntstatus == Win32Consts.STATUS_SUCCESS)
-                b32BitProcess = (Marshal.ReadIntPtr(pInfoBuffer) != IntPtr.Zero);
+                Marshal.FreeHGlobal(pInfoBuffer);
+            }
 
             return b32BitProcess;
         }
@@ -148,6 +149,8 @@ namespace SharpWnfScan.Library
                     (info.Type == MEMORY_ALLOCATION_TYPE.MEM_PRIVATE) &&
                     (info.Protect == MEMORY_PROTECTION.PAGE_READWRITE);
             }
+
+            Marshal.FreeHGlobal(pInfoBuffer);
 
             return bIsHeapAddress;
         }

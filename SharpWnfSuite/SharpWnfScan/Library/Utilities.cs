@@ -37,7 +37,7 @@ namespace SharpWnfScan.Library
             IntPtr hProcess,
             IntPtr pSubscriptionTable)
         {
-            IntPtr pInfoBuffer;
+            IntPtr pInfoBuffer = Marshal.AllocHGlobal(0x100);
             var results = new Dictionary<ulong, IntPtr>();
 
             do
@@ -64,7 +64,6 @@ namespace SharpWnfScan.Library
                     nNamesTableEntryOffset = (uint)Marshal.OffsetOf(typeof(WNF_NAME_SUBSCRIPTION32), fieldName).ToInt32();
                 }
 
-                pInfoBuffer = Marshal.AllocHGlobal((int)nSubscriptionTableSize);
                 ntstatus = NativeMethods.NtReadVirtualMemory(
                     hProcess,
                     pSubscriptionTable,
@@ -91,8 +90,6 @@ namespace SharpWnfScan.Library
                 }
 
                 pNameSubscription = pRootNameSubscription;
-                Marshal.FreeHGlobal(pInfoBuffer);
-                pInfoBuffer = Marshal.AllocHGlobal((int)nNameSubscriptionSize);
 
                 while (true)
                 {
@@ -142,7 +139,7 @@ namespace SharpWnfScan.Library
             IntPtr hProcess,
             IntPtr pSubscriptionTable)
         {
-            IntPtr pInfoBuffer;
+            IntPtr pInfoBuffer = Marshal.AllocHGlobal(0x100);
             var results = new Dictionary<ulong, IntPtr>();
 
             do
@@ -165,7 +162,6 @@ namespace SharpWnfScan.Library
                     nNameTableEntryOffset = (uint)Marshal.OffsetOf(typeof(WNF_NAME_SUBSCRIPTION32_WIN11), fieldName).ToInt32();
                 }
 
-                pInfoBuffer = Marshal.AllocHGlobal((int)nSubscriptionTableSize);
                 ntstatus = NativeMethods.NtReadVirtualMemory(
                     hProcess,
                     pSubscriptionTable,
@@ -203,12 +199,12 @@ namespace SharpWnfScan.Library
         public static IntPtr GetSubscriptionTable(IntPtr hProcess, IntPtr pTablePointer)
         {
             IntPtr pSubscriptionTable;
+            IntPtr pInfoBuffer = Marshal.AllocHGlobal(0x10);
 
             do
             {
                 WNF_CONTEXT_HEADER header;
                 var nInfoLength = (uint)IntPtr.Size;
-                IntPtr pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
                 NTSTATUS ntstatus = NativeMethods.NtReadVirtualMemory(
                     hProcess,
                     pTablePointer,
@@ -216,7 +212,6 @@ namespace SharpWnfScan.Library
                     nInfoLength,
                     out uint nReturnedLength);
                 pSubscriptionTable = Marshal.ReadIntPtr(pInfoBuffer);
-                Marshal.FreeHGlobal(pInfoBuffer);
 
                 if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nInfoLength != nReturnedLength))
                 {
@@ -231,7 +226,6 @@ namespace SharpWnfScan.Library
                 }
 
                 nInfoLength = (uint)Marshal.SizeOf(typeof(WNF_CONTEXT_HEADER));
-                pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
                 ntstatus = NativeMethods.NtReadVirtualMemory(
                     hProcess,
                     pSubscriptionTable,
@@ -241,7 +235,6 @@ namespace SharpWnfScan.Library
                 header = (WNF_CONTEXT_HEADER)Marshal.PtrToStructure(
                     pInfoBuffer,
                     typeof(WNF_CONTEXT_HEADER));
-                Marshal.FreeHGlobal(pInfoBuffer);
 
                 if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nInfoLength != nReturnedLength))
                 {
@@ -255,6 +248,8 @@ namespace SharpWnfScan.Library
                     pSubscriptionTable = IntPtr.Zero;
                 }
             } while (false);
+
+            Marshal.FreeHGlobal(pInfoBuffer);
 
             return pSubscriptionTable;
         }
