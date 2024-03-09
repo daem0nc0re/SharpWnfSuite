@@ -4,7 +4,6 @@ using System.IO;
 using System.Text;
 using System.Runtime.InteropServices;
 using SharpWnfScan.Interop;
-using System.Net.NetworkInformation;
 
 namespace SharpWnfScan.Library
 {

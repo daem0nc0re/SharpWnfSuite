@@ -28,11 +28,8 @@ namespace SharpWnfScan.Library
             IntPtr pSubscriptionTable;
             IntPtr pNameSubscription;
             IntPtr pUserSubscription;
-            IntPtr pCallback;
-            IntPtr pCallbackContext;
             Dictionary<ulong, IntPtr> nameSubscriptions;
-            Dictionary<IntPtr, Dictionary<IntPtr, IntPtr>> userSubscriptions;
-            Dictionary<IntPtr, IntPtr> callbackInfo;
+            Dictionary<IntPtr, KeyValuePair<IntPtr, IntPtr>> userSubscriptions;
             var processInfo = new PROCESS_INFORMATION {
                 ProcessName = "N/A",
                 ProcessId = pid,
@@ -193,31 +190,24 @@ namespace SharpWnfScan.Library
                 if (Globals.IsWin11)
                     userSubscriptions = Utilities.GetUserSubscriptionsWin11(proc, pNameSubscription);
                 else
-                    userSubscriptions = Utilities.GetUserSubscriptions(proc, pNameSubscription);
+                    userSubscriptions = Utilities.GetUserSubscriptions(proc.GetProcessHandle(), pNameSubscription);
 
                 foreach (var userEntry in userSubscriptions)
                 {
                     pUserSubscription = userEntry.Key;
-                    callbackInfo = userEntry.Value;
 
                     Console.WriteLine(
                         "\t\tWNF_USER_SUBSCRIPTION @ 0x{0}",
                         pUserSubscription.ToString(is64bit ? "X16" : "X8"));
 
-                    foreach (var callbackEntry in callbackInfo)
-                    {
-                        pCallback = callbackEntry.Key;
-                        pCallbackContext = callbackEntry.Value;
-
-                        Console.WriteLine(
-                            "\t\tCallback @ 0x{0} ({1})",
-                            pCallback.ToString(is64bit ? "X16" : "X8"),
-                            Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallback) ?? "N/A");
-                        Console.WriteLine(
-                            "\t\tContext  @ 0x{0} ({1})\n",
-                            pCallbackContext.ToString(is64bit ? "X16" : "X8"),
-                            Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallbackContext) ?? "N/A");
-                    }
+                    Console.WriteLine(
+                        "\t\tCallback @ 0x{0} ({1})",
+                        userEntry.Value.Key.ToString(is64bit ? "X16" : "X8"),
+                        Helpers.GetSymbolPath(proc.GetProcessHandle(), userEntry.Value.Key) ?? "N/A");
+                    Console.WriteLine(
+                        "\t\tContext  @ 0x{0} ({1})\n",
+                        userEntry.Value.Value.ToString(is64bit ? "X16" : "X8"),
+                        Helpers.GetSymbolPath(proc.GetProcessHandle(), userEntry.Value.Value) ?? "N/A");
                 }
             }
 
