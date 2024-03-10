@@ -2,10 +2,14 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
 using SharpWnfScan.Interop;
 
 namespace SharpWnfScan.Library
 {
+    using NTSTATUS = Int32;
+
     internal class Modules
     {
         public static void DumpAllWnfSubscriptionInformation(ulong stateName, bool brief)
@@ -22,195 +26,120 @@ namespace SharpWnfScan.Library
             ulong stateNameFilter,
             bool brief)
         {
-            PeProcess proc;
-            bool is64bit;
-            ulong stateName;
+            NTSTATUS ntstatus;
+            IntPtr hProcess;
             IntPtr pSubscriptionTable;
-            IntPtr pNameSubscription;
-            IntPtr pUserSubscription;
+            IMAGE_FILE_MACHINE architecture;
+            string imageFileName;
+            bool bIs32BitProcess;
             Dictionary<ulong, IntPtr> nameSubscriptions;
-            Dictionary<IntPtr, KeyValuePair<IntPtr, IntPtr>> userSubscriptions;
-            var processInfo = new PROCESS_INFORMATION {
-                ProcessName = "N/A",
-                ProcessId = pid,
-                Architecture = "N/A",
-                ErrorMessage = null
-            };
+            string addressFormat = Environment.Is64BitProcess ? "X16" : "X8";
 
-            try
+            using (var objectAttributes = new OBJECT_ATTRIBUTES {
+                Length = Marshal.SizeOf(typeof(OBJECT_ATTRIBUTES)) })
             {
-                proc = new PeProcess(pid);
-                processInfo.ProcessName = proc.GetProcessName();
-                processInfo.Architecture = proc.GetArchitecture();
+                var clientId = new CLIENT_ID { UniqueProcess = new IntPtr(pid) };
+                ntstatus = NativeMethods.NtOpenProcess(
+                    out hProcess,
+                    ACCESS_MASK.PROCESS_QUERY_LIMITED_INFORMATION | ACCESS_MASK.PROCESS_VM_READ,
+                    in objectAttributes,
+                    in clientId);
             }
-            catch (Win32Exception ex)
+
+            if (ntstatus != Win32Consts.STATUS_SUCCESS)
             {
-                processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
-                processInfo.ErrorMessage = ex.Message;
-                Globals.ProcessInfo.Add(processInfo);
-
-                if (stateNameFilter == 0UL)
-                    Helpers.PrintProcessInformation(processInfo);
-
-                return;
-            }
-            catch (ArgumentException ex)
-            {
-                processInfo.ErrorMessage = ex.Message;
-                Globals.ProcessInfo.Add(processInfo);
-
-                if (stateNameFilter == 0UL)
-                    Helpers.PrintProcessInformation(processInfo);
-
-                return;
-            }
-            catch (KeyNotFoundException ex)
-            {
-                processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
-                processInfo.ErrorMessage = ex.Message;
-                Globals.ProcessInfo.Add(processInfo);
-
-                if (stateNameFilter == 0UL)
-                    Helpers.PrintProcessInformation(processInfo);
-
+                Console.WriteLine("[-] Failed to open the specified process (NTSTATUS = 0x{0})", ntstatus.ToString("X8"));
                 return;
             }
 
-            is64bit = (proc.GetArchitecture() == "x64");
+            imageFileName = Helpers.GetProcessImageFileName(hProcess);
+            architecture = Helpers.GetProcessArchitecture(hProcess);
+            bIs32BitProcess = Helpers.Is32BitProcess(hProcess);
 
-            if (is64bit)
+            Console.WriteLine("Process ID      : {0}", pid);
+            Console.WriteLine("Image File Name : {0}", imageFileName ?? "(N/A)");
+            Console.WriteLine("Architecture    : {0}\n", architecture.ToString());
+
+            if (!bIs32BitProcess)
             {
-                if (Globals.SubscriptionTablePointerAddressX64 == IntPtr.Zero)
+                if (Globals.SubscriptionTablePointerAddress64 == IntPtr.Zero)
+                    Globals.SubscriptionTablePointerAddress64 = Utilities.GetSubscriptionTablePointerAddress(hProcess);
+
+                if (Globals.SubscriptionTablePointerAddress64 == IntPtr.Zero)
                 {
-                    Globals.SubscriptionTablePointerAddressX64 = Utilities.GetSubscriptionTablePointerAddress(proc.GetProcessHandle());
-
-                    if (Globals.SubscriptionTablePointerAddressX64 == IntPtr.Zero)
-                    {
-                        processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
-                        processInfo.ErrorMessage = "Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.";
-                        Globals.ProcessInfo.Add(processInfo);
-                        proc.Dispose();
-
-                        if (stateNameFilter == 0UL)
-                            Helpers.PrintProcessInformation(processInfo);
-
-                        return;
-                    }
+                    Console.WriteLine("[-] Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.");
+                    return;
                 }
 
-                pSubscriptionTable = Utilities.GetSubscriptionTable(
-                    proc.GetProcessHandle(),
-                    Globals.SubscriptionTablePointerAddressX64);
+                pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress64);
 
                 if (pSubscriptionTable == IntPtr.Zero)
                 {
-                    if (stateNameFilter == 0UL)
-                        Helpers.PrintProcessInformation(processInfo);
-
+                    Console.WriteLine("[-] Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.");
                     return;
                 }
             }
             else
             {
-                if (Globals.SubscriptionTablePointerAddressX86 == IntPtr.Zero)
+                if (Globals.SubscriptionTablePointerAddress32 == IntPtr.Zero)
+                    Globals.SubscriptionTablePointerAddress32 = Utilities.GetSubscriptionTablePointerAddress(hProcess);
+
+                if (Globals.SubscriptionTablePointerAddress32 == IntPtr.Zero)
                 {
-                    Globals.SubscriptionTablePointerAddressX86 = Utilities.GetSubscriptionTablePointerAddress(proc.GetProcessHandle());
-
-                    if (Globals.SubscriptionTablePointerAddressX86 == IntPtr.Zero)
-                    {
-                        processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
-                        processInfo.ErrorMessage = "Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.";
-                        Globals.ProcessInfo.Add(processInfo);
-                        proc.Dispose();
-
-                        if (stateNameFilter == 0UL)
-                            Helpers.PrintProcessInformation(processInfo);
-
-                        return;
-                    }
+                    Console.WriteLine("[-] Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.");
+                    return;
                 }
 
-                pSubscriptionTable = Utilities.GetSubscriptionTable(
-                    proc.GetProcessHandle(),
-                    Globals.SubscriptionTablePointerAddressX86);
+                pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress32);
 
                 if (pSubscriptionTable == IntPtr.Zero)
                 {
-                    if (stateNameFilter == 0UL)
-                        Helpers.PrintProcessInformation(processInfo);
-
+                    Console.WriteLine("[-] Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.");
                     return;
                 }
-            }
-
-            NativeMethods.SymSetOptions(SYM_OPTIONS.SYMOPT_DEFERRED_LOADS);
-
-            if (stateNameFilter == 0UL)
-            {
-                Helpers.PrintProcessInformation(processInfo);
-                Console.WriteLine(
-                    "WNF_SUBSCRIPTION_TABLE @ 0x{0}\n",
-                    pSubscriptionTable.ToString(is64bit ? "X16" : "X8"));
             }
 
             if (Globals.IsWin11)
-                nameSubscriptions = Utilities.GetNameSubscriptionsWin11(proc.GetProcessHandle(), pSubscriptionTable);
+                nameSubscriptions = Utilities.GetNameSubscriptionsWin11(hProcess, pSubscriptionTable);
             else
-                nameSubscriptions = Utilities.GetNameSubscriptions(proc.GetProcessHandle(), pSubscriptionTable);
+                nameSubscriptions = Utilities.GetNameSubscriptions(hProcess, pSubscriptionTable);
 
-            foreach (var nameEntry in nameSubscriptions)
+            Console.WriteLine("WNF_SUBSCRIPTION_TABLE @ 0x{0}\n", pSubscriptionTable.ToString(addressFormat));
+            NativeMethods.SymSetOptions(SYM_OPTIONS.SYMOPT_DEFERRED_LOADS);
+
+            foreach (var subscription in nameSubscriptions)
             {
-                stateName = nameEntry.Key;
-                pNameSubscription = nameEntry.Value;
+                Dictionary<IntPtr, KeyValuePair<IntPtr, IntPtr>> userSubscriptions;
+                var outputBuilder = new StringBuilder();
 
-                if (stateNameFilter != 0 && stateName != stateNameFilter)
-                {
+                if ((stateNameFilter != 0) && (subscription.Key != stateNameFilter))
                     continue;
-                }
-                else if (stateNameFilter != 0 && stateName == stateNameFilter)
+                else if ((stateNameFilter != 0) && (subscription.Key == stateNameFilter))
+                    outputBuilder.AppendFormat("WNF_SUBSCRIPTION_TABLE @ 0x{0}\n\n", pSubscriptionTable.ToString(addressFormat));
+
+                outputBuilder.AppendFormat("\tWNF_NAME_SUBSCRIPTION @ 0x{0}\n", subscription.Value.ToString(addressFormat));
+                outputBuilder.AppendFormat("\tStateName : 0x{0} ({1})\n\n",
+                    subscription.Key.ToString("X16"),
+                    Helpers.GetWnfName(subscription.Key));
+
+                if (!brief)
                 {
-                    Helpers.PrintProcessInformation(processInfo);
+                    userSubscriptions = Utilities.GetUserSubscriptions(hProcess, subscription.Value);
 
-                    Console.WriteLine(
-                        "WNF_SUBSCRIPTION_TABLE @ 0x{0}\n",
-                        pSubscriptionTable.ToString(is64bit ? "X16" : "X8"));
+                    foreach (var entry in userSubscriptions)
+                    {
+                        outputBuilder.AppendFormat("\t\tWNF_USER_SUBSCRIPTION @ 0x{0}\n", entry.Key.ToString(addressFormat));
+                        outputBuilder.AppendFormat("\t\tCallback @ 0x{0} ({1})\n",
+                            entry.Value.Key.ToString(addressFormat),
+                            Helpers.GetSymbolPath(hProcess, entry.Value.Key) ?? "N/A");
+                        outputBuilder.AppendFormat("\t\tContext  @ 0x{0} ({1})\n\n",
+                            entry.Value.Value.ToString(addressFormat),
+                            Helpers.GetSymbolPath(hProcess, entry.Value.Value) ?? "N/A");
+                    }
                 }
 
-                Console.WriteLine(
-                    "\tWNF_NAME_SUBSCRIPTION @ 0x{0}",
-                    pNameSubscription.ToString(is64bit ? "X16" : "X8"));
-                Console.WriteLine(
-                    "\tStateName : 0x{0} ({1})\n",
-                    stateName.ToString("X16"),
-                    Helpers.GetWnfName(stateName));
-
-                if (brief)
-                    continue;
-
-                userSubscriptions = Utilities.GetUserSubscriptions(proc.GetProcessHandle(), pNameSubscription);
-
-                foreach (var userEntry in userSubscriptions)
-                {
-                    pUserSubscription = userEntry.Key;
-
-                    Console.WriteLine(
-                        "\t\tWNF_USER_SUBSCRIPTION @ 0x{0}",
-                        pUserSubscription.ToString(is64bit ? "X16" : "X8"));
-
-                    Console.WriteLine(
-                        "\t\tCallback @ 0x{0} ({1})",
-                        userEntry.Value.Key.ToString(is64bit ? "X16" : "X8"),
-                        Helpers.GetSymbolPath(proc.GetProcessHandle(), userEntry.Value.Key) ?? "N/A");
-                    Console.WriteLine(
-                        "\t\tContext  @ 0x{0} ({1})\n",
-                        userEntry.Value.Value.ToString(is64bit ? "X16" : "X8"),
-                        Helpers.GetSymbolPath(proc.GetProcessHandle(), userEntry.Value.Value) ?? "N/A");
-                }
+                Console.WriteLine(outputBuilder.ToString());
             }
-
-            proc.Dispose();
-
-            return;
         }
 
 
@@ -304,11 +233,11 @@ namespace SharpWnfScan.Library
 
                 if (is64bit)
                 {
-                    if (Globals.SubscriptionTablePointerAddressX64 == IntPtr.Zero)
+                    if (Globals.SubscriptionTablePointerAddress64 == IntPtr.Zero)
                     {
-                        Globals.SubscriptionTablePointerAddressX64 = Utilities.GetSubscriptionTablePointerAddress(proc.GetProcessHandle());
+                        Globals.SubscriptionTablePointerAddress64 = Utilities.GetSubscriptionTablePointerAddress(proc.GetProcessHandle());
 
-                        if (Globals.SubscriptionTablePointerAddressX64 == IntPtr.Zero)
+                        if (Globals.SubscriptionTablePointerAddress64 == IntPtr.Zero)
                         {
                             processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
                             processInfo.ErrorMessage = "Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.";
@@ -321,18 +250,18 @@ namespace SharpWnfScan.Library
 
                     pSubscriptionTable = Utilities.GetSubscriptionTable(
                         proc.GetProcessHandle(),
-                        Globals.SubscriptionTablePointerAddressX64);
+                        Globals.SubscriptionTablePointerAddress64);
 
                     if (pSubscriptionTable == IntPtr.Zero)
                         continue;
                 }
                 else
                 {
-                    if (Globals.SubscriptionTablePointerAddressX86 == IntPtr.Zero)
+                    if (Globals.SubscriptionTablePointerAddress32 == IntPtr.Zero)
                     {
-                        Globals.SubscriptionTablePointerAddressX86 = Utilities.GetSubscriptionTablePointerAddress(proc.GetProcessHandle());
+                        Globals.SubscriptionTablePointerAddress32 = Utilities.GetSubscriptionTablePointerAddress(proc.GetProcessHandle());
 
-                        if (Globals.SubscriptionTablePointerAddressX86 == IntPtr.Zero)
+                        if (Globals.SubscriptionTablePointerAddress32 == IntPtr.Zero)
                         {
                             processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
                             processInfo.ErrorMessage = "Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.";
@@ -345,7 +274,7 @@ namespace SharpWnfScan.Library
 
                     pSubscriptionTable = Utilities.GetSubscriptionTable(
                         proc.GetProcessHandle(),
-                        Globals.SubscriptionTablePointerAddressX86);
+                        Globals.SubscriptionTablePointerAddress32);
 
                     if (pSubscriptionTable == IntPtr.Zero)
                         continue;

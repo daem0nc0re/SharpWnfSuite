@@ -64,12 +64,24 @@ namespace SharpWnfScan.Interop
             in CLIENT_ID ClientId);
 
         [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtOpenSymbolicLinkObject(
+            out IntPtr LinkHandle,
+            ACCESS_MASK DesiredAccess,
+            in OBJECT_ATTRIBUTES ObjectAttributes);
+
+        [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtQueryInformationProcess(
             IntPtr ProcessHandle,
             PROCESSINFOCLASS ProcessInformationClass,
             IntPtr pProcessInformation,
             uint ProcessInformationLength,
             out uint ReturnLength);
+
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtQuerySymbolicLinkObject(
+            IntPtr LinkHandle,
+            IntPtr /* PUNICODE_STRING */ LinkTarget,
+            out uint ReturnedLength);
 
         [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtQueryVirtualMemory(

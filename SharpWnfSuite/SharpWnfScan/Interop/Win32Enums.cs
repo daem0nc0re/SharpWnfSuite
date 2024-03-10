@@ -20,6 +20,12 @@ namespace SharpWnfScan.Interop
         PROCESS_SET_LIMITED_INFORMATION = 0x00002000,
         PROCESS_ALL_ACCESS = 0x001FFFFF,
 
+        // For Symbolic Link
+        SYMBOLIC_LINK_QUERY = 0x00000001,
+        SYMBOLIC_LINK_SET = 0x00000002,
+        SYMBOLIC_LINK_ALL_ACCESS = 0x000F0001,
+        SYMBOLIC_LINK_ALL_ACCESS_EX = 0x000FFFFF,
+
         // Generic / Starndard Rights
         DELETE = 0x00010000,
         READ_CONTROL = 0x00020000,

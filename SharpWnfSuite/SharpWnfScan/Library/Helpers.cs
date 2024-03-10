@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
 using SharpWnfScan.Interop;
 
 namespace SharpWnfScan.Library
@@ -12,6 +13,79 @@ namespace SharpWnfScan.Library
 
     internal class Helpers
     {
+        public static Dictionary<string, string> GetDeviceMap()
+        {
+            var driveLetters = new List<string>();
+            var deviceMap = new Dictionary<string, string>();
+            var nInfoLength = (uint)Marshal.SizeOf(typeof(PROCESS_DEVICEMAP_INFORMATION));
+            var pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
+            NTSTATUS ntstatus = NativeMethods.NtQueryInformationProcess(
+                new IntPtr(-1),
+                PROCESSINFOCLASS.ProcessDeviceMap,
+                pInfoBuffer,
+                nInfoLength,
+                out uint _);
+
+            if (ntstatus == Win32Consts.STATUS_SUCCESS)
+            {
+                int nDeviceMap = Marshal.ReadInt32(pInfoBuffer);
+                Marshal.FreeHGlobal(pInfoBuffer);
+
+                for (int idx = 0; idx < 0x1A; idx++)
+                {
+                    var nTestBit = (1 << idx);
+                    var driveLetterBytes = new byte[] { (byte)(0x41 + idx), 0x3A };
+
+                    if ((nDeviceMap & nTestBit) == nTestBit)
+                        driveLetters.Add(Encoding.ASCII.GetString(driveLetterBytes));
+                }
+            }
+
+            foreach (var letter in driveLetters)
+            {
+                IntPtr hSymlink;
+                var unicodeString = new UNICODE_STRING { MaximumLength = 512 };
+
+                using (var objectAttributes = new OBJECT_ATTRIBUTES(
+                    string.Format(@"\GLOBAL??\{0}", letter),
+                    OBJECT_ATTRIBUTES_FLAGS.OBJ_CASE_INSENSITIVE))
+                {
+                    ntstatus = NativeMethods.NtOpenSymbolicLinkObject(
+                        out hSymlink,
+                        ACCESS_MASK.SYMBOLIC_LINK_QUERY,
+                        in objectAttributes);
+                }
+
+                if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                    continue;
+
+                pInfoBuffer = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UNICODE_STRING)) + 512);
+
+                if (Environment.Is64BitProcess)
+                    unicodeString.SetBuffer(new IntPtr(pInfoBuffer.ToInt64() + Marshal.SizeOf(typeof(UNICODE_STRING))));
+                else
+                    unicodeString.SetBuffer(new IntPtr(pInfoBuffer.ToInt32() + Marshal.SizeOf(typeof(UNICODE_STRING))));
+
+                Marshal.StructureToPtr(unicodeString, pInfoBuffer, true);
+
+                ntstatus = NativeMethods.NtQuerySymbolicLinkObject(hSymlink, pInfoBuffer, out uint _);
+                NativeMethods.NtClose(hSymlink);
+
+                if (ntstatus == Win32Consts.STATUS_SUCCESS)
+                {
+                    var target = (UNICODE_STRING)Marshal.PtrToStructure(pInfoBuffer, typeof(UNICODE_STRING));
+
+                    if (!string.IsNullOrEmpty(target.ToString()))
+                        deviceMap.Add(letter, target.ToString());
+                }
+
+                Marshal.FreeHGlobal(pInfoBuffer);
+            }
+
+            return deviceMap;
+        }
+
+
         public static IntPtr GetPebBase(IntPtr hProcess, out IntPtr pPebWow32)
         {
             var pPeb = IntPtr.Zero;
@@ -49,6 +123,128 @@ namespace SharpWnfScan.Library
             Marshal.FreeHGlobal(pInfoBuffer);
 
             return pPeb;
+        }
+
+
+        public static IMAGE_FILE_MACHINE GetProcessArchitecture(IntPtr hProcess)
+        {
+            uint nInfoLength;
+            IntPtr pBufferToRead;
+            IntPtr pInfoBuffer;
+            IntPtr pPeb = GetPebBase(hProcess, out IntPtr pPebWow32);
+            var architecture = IMAGE_FILE_MACHINE.UNKNOWN;
+
+            if (pPeb == IntPtr.Zero)
+                return IMAGE_FILE_MACHINE.UNKNOWN;
+
+            if (pPebWow32 != IntPtr.Zero)
+                pPeb = pPebWow32;
+
+            if (Environment.Is64BitProcess && (pPebWow32 == IntPtr.Zero))
+            {
+                pBufferToRead = new IntPtr(pPeb.ToInt64() + 0x10);
+                nInfoLength = 8u;
+            }
+            else
+            {
+                pBufferToRead = new IntPtr(pPeb.ToInt32() + 0x8);
+                nInfoLength = 4u;
+            }
+
+            pInfoBuffer = Marshal.AllocHGlobal(0x40);
+
+            do
+            {
+                IntPtr pImageBase;
+                NTSTATUS ntstatus = NativeMethods.NtReadVirtualMemory(
+                    hProcess,
+                    pBufferToRead,
+                    pInfoBuffer,
+                    nInfoLength,
+                    out uint nReturnedLength);
+
+                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nReturnedLength != nInfoLength))
+                    break;
+
+                if (nInfoLength == 8u)
+                    pImageBase = new IntPtr(Marshal.ReadInt64(pInfoBuffer));
+                else
+                    pImageBase = new IntPtr(Marshal.ReadInt32(pInfoBuffer));
+
+                nInfoLength = 0x40u;
+                ntstatus = NativeMethods.NtReadVirtualMemory(
+                    hProcess,
+                    pImageBase,
+                    pInfoBuffer,
+                    nInfoLength,
+                    out nReturnedLength);
+
+                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nReturnedLength != nInfoLength))
+                    break;
+
+                if (Environment.Is64BitProcess && (pPebWow32 == IntPtr.Zero))
+                    pBufferToRead = new IntPtr(pImageBase.ToInt64() + Marshal.ReadInt32(pInfoBuffer, 0x3C));
+                else
+                    pBufferToRead = new IntPtr(pImageBase.ToInt32() + Marshal.ReadInt32(pInfoBuffer, 0x3C));
+
+                nInfoLength = 0x18u;
+                ntstatus = NativeMethods.NtReadVirtualMemory(
+                    hProcess,
+                    pBufferToRead,
+                    pInfoBuffer,
+                    nInfoLength,
+                    out nReturnedLength);
+
+                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nReturnedLength != nInfoLength))
+                    break;
+
+                architecture = (IMAGE_FILE_MACHINE)Marshal.ReadInt16(pInfoBuffer, 4);
+            } while (false);
+
+            Marshal.FreeHGlobal(pInfoBuffer);
+
+            return architecture;
+        }
+
+
+        public static string GetProcessImageFileName(IntPtr hProcess)
+        {
+            var nInfoLength = (uint)(Marshal.SizeOf(typeof(UNICODE_STRING)) + 512);
+            var pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
+            string imageFileName = null;
+            NTSTATUS ntstatus = NativeMethods.NtQueryInformationProcess(
+                hProcess,
+                PROCESSINFOCLASS.ProcessImageFileName,
+                pInfoBuffer,
+                nInfoLength,
+                out uint _);
+
+            if (ntstatus == Win32Consts.STATUS_SUCCESS)
+            {
+                var info = (UNICODE_STRING)Marshal.PtrToStructure(pInfoBuffer, typeof(UNICODE_STRING));
+                Dictionary<string, string> deviceMap = GetDeviceMap();
+                imageFileName = info.ToString();
+
+                if (info.Length > 0)
+                {
+                    foreach (var alias in deviceMap)
+                    {
+                        if (imageFileName.StartsWith(alias.Value, StringComparison.OrdinalIgnoreCase))
+                        {
+                            imageFileName = Regex.Replace(
+                                imageFileName,
+                                string.Format(@"^{0}", alias.Value).Replace(@"\", @"\\"),
+                                alias.Key,
+                                RegexOptions.IgnoreCase);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            Marshal.FreeHGlobal(pInfoBuffer);
+
+            return imageFileName;
         }
 
 
