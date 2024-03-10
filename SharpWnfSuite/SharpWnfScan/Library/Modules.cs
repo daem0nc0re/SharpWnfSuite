@@ -148,20 +148,18 @@ namespace SharpWnfScan.Library
             ulong stateName,
             bool brief)
         {
-            Process[] procs;
-
             try
             {
-                procs = Process.GetProcessesByName(processName);
+                Process[] procs = Process.GetProcessesByName(processName);
+
+                for (var idx = 0; idx < procs.Length; idx++)
+                    DumpWnfSubscriptionInformation(procs[idx].Id, stateName, brief);
             }
             catch
             {
                 Console.WriteLine("[!] Failed to resolve process name.");
                 return;
             }
-
-            for (var idx = 0; idx < procs.Length; idx++)
-                DumpWnfSubscriptionInformation(procs[idx].Id, stateName, brief);
         }
 
 
