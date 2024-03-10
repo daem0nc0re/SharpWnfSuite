@@ -12,136 +12,90 @@ namespace SharpWnfScan.Handler
             ulong stateName = 0UL;
             string wellKnownName;
             Regex rgx = new Regex(@"^0x[0-9a-fA-F]+$");
+            bool bVerbose = options.GetFlag("verbose");
+            Globals.IsWin11 = Helpers.IsWin11();
 
             if (options.GetFlag("help"))
             {
                 options.GetHelp();
-
                 return;
             }
 
-            if (!string.IsNullOrEmpty(options.GetValue("name")))
+            Console.WriteLine();
+
+            do
             {
-                if (rgx.IsMatch(options.GetValue("name")))
+                if (!string.IsNullOrEmpty(options.GetValue("name")))
                 {
-                    stateName = (ulong)Convert.ToInt64(options.GetValue("name"), 16);
+                    if (rgx.IsMatch(options.GetValue("name")))
+                    {
+                        stateName = (ulong)Convert.ToInt64(options.GetValue("name"), 16);
+                    }
+                    else
+                    {
+                        wellKnownName = options.GetValue("name").ToUpper();
+
+                        try
+                        {
+                            stateName = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME), wellKnownName);
+                        }
+                        catch
+                        {
+                            Console.WriteLine("[!] Failed to resolve WNF State Name.");
+                            break;
+                        }
+                    }
                 }
-                else
+
+                if (options.GetFlag("debug"))
                 {
-                    wellKnownName = options.GetValue("name").ToUpper();
-                    
+                    if (Utilities.EnableDebugPrivilege())
+                    {
+                        Console.WriteLine("[+] SeDebugPrivilege is enabled successfully.\n");
+                    }
+                    else
+                    {
+                        Console.WriteLine("[-] Failed to enable SeDebugPrivilege.");
+                        break;
+                    }
+                }
+
+                if (options.GetFlag("all"))
+                {
+                    Modules.DumpAllWnfSubscriptionInformation(stateName, bVerbose);
+                }
+                else if (options.GetFlag("list"))
+                {
+                    Modules.ListStateNames(stateName, bVerbose);
+                }
+                else if (!string.IsNullOrEmpty(options.GetValue("pid")))
+                {
+                    int pid;
+
                     try
                     {
-                        stateName = (ulong)Enum.Parse(
-                            typeof(WELL_KNOWN_WNF_NAME),
-                            wellKnownName);
+                        pid = Int32.Parse(options.GetValue("pid"));
+                        Modules.DumpWnfSubscriptionInformation(pid, stateName, bVerbose);
                     }
                     catch
                     {
-                        Console.WriteLine("\n[!] Failed to resolve wnf state name.\n");
-
-                        return;
+                        Console.WriteLine("[-] Failed to resolve PID.");
                     }
                 }
-            }
-
-            Globals.IsWin11 = Helpers.IsWin11();
-
-            if (options.GetFlag("all"))
-            {
-                Console.WriteLine();
-
-                if (options.GetFlag("debug"))
+                else if (!string.IsNullOrEmpty(options.GetValue("processname")))
                 {
-                    Console.WriteLine("[>] Trying to enable SeDebugPrivilege.");
-
-                    if (Utilities.EnableDebugPrivilege())
-                        Console.WriteLine("[+] SeDebugPrivilege is enabled successfully.\n");
-                    else
-                        Console.WriteLine("[-] Failed to enable SeDebugPrivilege.\n");
+                    Modules.DumpWnfSubscriptionInformationByName(
+                        options.GetValue("processname"),
+                        stateName,
+                        bVerbose);
                 }
-
-                Modules.DumpAllWnfSubscriptionInformation(
-                    stateName,
-                    options.GetFlag("brief"));
-
-                Console.WriteLine();
-            }
-            else if (options.GetFlag("list"))
-            {
-                Console.WriteLine();
-
-                if (options.GetFlag("debug"))
+                else
                 {
-                    Console.WriteLine("[>] Trying to enable SeDebugPrivilege.");
-
-                    if (Utilities.EnableDebugPrivilege())
-                        Console.WriteLine("[+] SeDebugPrivilege is enabled successfully.");
-                    else
-                        Console.WriteLine("[-] Failed to enable SeDebugPrivilege.");
+                    Console.WriteLine("[-] No options. Try -h option.");
                 }
+            } while (false);
 
-                Modules.ListStateNames(stateName);
-                Console.WriteLine();
-            }
-            else if (!string.IsNullOrEmpty(options.GetValue("pid")))
-            {
-                int pid;
-
-                Console.WriteLine();
-
-                if (options.GetFlag("debug"))
-                {
-                    Console.WriteLine("[>] Trying to enable SeDebugPrivilege.");
-
-                    if (Utilities.EnableDebugPrivilege())
-                        Console.WriteLine("[+] SeDebugPrivilege is enabled successfully.\n");
-                    else
-                        Console.WriteLine("[-] Failed to enable SeDebugPrivilege.\n");
-                }
-
-                try
-                {
-                    pid = Int32.Parse(options.GetValue("pid"));
-                }
-                catch
-                {
-                    Console.WriteLine("[-] Failed to resolve PID.\n");
-
-                    return;
-                }
-
-                Modules.DumpWnfSubscriptionInformation(
-                    pid,
-                    stateName,
-                    options.GetFlag("brief"));
-
-                Console.WriteLine();
-            }
-            else if (!string.IsNullOrEmpty(options.GetValue("processname")))
-            {
-                Console.WriteLine();
-
-                if (options.GetFlag("debug"))
-                {
-                    Console.WriteLine("[>] Trying to enable SeDebugPrivilege.");
-
-                    if (Utilities.EnableDebugPrivilege())
-                        Console.WriteLine("[+] SeDebugPrivilege is enabled successfully.\n");
-                    else
-                        Console.WriteLine("[-] Failed to enable SeDebugPrivilege.\n");
-                }
-
-                Modules.DumpWnfSubscriptionInformationByName(
-                    options.GetValue("processname"),
-                    stateName,
-                    options.GetFlag("brief"));
-                Console.WriteLine();
-            }
-            else
-            {
-                options.GetHelp();
-            }
+            Console.WriteLine();
         }
     }
 }

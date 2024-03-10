@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Text;
 using SharpWnfScan.Interop;
 
@@ -12,19 +11,19 @@ namespace SharpWnfScan.Library
 
     internal class Modules
     {
-        public static void DumpAllWnfSubscriptionInformation(ulong stateName, bool brief)
+        public static void DumpAllWnfSubscriptionInformation(ulong stateName, bool bVerbose)
         {
             Process[] procs = Process.GetProcesses();
 
             for (var idx = 0; idx < procs.Length; idx++)
-                DumpWnfSubscriptionInformation(procs[idx].Id, stateName, brief);
+                DumpWnfSubscriptionInformation(procs[idx].Id, stateName, bVerbose);
         }
 
 
         public static void DumpWnfSubscriptionInformation(
             int pid,
             ulong stateNameFilter,
-            bool brief)
+            bool bVerbose)
         {
             IMAGE_FILE_MACHINE architecture;
             string imageFileName;
@@ -106,22 +105,22 @@ namespace SharpWnfScan.Library
                 else if ((stateNameFilter != 0) && (subscription.Key == stateNameFilter))
                     outputBuilder.AppendFormat("WNF_SUBSCRIPTION_TABLE @ 0x{0}\n\n", pSubscriptionTable.ToString(addressFormat));
 
-                outputBuilder.AppendFormat("\tWNF_NAME_SUBSCRIPTION @ 0x{0}\n", subscription.Value.ToString(addressFormat));
-                outputBuilder.AppendFormat("\tStateName : 0x{0} ({1})\n\n",
+                outputBuilder.AppendFormat("    WNF_NAME_SUBSCRIPTION @ 0x{0}\n", subscription.Value.ToString(addressFormat));
+                outputBuilder.AppendFormat("    StateName : 0x{0} ({1})\n\n",
                     subscription.Key.ToString("X16"),
                     Helpers.GetWnfName(subscription.Key));
 
-                if (!brief)
+                if (bVerbose)
                 {
                     userSubscriptions = Utilities.GetUserSubscriptions(hProcess, subscription.Value);
 
                     foreach (var entry in userSubscriptions)
                     {
-                        outputBuilder.AppendFormat("\t\tWNF_USER_SUBSCRIPTION @ 0x{0}\n", entry.Key.ToString(addressFormat));
-                        outputBuilder.AppendFormat("\t\tCallback @ 0x{0} ({1})\n",
+                        outputBuilder.AppendFormat("        WNF_USER_SUBSCRIPTION @ 0x{0}\n", entry.Key.ToString(addressFormat));
+                        outputBuilder.AppendFormat("        Callback @ 0x{0} ({1})\n",
                             entry.Value.Key.ToString(addressFormat),
                             Helpers.GetSymbolPath(hProcess, entry.Value.Key) ?? "N/A");
-                        outputBuilder.AppendFormat("\t\tContext  @ 0x{0} ({1})\n\n",
+                        outputBuilder.AppendFormat("        Context  @ 0x{0} ({1})\n\n",
                             entry.Value.Value.ToString(addressFormat),
                             Helpers.GetSymbolPath(hProcess, entry.Value.Value) ?? "N/A");
                     }
@@ -137,14 +136,14 @@ namespace SharpWnfScan.Library
         public static void DumpWnfSubscriptionInformationByName(
             string processName,
             ulong stateName,
-            bool brief)
+            bool bVerbose)
         {
             try
             {
                 Process[] procs = Process.GetProcessesByName(processName);
 
                 for (var idx = 0; idx < procs.Length; idx++)
-                    DumpWnfSubscriptionInformation(procs[idx].Id, stateName, brief);
+                    DumpWnfSubscriptionInformation(procs[idx].Id, stateName, bVerbose);
             }
             catch
             {
@@ -153,8 +152,9 @@ namespace SharpWnfScan.Library
         }
 
 
-        public static void ListStateNames(ulong stateNameFilter)
+        public static void ListStateNames(ulong stateNameFilter, bool bVerbose)
         {
+            var allowedProcesses = new Dictionary<int, string>();
             var deniedProcesses = new Dictionary<int, string>();
             var stateNames = new Dictionary<ulong, List<int>>();
             var outputBuilder = new StringBuilder();
@@ -166,7 +166,6 @@ namespace SharpWnfScan.Library
             {
                 bool bIs32BitProcess;
                 Dictionary<ulong, IntPtr> nameSubscriptions;
-                string addressFormat = Environment.Is64BitProcess ? "X16" : "X8";
                 var pSubscriptionTable = IntPtr.Zero;
                 var objectAttributes = new OBJECT_ATTRIBUTES
                 {
@@ -185,6 +184,7 @@ namespace SharpWnfScan.Library
                     continue;
                 }
 
+                allowedProcesses.Add(procs[idx].Id, procs[idx].ProcessName);
                 bIs32BitProcess = Helpers.Is32BitProcess(hProcess);
 
                 do
@@ -235,16 +235,76 @@ namespace SharpWnfScan.Library
 
             if (stateNames.Count > 0)
             {
-                outputBuilder.AppendFormat("[+] Got {0} WNF State Names.\n", stateNames.Count);
+                outputBuilder.AppendFormat("\n[{0} WNF State Names]\n\n", stateNames.Count);
 
                 foreach (var entry in stateNames)
                 {
+                    string lineFormat;
+                    var columnNames = new string[] { "PID", "Process Name", "Image File Name" };
+                    var widths = new int[columnNames.Length];
+
                     if (stateNameFilter != 0UL && entry.Key != stateNameFilter)
                         continue;
 
-                    outputBuilder.AppendFormat("\t[*] 0x{0} ({1})\n",
+                    outputBuilder.AppendFormat("[*] 0x{0} ({1})\n",
                         entry.Key.ToString("X16"),
                         Helpers.GetWnfName(entry.Key));
+
+                    if (!bVerbose)
+                        continue;
+
+                    for (var idx = 0; idx < columnNames.Length; idx++)
+                        widths[idx] = columnNames[idx].Length;
+
+                    foreach (var pid in entry.Value)
+                    {
+                        if (pid.ToString().Length > widths[0])
+                            widths[0] = pid.ToString().Length;
+
+                        if (allowedProcesses[pid].Length > widths[1])
+                            widths[1] = allowedProcesses[pid].Length;
+                    }
+
+                    lineFormat = string.Format("    {{0, {0}}} {{1, -{1}}} {{2, -{2}}}\n",
+                        widths[0],
+                        widths[1],
+                        widths[2]);
+
+                    outputBuilder.AppendLine();
+                    outputBuilder.AppendFormat(lineFormat, columnNames[0], columnNames[1], columnNames[2]);
+                    outputBuilder.AppendFormat(lineFormat,
+                        new string('=', widths[0]),
+                        new string('=', widths[1]),
+                        new string('=', widths[2]));
+
+                    foreach (var pid in entry.Value)
+                    {
+                        var objectAttributes = new OBJECT_ATTRIBUTES
+                        {
+                            Length = Marshal.SizeOf(typeof(OBJECT_ATTRIBUTES))
+                        };
+                        var clientId = new CLIENT_ID { UniqueProcess = new IntPtr(pid) };
+                        NTSTATUS ntstatus = NativeMethods.NtOpenProcess(
+                            out IntPtr hProcess,
+                            ACCESS_MASK.PROCESS_QUERY_LIMITED_INFORMATION,
+                            in objectAttributes,
+                            in clientId);
+
+                        if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                        {
+                            outputBuilder.AppendFormat(lineFormat, pid, allowedProcesses[pid], "(N/A)");
+                            continue;
+                        }
+
+                        outputBuilder.AppendFormat(lineFormat,
+                            pid,
+                            allowedProcesses[pid],
+                            Helpers.GetProcessImageFileName(hProcess) ?? "(N/A)");
+
+                        NativeMethods.NtClose(hProcess);
+                    }
+
+                    outputBuilder.AppendLine();
                 }
             }
             else
@@ -254,10 +314,12 @@ namespace SharpWnfScan.Library
 
             if (deniedProcesses.Count > 0)
             {
-                outputBuilder.AppendFormat("[*] Access is denied by following {0} proccesses.\n", deniedProcesses.Count);
+                outputBuilder.AppendFormat("\n[{0} Access Denied Processes]\n\n", deniedProcesses.Count);
 
                 foreach (var entry in deniedProcesses)
-                    outputBuilder.AppendFormat("\t[*] {0} (PID : {1})\n", entry.Value, entry.Key);
+                    outputBuilder.AppendFormat("[*] {0} (PID : {1})\n", entry.Value, entry.Key);
+
+                outputBuilder.AppendLine();
             }
 
             Console.Write(outputBuilder.ToString());
