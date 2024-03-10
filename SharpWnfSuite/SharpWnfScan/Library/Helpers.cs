@@ -648,19 +648,5 @@ namespace SharpWnfScan.Library
 
             return bIsHeapAddress;
         }
-
-
-        public static void PrintProcessInformation(PROCESS_INFORMATION processInfo)
-        {
-            var outputBuilder = new StringBuilder();
-            outputBuilder.AppendFormat("Process Name  : {0}\n", processInfo.ProcessName);
-            outputBuilder.AppendFormat("Process ID    : {0}\n", processInfo.ProcessId);
-            outputBuilder.AppendFormat("Architecture  : {0}\n", processInfo.Architecture);
-
-            if (!string.IsNullOrEmpty(processInfo.ErrorMessage))
-                outputBuilder.AppendFormat("Error Message : {0}\n", processInfo.ErrorMessage);
-
-            Console.WriteLine(outputBuilder.ToString());
-        }
     }
 }

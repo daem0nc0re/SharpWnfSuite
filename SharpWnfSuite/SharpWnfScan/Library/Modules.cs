@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using SharpWnfScan.Interop;
 
@@ -26,25 +26,22 @@ namespace SharpWnfScan.Library
             ulong stateNameFilter,
             bool brief)
         {
-            NTSTATUS ntstatus;
-            IntPtr hProcess;
-            IntPtr pSubscriptionTable;
             IMAGE_FILE_MACHINE architecture;
             string imageFileName;
             bool bIs32BitProcess;
             Dictionary<ulong, IntPtr> nameSubscriptions;
             string addressFormat = Environment.Is64BitProcess ? "X16" : "X8";
-
-            using (var objectAttributes = new OBJECT_ATTRIBUTES {
-                Length = Marshal.SizeOf(typeof(OBJECT_ATTRIBUTES)) })
+            var pSubscriptionTable = IntPtr.Zero;
+            var objectAttributes = new OBJECT_ATTRIBUTES
             {
-                var clientId = new CLIENT_ID { UniqueProcess = new IntPtr(pid) };
-                ntstatus = NativeMethods.NtOpenProcess(
-                    out hProcess,
-                    ACCESS_MASK.PROCESS_QUERY_LIMITED_INFORMATION | ACCESS_MASK.PROCESS_VM_READ,
-                    in objectAttributes,
-                    in clientId);
-            }
+                Length = Marshal.SizeOf(typeof(OBJECT_ATTRIBUTES))
+            };
+            var clientId = new CLIENT_ID { UniqueProcess = new IntPtr(pid) };
+            NTSTATUS ntstatus = NativeMethods.NtOpenProcess(
+                out IntPtr hProcess,
+                ACCESS_MASK.PROCESS_QUERY_LIMITED_INFORMATION | ACCESS_MASK.PROCESS_VM_READ,
+                in objectAttributes,
+                in clientId);
 
             if (ntstatus != Win32Consts.STATUS_SUCCESS)
             {
@@ -60,43 +57,35 @@ namespace SharpWnfScan.Library
             Console.WriteLine("Image File Name : {0}", imageFileName ?? "(N/A)");
             Console.WriteLine("Architecture    : {0}\n", architecture.ToString());
 
-            if (!bIs32BitProcess)
+            do
             {
-                if (Globals.SubscriptionTablePointerAddress64 == IntPtr.Zero)
-                    Globals.SubscriptionTablePointerAddress64 = Utilities.GetSubscriptionTablePointerAddress(hProcess);
-
-                if (Globals.SubscriptionTablePointerAddress64 == IntPtr.Zero)
+                if (!bIs32BitProcess)
                 {
-                    Console.WriteLine("[-] Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.");
-                    return;
+                    if (Globals.SubscriptionTablePointerAddress64 == IntPtr.Zero)
+                        Globals.SubscriptionTablePointerAddress64 = Utilities.GetSubscriptionTablePointerAddress(hProcess);
+
+                    if (Globals.SubscriptionTablePointerAddress64 == IntPtr.Zero)
+                        break;
+
+                    pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress64);
                 }
-
-                pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress64);
-
-                if (pSubscriptionTable == IntPtr.Zero)
+                else
                 {
-                    Console.WriteLine("[-] Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.");
-                    return;
+                    if (Globals.SubscriptionTablePointerAddress32 == IntPtr.Zero)
+                        Globals.SubscriptionTablePointerAddress32 = Utilities.GetSubscriptionTablePointerAddress(hProcess);
+
+                    if (Globals.SubscriptionTablePointerAddress32 == IntPtr.Zero)
+                        break;
+
+                    pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress32);
                 }
-            }
-            else
+            } while (false);
+
+            if (pSubscriptionTable == IntPtr.Zero)
             {
-                if (Globals.SubscriptionTablePointerAddress32 == IntPtr.Zero)
-                    Globals.SubscriptionTablePointerAddress32 = Utilities.GetSubscriptionTablePointerAddress(hProcess);
-
-                if (Globals.SubscriptionTablePointerAddress32 == IntPtr.Zero)
-                {
-                    Console.WriteLine("[-] Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.");
-                    return;
-                }
-
-                pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress32);
-
-                if (pSubscriptionTable == IntPtr.Zero)
-                {
-                    Console.WriteLine("[-] Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.");
-                    return;
-                }
+                Console.WriteLine("[-] Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.");
+                NativeMethods.NtClose(hProcess);
+                return;
             }
 
             if (Globals.IsWin11)
@@ -140,6 +129,8 @@ namespace SharpWnfScan.Library
 
                 Console.Write(outputBuilder.ToString());
             }
+
+            NativeMethods.NtClose(hProcess);
         }
 
 
@@ -164,167 +155,112 @@ namespace SharpWnfScan.Library
 
         public static void ListStateNames(ulong stateNameFilter)
         {
-            int pid;
-            PeProcess proc;
-            bool is64bit;
-            IntPtr pSubscriptionTable;
-            Dictionary<ulong, IntPtr> nameSubscriptions;
-            PROCESS_INFORMATION processInfo;
-            var stateNames = new Dictionary<ulong, List<PROCESS_INFORMATION>>();
             var deniedProcesses = new Dictionary<int, string>();
-
+            var stateNames = new Dictionary<ulong, List<int>>();
+            var outputBuilder = new StringBuilder();
             Process[] procs = Process.GetProcesses();
 
             Console.WriteLine("[>] Trying to list WNF State Names used in this system. Wait a moment.");
 
             for (var idx = 0; idx < procs.Length; idx++)
             {
-                pid = procs[idx].Id;
-
-                processInfo = new PROCESS_INFORMATION {
-                    ProcessName = "N/A",
-                    ProcessId = pid,
-                    Architecture = "N/A",
-                    ErrorMessage = null
+                bool bIs32BitProcess;
+                Dictionary<ulong, IntPtr> nameSubscriptions;
+                string addressFormat = Environment.Is64BitProcess ? "X16" : "X8";
+                var pSubscriptionTable = IntPtr.Zero;
+                var objectAttributes = new OBJECT_ATTRIBUTES
+                {
+                    Length = Marshal.SizeOf(typeof(OBJECT_ATTRIBUTES))
                 };
+                var clientId = new CLIENT_ID { UniqueProcess = new IntPtr(procs[idx].Id) };
+                NTSTATUS ntstatus = NativeMethods.NtOpenProcess(
+                    out IntPtr hProcess,
+                    ACCESS_MASK.PROCESS_QUERY_LIMITED_INFORMATION | ACCESS_MASK.PROCESS_VM_READ,
+                    in objectAttributes,
+                    in clientId);
 
-                try
+                if (ntstatus != Win32Consts.STATUS_SUCCESS)
                 {
-                    proc = new PeProcess(pid);
-                    processInfo.ProcessName = proc.GetProcessName();
-                    processInfo.Architecture = proc.GetArchitecture();
+                    deniedProcesses.Add(procs[idx].Id, procs[idx].ProcessName);
+                    continue;
                 }
-                catch (Win32Exception ex)
-                {
-                    processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
-                    processInfo.ErrorMessage = ex.Message;
-                    Globals.ProcessInfo.Add(processInfo);
 
-                    if (string.Compare(
-                        processInfo.ErrorMessage.TrimEnd(),
-                        "Access is denied",
-                        StringComparison.OrdinalIgnoreCase) == 0)
+                bIs32BitProcess = Helpers.Is32BitProcess(hProcess);
+
+                do
+                {
+                    if (!bIs32BitProcess)
                     {
-                        deniedProcesses.Add(processInfo.ProcessId, processInfo.ProcessName);
-                    }
-
-                    continue;
-                }
-                catch (ArgumentException ex)
-                {
-                    processInfo.ErrorMessage = ex.Message;
-                    Globals.ProcessInfo.Add(processInfo);
-
-                    continue;
-                }
-                catch (KeyNotFoundException ex)
-                {
-                    processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
-                    processInfo.ErrorMessage = ex.Message;
-                    Globals.ProcessInfo.Add(processInfo);
-
-                    continue;
-                }
-
-                is64bit = (proc.GetArchitecture() == "x64");
-
-                if (is64bit)
-                {
-                    if (Globals.SubscriptionTablePointerAddress64 == IntPtr.Zero)
-                    {
-                        Globals.SubscriptionTablePointerAddress64 = Utilities.GetSubscriptionTablePointerAddress(proc.GetProcessHandle());
+                        if (Globals.SubscriptionTablePointerAddress64 == IntPtr.Zero)
+                            Globals.SubscriptionTablePointerAddress64 = Utilities.GetSubscriptionTablePointerAddress(hProcess);
 
                         if (Globals.SubscriptionTablePointerAddress64 == IntPtr.Zero)
-                        {
-                            processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
-                            processInfo.ErrorMessage = "Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.";
-                            Globals.ProcessInfo.Add(processInfo);
-                            proc.Dispose();
+                            break;
 
-                            continue;
-                        }
+                        pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress64);
                     }
-
-                    pSubscriptionTable = Utilities.GetSubscriptionTable(
-                        proc.GetProcessHandle(),
-                        Globals.SubscriptionTablePointerAddress64);
-
-                    if (pSubscriptionTable == IntPtr.Zero)
-                        continue;
-                }
-                else
-                {
-                    if (Globals.SubscriptionTablePointerAddress32 == IntPtr.Zero)
+                    else
                     {
-                        Globals.SubscriptionTablePointerAddress32 = Utilities.GetSubscriptionTablePointerAddress(proc.GetProcessHandle());
+                        if (Globals.SubscriptionTablePointerAddress32 == IntPtr.Zero)
+                            Globals.SubscriptionTablePointerAddress32 = Utilities.GetSubscriptionTablePointerAddress(hProcess);
 
                         if (Globals.SubscriptionTablePointerAddress32 == IntPtr.Zero)
-                        {
-                            processInfo.ProcessName = Process.GetProcessById(pid).ProcessName;
-                            processInfo.ErrorMessage = "Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.";
-                            Globals.ProcessInfo.Add(processInfo);
-                            proc.Dispose();
+                            break;
 
-                            continue;
-                        }
+                        pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress32);
                     }
+                } while (false);
 
-                    pSubscriptionTable = Utilities.GetSubscriptionTable(
-                        proc.GetProcessHandle(),
-                        Globals.SubscriptionTablePointerAddress32);
-
-                    if (pSubscriptionTable == IntPtr.Zero)
-                        continue;
+                if (pSubscriptionTable == IntPtr.Zero)
+                {
+                    NativeMethods.NtClose(hProcess);
+                    continue;
                 }
 
                 if (Globals.IsWin11)
-                    nameSubscriptions = Utilities.GetNameSubscriptionsWin11(proc.GetProcessHandle(), pSubscriptionTable);
+                    nameSubscriptions = Utilities.GetNameSubscriptionsWin11(hProcess, pSubscriptionTable);
                 else
-                    nameSubscriptions = Utilities.GetNameSubscriptions(proc.GetProcessHandle(), pSubscriptionTable);
+                    nameSubscriptions = Utilities.GetNameSubscriptions(hProcess, pSubscriptionTable);
 
                 foreach (var stateName in nameSubscriptions.Keys)
                 {
                     if (stateNames.ContainsKey(stateName))
-                    {
-                        stateNames[stateName].Add(processInfo);
-                    }
+                        stateNames[stateName].Add(procs[idx].Id);
                     else
-                    {
-                        stateNames.Add(stateName, new List<PROCESS_INFORMATION>());
-                        stateNames[stateName].Add(processInfo);
-                    }
+                        stateNames.Add(stateName, new List<int> { procs[idx].Id });
                 }
 
-                proc.Dispose();
+                NativeMethods.NtClose(hProcess);
             }
 
             if (stateNames.Count > 0)
             {
-                Console.WriteLine("[+] Got {0} WNF State Names.", stateNames.Count);
+                outputBuilder.AppendFormat("[+] Got {0} WNF State Names.\n", stateNames.Count);
 
                 foreach (var entry in stateNames)
                 {
                     if (stateNameFilter != 0UL && entry.Key != stateNameFilter)
                         continue;
 
-                    Console.WriteLine(
-                        "    |-> 0x{0} ({1})",
+                    outputBuilder.AppendFormat("\t[*] 0x{0} ({1})\n",
                         entry.Key.ToString("X16"),
                         Helpers.GetWnfName(entry.Key));
                 }
             }
             else
             {
-                Console.WriteLine("[-] Failed to list WNF State Names used in this system.");
+                outputBuilder.AppendLine("[-] Failed to list WNF State Names used in this system.");
             }
 
             if (deniedProcesses.Count > 0)
             {
-                Console.WriteLine("[*] Access is denied by following {0} proccesses.", deniedProcesses.Count);
+                outputBuilder.AppendFormat("[*] Access is denied by following {0} proccesses.\n", deniedProcesses.Count);
 
                 foreach (var entry in deniedProcesses)
-                    Console.WriteLine("    |-> {0} (PID : {1})", entry.Value, entry.Key);
+                    outputBuilder.AppendFormat("\t[*] {0} (PID : {1})\n", entry.Value, entry.Key);
             }
+
+            Console.Write(outputBuilder.ToString());
 
             Console.WriteLine("[*] Done.");
         }

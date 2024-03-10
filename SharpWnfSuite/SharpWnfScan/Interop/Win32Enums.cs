@@ -381,13 +381,6 @@ namespace SharpWnfScan.Interop
         Max
     }
 
-    internal enum WNF_STATE_NAME_INFORMATION : uint
-    {
-        WnfInfoStateNameExist = 0x0,
-        WnfInfoSubscribersPresent = 0x1,
-        WnfInfoIsQuiescent = 0x2
-    }
-
     internal enum WELL_KNOWN_WNF_NAME : ulong
     {
         WNF_9P_REDIRECTOR_STARTED = 0x41C61E54A3BC1075UL,

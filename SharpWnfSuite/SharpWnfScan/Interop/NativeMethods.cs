@@ -32,12 +32,6 @@ namespace SharpWnfScan.Interop
             bool fInvadeProcess);
 
         /*
-         * kernel32.dll
-         */
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr LocalFree(IntPtr hMem);
-
-        /*
          * ntdll.dll
          * 
          * Reference:
