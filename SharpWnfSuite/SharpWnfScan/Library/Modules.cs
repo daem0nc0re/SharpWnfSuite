@@ -138,7 +138,7 @@ namespace SharpWnfScan.Library
                     }
                 }
 
-                Console.WriteLine(outputBuilder.ToString());
+                Console.Write(outputBuilder.ToString());
             }
         }
 
@@ -158,7 +158,6 @@ namespace SharpWnfScan.Library
             catch
             {
                 Console.WriteLine("[!] Failed to resolve process name.");
-                return;
             }
         }
 
