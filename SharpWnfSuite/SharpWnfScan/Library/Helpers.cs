@@ -600,7 +600,7 @@ namespace SharpWnfScan.Library
         {
             bool b32BitProcess = !Environment.Is64BitOperatingSystem || !Environment.Is64BitProcess;
 
-            if (Environment.Is64BitOperatingSystem)
+            if (!b32BitProcess)
             {
                 IntPtr pInfoBuffer = Marshal.AllocHGlobal(IntPtr.Size);
                 NTSTATUS ntstatus = NativeMethods.NtQueryInformationProcess(
