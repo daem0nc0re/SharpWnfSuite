@@ -25,12 +25,11 @@ namespace SharpWnfScan.Library
                 pInfoBuffer,
                 nInfoLength,
                 out uint _);
+            int nDeviceMap = Marshal.ReadInt32(pInfoBuffer);
+            Marshal.FreeHGlobal(pInfoBuffer);
 
             if (ntstatus == Win32Consts.STATUS_SUCCESS)
             {
-                int nDeviceMap = Marshal.ReadInt32(pInfoBuffer);
-                Marshal.FreeHGlobal(pInfoBuffer);
-
                 for (int idx = 0; idx < 0x1A; idx++)
                 {
                     var nTestBit = (1 << idx);
@@ -599,7 +598,7 @@ namespace SharpWnfScan.Library
 
         public static bool Is32BitProcess(IntPtr hProcess)
         {
-            bool b32BitProcess = false;
+            bool b32BitProcess = !Environment.Is64BitOperatingSystem || !Environment.Is64BitProcess;
 
             if (Environment.Is64BitOperatingSystem)
             {
