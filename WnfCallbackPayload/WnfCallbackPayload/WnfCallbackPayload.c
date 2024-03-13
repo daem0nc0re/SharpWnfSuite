@@ -102,30 +102,21 @@ ULONG_PTR GetModuleHandleByHash(DWORD moduleHash)
 
 ULONG_PTR GetProcAddressByHash(ULONG_PTR hModule, DWORD procHash)
 {
-    USHORT machine;
-    DWORD e_lfanew;
-    DWORD nExportDirectoryOffset;
-    DWORD nNumberOfNames;
-    DWORD nOrdinal;
-    DWORD nStrLen;
-    ULONG_PTR pExportDirectory;
-    ULONG_PTR pAddressOfFunctions;
-    ULONG_PTR pAddressOfNames;
-    ULONG_PTR pAddressOfOrdinals;
-    LPCSTR procName;
     ULONG_PTR pProc = 0;
 
     do
     {
-        if (*(USHORT*)hModule != 0x5A4D)
-            break;
-
-        e_lfanew = *(DWORD*)((ULONG_PTR)hModule + 0x3C);
-
-        if (*(DWORD*)((ULONG_PTR)hModule + e_lfanew) != 0x00004550)
-            break;
-
-        machine = *(SHORT*)((ULONG_PTR)hModule + e_lfanew + 0x18);
+        DWORD nExportDirectoryOffset;
+        DWORD nNumberOfNames;
+        DWORD nOrdinal;
+        DWORD nStrLen;
+        ULONG_PTR pExportDirectory;
+        ULONG_PTR pAddressOfFunctions;
+        ULONG_PTR pAddressOfNames;
+        ULONG_PTR pAddressOfOrdinals;
+        LPCSTR procName;
+        auto e_lfanew = *(DWORD*)((ULONG_PTR)hModule + 0x3C);
+        auto machine = *(SHORT*)((ULONG_PTR)hModule + e_lfanew + 0x18);
 
         if (machine == 0x020B)
             nExportDirectoryOffset = *(DWORD*)((ULONG_PTR)hModule + e_lfanew + 0x88);
@@ -169,10 +160,9 @@ NTSTATUS NTAPI WnfCallback(
     _In_ PVOID Buffer,
     _In_ ULONG BufferSize)
 {
-    ULONG64 cmdline[2];
+    ULONG64 cmdline[1] = { *(ULONG64*)"notepad\0" };
     ULONG_PTR pKernel32 = GetModuleHandleByHash(KERNEL32_HASH);
     ULONG_PTR pWinExec = GetProcAddressByHash(pKernel32, WINEXEC_HASH);
 
-    cmdline[0] = *(ULONG64*)"notepad\0";
     return (NTSTATUS)((WinExec_t)pWinExec)((LPCSTR)cmdline, SW_SHOW);
 }
