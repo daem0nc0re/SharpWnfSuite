@@ -31,20 +31,38 @@ typedef UINT(WINAPI* WinExec_t)(
 //
 // Function Definitions
 //
-DWORD CalcHash(ULONG_PTR pValue, DWORD nLength)
+DWORD CalcAnsiStringHash(ULONG_PTR pAnsiString)
 {
     DWORD hash = 0;
 
-    for (DWORD index = 0; index < nLength; index++)
+    while (*(UCHAR*)pAnsiString)
     {
         hash = ((hash >> 13 | hash << (32 - 13)) & 0xFFFFFFFF);
 
-        if (*((CHAR*)pValue) > 0x60)
-            hash += *((CHAR*)pValue) - 0x20;
+        if (*((CHAR*)pAnsiString) > 0x60)
+            hash += *((CHAR*)pAnsiString) - 0x20;
         else
-            hash += *((CHAR*)pValue);
+            hash += *((CHAR*)pAnsiString);
 
-        pValue++;
+        pAnsiString++;
+    }
+
+    return hash;
+}
+
+
+DWORD CalcUnicodeStringHash(PUNICODE_STRING pUnicodeString)
+{
+    DWORD hash = 0;
+
+    for (DWORD index = 0; index < pUnicodeString->Length; index++)
+    {
+        hash = ((hash >> 13 | hash << (32 - 13)) & 0xFFFFFFFF);
+
+        if (((CHAR*)pUnicodeString->Buffer)[index] > 0x60)
+            hash += ((CHAR*)pUnicodeString->Buffer)[index] - 0x20;
+        else
+            hash += ((CHAR*)pUnicodeString->Buffer)[index];
     }
 
     return hash;
@@ -53,100 +71,68 @@ DWORD CalcHash(ULONG_PTR pValue, DWORD nLength)
 
 ULONG_PTR GetModuleHandleByHash(DWORD moduleHash)
 {
-    PUNICODE_STRING pBaseDllName;
-    PPEB_LDR_DATA pLdrData;
-    PLDR_DATA_TABLE_ENTRY pLdrDataTable;
-    ULONG_PTR pModule = 0;
+    ULONG_PTR hModule = 0;
 
 #ifdef _M_ARM64
-    pLdrData = (PPEB_LDR_DATA)(*(PULONG_PTR)(*(ULONG_PTR*)(__getReg(18) + 0x60) + 0x18));
-    pLdrDataTable = (PLDR_DATA_TABLE_ENTRY)((ULONG_PTR)pLdrData->InMemoryOrderModuleList.Flink - 0x10);
+    PPEB_LDR_DATA pLdrData = (PPEB_LDR_DATA)(*(PULONG_PTR)(*(ULONG_PTR*)(__getReg(18) + 0x60) + 0x18));
+    PLDR_DATA_TABLE_ENTRY pLdrDataTable = (PLDR_DATA_TABLE_ENTRY)((ULONG_PTR)pLdrData->InMemoryOrderModuleList.Flink - 0x10);
 #elif _WIN64
-    pLdrData = (PPEB_LDR_DATA)(*(PULONG_PTR)((ULONG_PTR)__readgsqword(0x60) + 0x18));
-    pLdrDataTable = (PLDR_DATA_TABLE_ENTRY)((ULONG_PTR)pLdrData->InMemoryOrderModuleList.Flink - 0x10);
-#elif _WIN32
-    pLdrData = (PPEB_LDR_DATA)(*(PULONG_PTR)((ULONG_PTR)__readfsdword(0x30) + 0xC));
-    pLdrDataTable = (PLDR_DATA_TABLE_ENTRY)((ULONG_PTR)pLdrData->InMemoryOrderModuleList.Flink - 0x8);
+    PPEB_LDR_DATA pLdrData = (PPEB_LDR_DATA)(*(PULONG_PTR)((ULONG_PTR)__readgsqword(0x60) + 0x18));
+    PLDR_DATA_TABLE_ENTRY pLdrDataTable = (PLDR_DATA_TABLE_ENTRY)((ULONG_PTR)pLdrData->InMemoryOrderModuleList.Flink - 0x10);
 #else
-    return nullptr;
+    PPEB_LDR_DATA pLdrData = (PPEB_LDR_DATA)(*(PULONG_PTR)((ULONG_PTR)__readfsdword(0x30) + 0xC));
+    PLDR_DATA_TABLE_ENTRY pLdrDataTable = (PLDR_DATA_TABLE_ENTRY)((ULONG_PTR)pLdrData->InMemoryOrderModuleList.Flink - 0x8);
 #endif
 
     while (pLdrDataTable->DllBase != NULL)
     {
 #ifdef _WIN64
-        pBaseDllName = (PUNICODE_STRING)((ULONG_PTR)pLdrDataTable + 0x58);
-#elif _WIN32
-        pBaseDllName = (PUNICODE_STRING)((ULONG_PTR)pLdrDataTable + 0x2C);
+        PUNICODE_STRING pBaseDllName = (PUNICODE_STRING)((ULONG_PTR)pLdrDataTable + 0x58);
 #else
-        break;
+        PUNICODE_STRING pBaseDllName = (PUNICODE_STRING)((ULONG_PTR)pLdrDataTable + 0x2C);
 #endif
 
-        if (CalcHash((ULONG_PTR)pBaseDllName->Buffer, pBaseDllName->Length) == moduleHash)
+        if (CalcUnicodeStringHash(pBaseDllName) == moduleHash)
         {
-            pModule = (ULONG_PTR)pLdrDataTable->DllBase;
+            hModule = (ULONG_PTR)pLdrDataTable->DllBase;
             break;
         }
 
 #ifdef _WIN64
         pLdrDataTable = (PLDR_DATA_TABLE_ENTRY)((ULONG_PTR)pLdrDataTable->InMemoryOrderLinks.Flink - 0x10);
-#elif _WIN32
-        pLdrDataTable = (PLDR_DATA_TABLE_ENTRY)((ULONG_PTR)pLdrDataTable->InMemoryOrderLinks.Flink - 0x8);
 #else
-        break;
+        pLdrDataTable = (PLDR_DATA_TABLE_ENTRY)((ULONG_PTR)pLdrDataTable->InMemoryOrderLinks.Flink - 0x8);
 #endif
     }
 
-    return pModule;
+    return hModule;
 }
 
 
 ULONG_PTR GetProcAddressByHash(ULONG_PTR hModule, DWORD procHash)
 {
     ULONG_PTR pProc = 0;
+    DWORD e_lfanew = *(DWORD*)(hModule + 0x3C);
 
-    do
+#ifdef _WIN64
+    DWORD nExportDirectoryOffset = *(DWORD*)(hModule + e_lfanew + 0x88);
+#else
+    DWORD nExportDirectoryOffset = *(DWORD*)(hModule + e_lfanew + 0x78);
+#endif
+
+    PIMAGE_EXPORT_DIRECTORY pExportDirectory = (PIMAGE_EXPORT_DIRECTORY)(hModule + nExportDirectoryOffset);
+
+    for (DWORD index = 0; index < pExportDirectory->NumberOfNames; index++)
     {
-        DWORD nExportDirectoryOffset;
-        DWORD nNumberOfNames;
-        DWORD nOrdinal;
-        DWORD nStrLen;
-        ULONG_PTR pExportDirectory;
-        ULONG_PTR pAddressOfFunctions;
-        ULONG_PTR pAddressOfNames;
-        ULONG_PTR pAddressOfOrdinals;
-        LPCSTR procName;
-        auto e_lfanew = *(DWORD*)((ULONG_PTR)hModule + 0x3C);
-        auto machine = *(SHORT*)((ULONG_PTR)hModule + e_lfanew + 0x18);
+        ULONG_PTR pName = hModule + (ULONG_PTR)(*(DWORD*)(hModule + pExportDirectory->AddressOfNames + ((ULONG_PTR)index * 4)));
 
-        if (machine == 0x020B)
-            nExportDirectoryOffset = *(DWORD*)((ULONG_PTR)hModule + e_lfanew + 0x88);
-        else if (machine == 0x010B)
-            nExportDirectoryOffset = *(DWORD*)((ULONG_PTR)hModule + e_lfanew + 0x78);
-        else
-            break;
-
-        pExportDirectory = (ULONG_PTR)hModule + nExportDirectoryOffset;
-        nNumberOfNames = *(DWORD*)((ULONG_PTR)pExportDirectory + 0x18);
-        pAddressOfFunctions = (ULONG_PTR)hModule + (ULONG_PTR)(*(DWORD*)((ULONG_PTR)pExportDirectory + 0x1C));
-        pAddressOfNames = (ULONG_PTR)hModule + (ULONG_PTR)(*(DWORD*)((ULONG_PTR)pExportDirectory + 0x20));
-        pAddressOfOrdinals = (ULONG_PTR)hModule + (ULONG_PTR)(*(DWORD*)((ULONG_PTR)pExportDirectory + 0x24));
-
-        for (DWORD index = 0; index < nNumberOfNames; index++)
+        if (CalcAnsiStringHash(pName) == procHash)
         {
-            nStrLen = 0;
-            procName = (LPCSTR)((ULONG_PTR)hModule + (ULONG_PTR)(*(DWORD*)((ULONG_PTR)pAddressOfNames + ((ULONG_PTR)index * 4))));
-
-            while (procName[nStrLen] != 0)
-                nStrLen++;
-
-            if (CalcHash((ULONG_PTR)procName, nStrLen) == procHash)
-            {
-                nOrdinal = (DWORD)(*(SHORT*)((ULONG_PTR)pAddressOfOrdinals + ((ULONG_PTR)index * 2)));
-                pProc = (ULONG_PTR)hModule + (ULONG_PTR)(*(DWORD*)((ULONG_PTR)pAddressOfFunctions + ((ULONG_PTR)nOrdinal * 4)));
-                break;
-            }
+            DWORD nOrdinal = (DWORD)(*(SHORT*)(hModule + pExportDirectory->AddressOfNameOrdinals + ((ULONG_PTR)index * 2)));
+            pProc = (ULONG_PTR)hModule + (ULONG_PTR)(*(DWORD*)(hModule + pExportDirectory->AddressOfFunctions + ((ULONG_PTR)nOrdinal * 4)));
+            break;
         }
-    } while (FALSE);
+    }
 
     return pProc;
 }

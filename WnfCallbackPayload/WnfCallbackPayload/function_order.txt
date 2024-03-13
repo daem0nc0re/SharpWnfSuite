@@ -1,4 +1,5 @@
 WnfCallback
-CalcHash
+CalcAnsiStringHash
+CalcUnicodeStringHash
 GetModuleHandleByHash
 GetProcAddressByHash
