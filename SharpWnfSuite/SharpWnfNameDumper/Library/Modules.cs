@@ -13,6 +13,7 @@ namespace SharpWnfNameDumper.Library
             string filePath,
             out Dictionary<string, Dictionary<ulong, string>> stateNames)
         {
+            bool bSuccess;
             IntPtr pInfoBuffer;
 
             try
@@ -28,11 +29,14 @@ namespace SharpWnfNameDumper.Library
                 return false;
             }
 
-            Helpers.DumpWellKnownWnfNames(pInfoBuffer, out stateNames);
+            bSuccess = Helpers.DumpWellKnownWnfNames(pInfoBuffer, out stateNames);
 
             Marshal.FreeHGlobal(pInfoBuffer);
 
-            return true;
+            if (stateNames.Count == 0)
+                Console.WriteLine("[-] Failed to find WNF State Name table from the file.");
+
+            return (bSuccess && (stateNames.Count > 0));
         }
 
 
