@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -92,7 +92,9 @@ namespace SharpWnfScan.Library
             else
                 nameSubscriptions = Utilities.GetNameSubscriptions(hProcess, pSubscriptionTable);
 
-            Console.WriteLine("WNF_SUBSCRIPTION_TABLE @ 0x{0}\n", pSubscriptionTable.ToString(addressFormat));
+            if (stateNameFilter == 0UL)
+                Console.WriteLine("WNF_SUBSCRIPTION_TABLE @ 0x{0}\n", pSubscriptionTable.ToString(addressFormat));
+
             NativeMethods.SymSetOptions(SYM_OPTIONS.SYMOPT_DEFERRED_LOADS);
 
             foreach (var subscription in nameSubscriptions)
@@ -100,9 +102,9 @@ namespace SharpWnfScan.Library
                 Dictionary<IntPtr, KeyValuePair<IntPtr, IntPtr>> userSubscriptions;
                 var outputBuilder = new StringBuilder();
 
-                if ((stateNameFilter != 0) && (subscription.Key != stateNameFilter))
+                if ((stateNameFilter != 0UL) && (subscription.Key != stateNameFilter))
                     continue;
-                else if ((stateNameFilter != 0) && (subscription.Key == stateNameFilter))
+                else if ((stateNameFilter != 0UL) && (subscription.Key == stateNameFilter))
                     outputBuilder.AppendFormat("WNF_SUBSCRIPTION_TABLE @ 0x{0}\n\n", pSubscriptionTable.ToString(addressFormat));
 
                 outputBuilder.AppendFormat("    WNF_NAME_SUBSCRIPTION @ 0x{0}\n", subscription.Value.ToString(addressFormat));
