@@ -17,10 +17,10 @@ namespace SharpWnfNameDumper.Library
             int nSizeOfSection;
             string sectionName = ".rdata";
             long suffix = BitConverter.ToInt64(Encoding.Unicode.GetBytes("WNF_"), 0);
-            long nImageBase = Helpers.GetImageBase(pRawImageData);
-            int nSizeOfPointer = Helpers.GetImagePointerSize(pRawImageData);
+            long nImageBase = GetImageBase(pRawImageData);
+            int nSizeOfPointer = GetImagePointerSize(pRawImageData);
             int nUnitSize = nSizeOfPointer * 3;
-            Dictionary<string, IMAGE_SECTION_HEADER> sectionHeaders = Helpers.GetSectionHeaders(pRawImageData);
+            Dictionary<string, IMAGE_SECTION_HEADER> sectionHeaders = GetSectionHeaders(pRawImageData);
             var suffixOffsets = new List<int>();
             var nTableBase = 0;
             stateNames = new Dictionary<string, Dictionary<ulong, string>>();
@@ -172,7 +172,7 @@ namespace SharpWnfNameDumper.Library
             if (magic == 0x020B)
                 nImageBase = Marshal.ReadInt64(pImageBase, e_lfanew + 0x30);
             else if (magic == 0x010B)
-                nImageBase = Marshal.ReadInt64(pImageBase, e_lfanew + 0x34);
+                nImageBase = Marshal.ReadInt32(pImageBase, e_lfanew + 0x34);
 
             return nImageBase;
         }
