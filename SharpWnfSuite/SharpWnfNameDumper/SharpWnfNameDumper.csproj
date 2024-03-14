@@ -47,7 +47,7 @@
   <ItemGroup>
     <Compile Include="Handler\CommandLineParser.cs" />
     <Compile Include="Handler\Execute.cs" />
-    <Compile Include="Library\PeFile.cs" />
+    <Compile Include="Library\Header.cs" />
     <Compile Include="Library\Helpers.cs" />
     <Compile Include="Library\Modules.cs" />
     <Compile Include="SharpWnfNameDumper.cs" />
