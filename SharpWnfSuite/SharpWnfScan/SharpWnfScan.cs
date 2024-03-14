@@ -9,7 +9,7 @@ namespace SharpWnfScan
         static void Main(string[] args)
         {
             var options = new CommandLineParser();
-            var exclusive = new List<string> { "all", "pid", "name", "list" };
+            var exclusive = new List<string> { "all", "pid", "list" };
 
             try
             {
