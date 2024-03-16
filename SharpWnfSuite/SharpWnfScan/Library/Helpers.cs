@@ -18,7 +18,7 @@ namespace SharpWnfScan.Library
             var driveLetters = new List<string>();
             var deviceMap = new Dictionary<string, string>();
             var nInfoLength = (uint)Marshal.SizeOf(typeof(PROCESS_DEVICEMAP_INFORMATION));
-            var pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
+            var pInfoBuffer = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UNICODE_STRING)) + 512);
             NTSTATUS ntstatus = NativeMethods.NtQueryInformationProcess(
                 new IntPtr(-1),
                 PROCESSINFOCLASS.ProcessDeviceMap,
@@ -26,7 +26,6 @@ namespace SharpWnfScan.Library
                 nInfoLength,
                 out uint _);
             int nDeviceMap = Marshal.ReadInt32(pInfoBuffer);
-            Marshal.FreeHGlobal(pInfoBuffer);
 
             if (ntstatus == Win32Consts.STATUS_SUCCESS)
             {
@@ -58,8 +57,6 @@ namespace SharpWnfScan.Library
                 if (ntstatus != Win32Consts.STATUS_SUCCESS)
                     continue;
 
-                pInfoBuffer = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UNICODE_STRING)) + 512);
-
                 if (Environment.Is64BitProcess)
                     unicodeString.SetBuffer(new IntPtr(pInfoBuffer.ToInt64() + Marshal.SizeOf(typeof(UNICODE_STRING))));
                 else
@@ -74,12 +71,12 @@ namespace SharpWnfScan.Library
                 {
                     var target = (UNICODE_STRING)Marshal.PtrToStructure(pInfoBuffer, typeof(UNICODE_STRING));
 
-                    if (!string.IsNullOrEmpty(target.ToString()))
+                    if (target.Length != 0)
                         deviceMap.Add(letter, target.ToString());
                 }
-
-                Marshal.FreeHGlobal(pInfoBuffer);
             }
+
+            Marshal.FreeHGlobal(pInfoBuffer);
 
             return deviceMap;
         }
