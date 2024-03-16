@@ -1,177 +1,239 @@
 ﻿using System;
-using System.Runtime.ExceptionServices;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace SharpWnfNameDumper.Library
 {
     internal class Helpers
     {
-        [HandleProcessCorruptedStateExceptions]
-        public static bool ReadStateData(
-            in PeFile peImage,
-            uint nPointerOffset,
-            out ulong stateName,
-            out string stateNameString,
-            out string description)
+        public static bool DumpWellKnownWnfNames(
+            IntPtr pRawImageData,
+            out Dictionary<string, Dictionary<ulong, string>> stateNames)
         {
-            IntPtr pDataBuffer;
-            IntPtr pImageBase = peImage.GetImageBase();
-            uint alignment = peImage.Is64Bit ? 8u : 4u;
+            bool bSuccess;
+            int nSectionOffset;
+            int nSectionVirtualAddress;
+            int nSizeOfSection;
             string sectionName = ".rdata";
-            uint nSectionVirtualAddress = peImage.GetSectionVirtualAddress(sectionName);
-            uint nSectionOffset = peImage.GetSectionPointerToRawData(sectionName);
-            long nBaseOffset = (long)(nSectionOffset - nSectionVirtualAddress) - pImageBase.ToInt64();
+            long suffix = BitConverter.ToInt64(Encoding.Unicode.GetBytes("WNF_"), 0);
+            long nImageBase = GetImageBase(pRawImageData);
+            int nSizeOfPointer = GetImagePointerSize(pRawImageData);
+            int nUnitSize = nSizeOfPointer * 3;
+            Dictionary<string, IMAGE_SECTION_HEADER> sectionHeaders = GetSectionHeaders(pRawImageData);
+            var suffixOffsets = new List<int>();
+            var nTableBase = 0;
+            stateNames = new Dictionary<string, Dictionary<ulong, string>>();
 
-            try
-            {
-                if (Environment.Is64BitProcess)
-                {
-                    pDataBuffer = peImage.ReadIntPtr(new IntPtr(nPointerOffset));
-                    stateName = (ulong)peImage.ReadInt64(new IntPtr(pDataBuffer.ToInt64() + nBaseOffset));
-
-                    pDataBuffer = peImage.ReadIntPtr(new IntPtr(nPointerOffset + alignment));
-                    stateNameString = peImage.ReadUnicodeString(new IntPtr(pDataBuffer.ToInt64() + nBaseOffset));
-
-                    pDataBuffer = peImage.ReadIntPtr(new IntPtr(nPointerOffset + (alignment * 2)));
-                    description = peImage.ReadUnicodeString(new IntPtr(pDataBuffer.ToInt64() + nBaseOffset));
-                }
-                else
-                {
-                    pDataBuffer = peImage.ReadIntPtr(new IntPtr((int)nPointerOffset));
-                    stateName = (ulong)peImage.ReadInt64(new IntPtr(pDataBuffer.ToInt32() + (int)nBaseOffset));
-
-                    pDataBuffer = peImage.ReadIntPtr(new IntPtr((int)(nPointerOffset + alignment)));
-                    stateNameString = peImage.ReadUnicodeString(new IntPtr(pDataBuffer.ToInt32() + (int)nBaseOffset));
-
-                    pDataBuffer = peImage.ReadIntPtr(new IntPtr((int)(nPointerOffset + (alignment * 2))));
-                    description = peImage.ReadUnicodeString(new IntPtr(pDataBuffer.ToInt32() + (int)nBaseOffset));
-                }
-            }
-            catch (AccessViolationException)
-            {
-                stateName = 0UL;
-                stateNameString = null;
-                description = null;
-
+            if (!sectionHeaders.ContainsKey(".rdata") || (nSizeOfPointer == 0) || (nImageBase == 0L))
                 return false;
+
+            nSectionOffset = (int)sectionHeaders[sectionName].PointerToRawData;
+            nSectionVirtualAddress = (int)sectionHeaders[sectionName].VirtualAddress;
+            nSizeOfSection = (int)sectionHeaders[sectionName].SizeOfRawData;
+
+            for (var idx = 0; idx < (nSizeOfSection / nSizeOfPointer); idx++)
+            {
+                if (Marshal.ReadInt64(pRawImageData, nSectionOffset + (nSizeOfPointer * idx)) == suffix)
+                    suffixOffsets.Add(nSectionVirtualAddress + (nSizeOfPointer * idx));
             }
 
-            return true;
-        }
-
-
-        public static uint SearchTableOffset(in PeFile peImage)
-        {
-            IntPtr pTablePointer;
-            uint nTableOffset;
-            IntPtr pSectionOffset;
-            IntPtr[] pCandidates;
-            IntPtr pTableOffset;
-            byte[] searchBytes;
-            string sectionName = ".rdata";
-            uint nPointerSize = peImage.Is64Bit ? 8u : 4u;
-            IntPtr pImageBase = peImage.GetImageBase();
-            uint nSectionVirtualAddress = peImage.GetSectionVirtualAddress(sectionName);
-            uint nSectionOffset = peImage.GetSectionPointerToRawData(sectionName);
-            uint nSectionSize = peImage.GetSectionSizeOfRawData(sectionName);
-
-            if ((nSectionOffset == 0) || (nSectionSize == 0) || (nSectionVirtualAddress == 0))
-                return 0u;
-
-            if (Environment.Is64BitProcess)
-                pSectionOffset = new IntPtr((long)nSectionOffset);
-            else
-                pSectionOffset = new IntPtr((int)nSectionOffset);
-
-            pCandidates = peImage.SearchBytes(pSectionOffset, nSectionSize, Encoding.Unicode.GetBytes("WNF_"));
-
-            if (pCandidates.Length == 0)
-                return 0u;
-
-            for (var idx = 0; idx < pCandidates.Length; idx++)
+            foreach (var offset in suffixOffsets)
             {
-                if (Environment.Is64BitProcess)
+                for (var idx = 0; idx < (nSizeOfSection / nSizeOfPointer); idx++)
                 {
-                    pTablePointer = new IntPtr(pImageBase.ToInt64() + pCandidates[idx].ToInt64() + (long)(nSectionVirtualAddress - nSectionOffset));
-                    searchBytes = BitConverter.GetBytes(pTablePointer.ToInt64());
+                    long nVirtualAddress;
+                    var bIsValid = false;
+                    nTableBase = nSectionOffset + (nSizeOfPointer * idx) - nSizeOfPointer;
+
+                    if (nSizeOfPointer == 8)
+                        nVirtualAddress = Marshal.ReadInt64(pRawImageData, nSectionOffset + (nSizeOfPointer * idx));
+                    else
+                        nVirtualAddress = (long)Marshal.ReadInt32(pRawImageData, nSectionOffset + (nSizeOfPointer * idx));
+
+                    if (nVirtualAddress == (nImageBase + (long)offset))
+                    {
+                        int nStateNameOffset;
+
+                        for (int count = 0; count < 3; count++)
+                        {
+                            if (nSizeOfPointer == 8)
+                            {
+                                long nSubtructor = nImageBase + nSectionVirtualAddress - nSectionOffset;
+                                nStateNameOffset = (int)(Marshal.ReadInt64(pRawImageData, nTableBase + (nUnitSize * count)) - nSubtructor);
+                            }
+                            else
+                            {
+                                int nSubtructor = (int)nImageBase + nSectionVirtualAddress - nSectionOffset;
+                                nStateNameOffset = Marshal.ReadInt32(pRawImageData, nTableBase + (nUnitSize * count)) - nSubtructor;
+                            }
+
+                            var wnfStateName = new WNF_STATE_NAME
+                            {
+                                Data = (ulong)Marshal.ReadInt64(pRawImageData, nStateNameOffset)
+                            };
+
+                            bIsValid = wnfStateName.IsValid() && (wnfStateName.GetNameLifeTime() == WNF_STATE_NAME_LIFETIME.WellKnown);
+
+                            if (!bIsValid)
+                            {
+                                nTableBase = 0;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (bIsValid)
+                        break;
+                }
+
+                if (nTableBase != 0)
+                    break;
+            }
+
+            bSuccess = (nTableBase != 0);
+
+            while (bSuccess)
+            {
+                int nStateNameOffset;
+                int nNameOffset;
+                int nDescriptionOffset;
+                string wellKnownName;
+                string description;
+
+                if (Marshal.ReadInt32(pRawImageData, nTableBase) == 0)
+                {
+                    if (Marshal.ReadInt64(pRawImageData, nTableBase) == 0)
+                        break;
+                }
+
+                if (nSizeOfPointer == 8)
+                {
+                    long nSubtructor = nImageBase + nSectionVirtualAddress - nSectionOffset;
+                    nStateNameOffset = (int)(Marshal.ReadInt64(pRawImageData, nTableBase) - nSubtructor);
+                    nNameOffset = (int)(Marshal.ReadInt64(pRawImageData, nTableBase + nSizeOfPointer) - nSubtructor);
+                    nDescriptionOffset = (int)(Marshal.ReadInt64(pRawImageData, nTableBase + (nSizeOfPointer * 2)) - nSubtructor);
                 }
                 else
                 {
-                    pTablePointer = new IntPtr(pImageBase.ToInt32() + pCandidates[idx].ToInt32() + (int)(nSectionVirtualAddress - nSectionOffset));
-                    searchBytes = BitConverter.GetBytes(pTablePointer.ToInt32());
+                    int nSubtructor = (int)nImageBase + nSectionVirtualAddress - nSectionOffset;
+                    nStateNameOffset = Marshal.ReadInt32(pRawImageData, nTableBase) - nSubtructor;
+                    nNameOffset = Marshal.ReadInt32(pRawImageData, nTableBase + nSizeOfPointer) - nSubtructor;
+                    nDescriptionOffset = Marshal.ReadInt32(pRawImageData, nTableBase + (nSizeOfPointer * 2)) - nSubtructor;
                 }
 
-                pTableOffset = peImage.SearchBytesFirst(pSectionOffset, nSectionSize, searchBytes);
-
-                if (pTableOffset != IntPtr.Zero)
+                var wnfStateName = new WNF_STATE_NAME
                 {
-                    if (Environment.Is64BitProcess)
-                        nTableOffset = (uint)pTableOffset.ToInt64() - nPointerSize;
-                    else
-                        nTableOffset = (uint)pTableOffset.ToInt32() - nPointerSize;
+                    Data = (ulong)Marshal.ReadInt64(pRawImageData, nStateNameOffset)
+                };
 
-                    if (VerifyTable(in peImage, nTableOffset))
-                        return nTableOffset;
+                if (!wnfStateName.IsValid())
+                    break;
+
+                if (wnfStateName.GetNameLifeTime() != WNF_STATE_NAME_LIFETIME.WellKnown)
+                    break;
+
+                if (Environment.Is64BitProcess)
+                {
+                    wellKnownName = Marshal.PtrToStringUni(new IntPtr(pRawImageData.ToInt64() + nNameOffset));
+                    description = Marshal.PtrToStringUni(new IntPtr(pRawImageData.ToInt64() + nDescriptionOffset));
                 }
+                else
+                {
+                    wellKnownName = Marshal.PtrToStringUni(new IntPtr(pRawImageData.ToInt64() + nNameOffset));
+                    description = Marshal.PtrToStringUni(new IntPtr(pRawImageData.ToInt64() + nDescriptionOffset));
+                }
+
+                stateNames.Add(
+                    wellKnownName,
+                    new Dictionary<ulong, string> { { wnfStateName.Data, description } });
+
+                nTableBase += nUnitSize;
             }
 
-            return 0u;
+            return bSuccess;
         }
 
 
-        public static bool VerifyTable(in PeFile peImage, uint tableOffset)
+        public static long GetImageBase(IntPtr pImageBase)
         {
-            IntPtr pDataBuffer;
-            IntPtr pDataOffset;
-            string sectionName = ".rdata";
-            IntPtr pImageBase = peImage.GetImageBase();
-            uint nSectionVirtualAddress = peImage.GetSectionVirtualAddress(sectionName);
-            uint nSectionOffset = peImage.GetSectionPointerToRawData(sectionName);
-            uint baseOffset = tableOffset;
-            uint nPointerSize = peImage.Is64Bit ? 8u : 4u;
-            var suffix = new Regex(@"^WNF_\S+$");
+            short magic;
+            long nImageBase = 0L;
+            var e_lfanew = Marshal.ReadInt32(pImageBase, 0x3C);
 
-            for (var count = 0; count < 3; count++)
-            {
-                if (!ReadStateData(
-                    in peImage,
-                    baseOffset,
-                    out ulong stateName,
-                    out string stateNameString,
-                    out string description))
-                {
-                    return false;
-                }
+            if (Marshal.ReadInt16(pImageBase) != 0x5A4D)
+                return 0;
 
-                if (stateName == 0)
-                    return false;
+            if (e_lfanew > 0x800)
+                return 0;
 
-                if (!suffix.IsMatch(stateNameString))
-                    return false;
+            magic = Marshal.ReadInt16(pImageBase, e_lfanew + 0x18);
 
-                if (string.IsNullOrEmpty(description))
-                    return false;
+            if (magic == 0x020B)
+                nImageBase = Marshal.ReadInt64(pImageBase, e_lfanew + 0x30);
+            else if (magic == 0x010B)
+                nImageBase = Marshal.ReadInt32(pImageBase, e_lfanew + 0x34);
 
-                baseOffset += nPointerSize * 3;
-            }
+            return nImageBase;
+        }
 
-            // Verify Top of Table with WNF state name string
-            baseOffset = tableOffset - (nPointerSize * 2);
-            pDataBuffer = peImage.ReadIntPtr(new IntPtr(baseOffset));
 
-            if (Environment.Is64BitProcess)
-                pDataOffset = new IntPtr(pDataBuffer.ToInt64() - pImageBase.ToInt64() - (long)(nSectionVirtualAddress - nSectionOffset));
+        public static int GetImagePointerSize(IntPtr pImageBase)
+        {
+            short magic;
+            int nPointerSize;
+            var e_lfanew = Marshal.ReadInt32(pImageBase, 0x3C);
+
+            if (Marshal.ReadInt16(pImageBase) != 0x5A4D)
+                return 0;
+
+            if (e_lfanew > 0x800)
+                return 0;
+
+            magic = Marshal.ReadInt16(pImageBase, e_lfanew + 0x18);
+
+            if (magic == 0x020B)
+                nPointerSize = 8;
+            else if (magic == 0x010B)
+                nPointerSize = 4;
             else
-                pDataOffset = new IntPtr(pDataBuffer.ToInt32() - pImageBase.ToInt32() - (int)(nSectionVirtualAddress - nSectionOffset));
+                nPointerSize = 0;
 
-            if (pDataOffset.ToInt64() != 0)
+            return nPointerSize;
+        }
+
+
+        public static Dictionary<string, IMAGE_SECTION_HEADER> GetSectionHeaders(IntPtr pImageBase)
+        {
+            ushort nNumberOfSections;
+            ushort nSizeOfOptionalHeader;
+            var sectionHeaders = new Dictionary<string, IMAGE_SECTION_HEADER>();
+            var e_lfanew = Marshal.ReadInt32(pImageBase, 0x3C);
+
+            if (Marshal.ReadInt16(pImageBase) != 0x5A4D)
+                return sectionHeaders;
+
+            if (e_lfanew > 0x800)
+                return sectionHeaders;
+
+            nNumberOfSections = (ushort)Marshal.ReadInt16(pImageBase, e_lfanew + 0x6);
+            nSizeOfOptionalHeader = (ushort)Marshal.ReadInt16(pImageBase, e_lfanew + 0x14);
+
+            for (var idx = 0; idx < nNumberOfSections; idx++)
             {
-                if (suffix.IsMatch(peImage.ReadUnicodeString(pDataOffset)))
-                    return false;
+                IntPtr pSectionHeader;
+                int nOffset = Marshal.SizeOf(typeof(IMAGE_SECTION_HEADER)) * idx;
+
+                if (Environment.Is64BitProcess)
+                    pSectionHeader = new IntPtr(pImageBase.ToInt64() + e_lfanew + 0x18 + nSizeOfOptionalHeader + nOffset);
+                else
+                    pSectionHeader = new IntPtr(pImageBase.ToInt32() + e_lfanew + 0x18 + nSizeOfOptionalHeader + nOffset);
+
+                var info = (IMAGE_SECTION_HEADER)Marshal.PtrToStructure(pSectionHeader, typeof(IMAGE_SECTION_HEADER));
+                sectionHeaders.Add(info.Name, info);
             }
 
-            return true;
+            return sectionHeaders;
         }
     }
 }

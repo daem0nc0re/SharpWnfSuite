@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace SharpWnfNameDumper.Library
@@ -9,49 +10,33 @@ namespace SharpWnfNameDumper.Library
     internal class Modules
     {
         public static bool DumpWellKnownWnfNames(
-            string filePath, 
+            string filePath,
             out Dictionary<string, Dictionary<ulong, string>> stateNames)
         {
-            uint nTableOffset;
-            uint nPointerSize;
-            stateNames= new Dictionary<string, Dictionary<ulong, string>>();
+            bool bSuccess;
+            IntPtr pInfoBuffer;
 
             try
             {
-                using (var peImage = new PeFile(filePath))
-                {
-                    nPointerSize = peImage.Is64Bit ? 8u : 4u;
-                    nTableOffset = Helpers.SearchTableOffset(in peImage);
-
-                    if (nTableOffset == 0)
-                        return false;
-
-                    while (Helpers.ReadStateData(
-                        in peImage,
-                        nTableOffset,
-                        out ulong stateName,
-                        out string stateNameString,
-                        out string description))
-                    {
-                        stateNames.Add(
-                            stateNameString, 
-                            new Dictionary<ulong, string> { { stateName, description } });
-                        nTableOffset += (nPointerSize * 3);
-                    }
-                }
-            }
-            catch (InvalidDataException ex)
-            {
-                Console.WriteLine("[!] {0}", ex.Message);
-
-                return false;
+                var fileBytes = File.ReadAllBytes(Path.GetFullPath(filePath));
+                pInfoBuffer = Marshal.AllocHGlobal(fileBytes.Length);
+                Marshal.Copy(fileBytes, 0, pInfoBuffer, fileBytes.Length);
             }
             catch
             {
-                Console.WriteLine("[!] Unexpected exception.");
+                Console.WriteLine("[!] Failed to read file.");
+                stateNames = new Dictionary<string, Dictionary<ulong, string>>();
+                return false;
             }
 
-            return true;
+            bSuccess = Helpers.DumpWellKnownWnfNames(pInfoBuffer, out stateNames);
+
+            Marshal.FreeHGlobal(pInfoBuffer);
+
+            if (stateNames.Count == 0)
+                Console.WriteLine("[-] Failed to find WNF State Name table from the file.");
+
+            return (bSuccess && (stateNames.Count > 0));
         }
 
 

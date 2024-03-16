@@ -32,13 +32,13 @@ I made some updates from the original tool (Exception Handling, Well-Known State
 To retrieve information of all Well-Known, Permanent and Persistent WNF State Names on your host, execute with `-d` (`--dump`) flag:
 
 ```
-C:\dev>SharpWnfDump.exe -d
+PS C:\Dev> .\SharpWnfDump.exe -d
 
-| WNF State Name [WnfWellKnownStateName Lifetime]                 | S | L | P | AC | N | CurSize | MaxSize | Changes |
+| WNF State Name [WellKnown Lifetime]                             | S | L | P | AC | N | CurSize | MaxSize | Changes |
 ----------------------------------------------------------------------------------------------------------------------
-| WNF_WEBA_CTAP_DEVICE_STATE                                      | S | W | N | RO | U |       0 |      12 |       0 |
-| WNF_WEBA_CTAP_DEVICE_CHANGE_NOTIFY                              | S | W | N | RO | U |       0 |       4 |       0 |
-| WNF_PNPA_DEVNODES_CHANGED                                       | S | W | N | RO | U |       0 |       0 |     400 |
+| WNF_WEBA_CTAP_DEVICE_STATE                                      | S | W | N | RW | I |       0 |      12 |       0 |
+| WNF_WEBA_CTAP_DEVICE_CHANGE_NOTIFY                              | S | W | N | RW | I |       0 |       4 |       0 |
+| WNF_PNPA_DEVNODES_CHANGED                                       | S | W | N | RO | U |       0 |       0 |      11 |
 
 --snip--
 ```
@@ -46,33 +46,45 @@ C:\dev>SharpWnfDump.exe -d
 If you want to retrieve Security Descripter information, set `-s` (`--sid`) flag:
 
 ```
-C:\dev>SharpWnfDump.exe -d -s
+PS C:\Dev> .\SharpWnfDump.exe -d -s
 
-| WNF State Name [WnfWellKnownStateName Lifetime]                 | S | L | P | AC | N | CurSize | MaxSize | Changes |
+| WNF State Name [WellKnown Lifetime]                             | S | L | P | AC | N | CurSize | MaxSize | Changes |
 ----------------------------------------------------------------------------------------------------------------------
-| WNF_WEBA_CTAP_DEVICE_STATE                                      | S | W | N | RO | U |       0 |      12 |       0 |
+| WNF_WEBA_CTAP_DEVICE_STATE                                      | S | W | N | RW | I |       0 |      12 |       0 |
 
-	D:(A;;CCDC;;;SY)(A;;CCDC;;;BA)(A;;CCDC;;;S-1-5-80-242729624-280608522-2219052887-3187409060-2225943459)(A;;CC;;;AU)(A;;CC;;;AC)
+        D:(A;;CCDC;;;SY)(A;;CCDC;;;BA)(A;;CCDC;;;S-1-5-80-242729624-280608522-2219052887-3187409060-2225943459)(A;;CC;;;AU)(A;;CC;;;AC)
+
+| WNF_WEBA_CTAP_DEVICE_CHANGE_NOTIFY                              | S | W | N | RW | I |       0 |       4 |       0 |
+
+        D:(A;;CCDC;;;SY)(A;;CCDC;;;BA)(A;;CCDC;;;S-1-5-80-242729624-280608522-2219052887-3187409060-2225943459)(A;;CC;;;AU)(A;;CC;;;AC)
+
+| WNF_PNPA_DEVNODES_CHANGED                                       | S | W | N | RO | U |       0 |       0 |      11 |
+
+        D:(A;;CC;;;BU)(A;;CCDC;;;SY)
 
 --snip--
 ```
 
-If you want to retrieve buffer data, set `-v` (`--value`) or `-r` (`--read`) flag:
+If you want to retrieve buffer data, set `-v` (`--value`) or `-r` (`--read`) flag.
+These flags can be used with `-s` flag:
 
 ```
-C:\dev>SharpWnfDump.exe -d -v
+PS C:\Dev> .\SharpWnfDump.exe -d -v
 
-| WNF State Name [WnfWellKnownStateName Lifetime]                 | S | L | P | AC | N | CurSize | MaxSize | Changes |
+| WNF State Name [WellKnown Lifetime]                             | S | L | P | AC | N | CurSize | MaxSize | Changes |
 ----------------------------------------------------------------------------------------------------------------------
-| WNF_WEBA_CTAP_DEVICE_STATE                                      | S | W | N | RO | U |       0 |      12 |       0 |
+| WNF_WEBA_CTAP_DEVICE_STATE                                      | S | W | N | RW | I |       0 |      12 |       0 |
+| WNF_WEBA_CTAP_DEVICE_CHANGE_NOTIFY                              | S | W | N | RW | I |       0 |       4 |       0 |
 
 --snip--
 
-| WNF_AUDC_RENDER                                                 | S | W | N | RO | U |    4096 |    4096 |     345 |
+| WNF_AUDC_RENDER                                                 | S | W | N | RO | U |    4096 |    4096 |       1 |
 
-		00000000 | 01 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00 | ........ ........
-		00000010 | 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00 | ........ ........
-		00000020 | 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00 | ........ ........
+                   00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+
+        00000000 | 01 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00 | ........ ........
+        00000010 | 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00 | ........ ........
+        00000020 | 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00 | ........ ........
 
 --snip--
 ```
@@ -80,12 +92,13 @@ C:\dev>SharpWnfDump.exe -d -v
 To retrieve information of all Temporary WNF State Names on your host, execute with `-b` (`--brut`) flag:
 
 ```
-C:\dev>SharpWnfDump.exe -b
+PS C:\Dev> .\SharpWnfDump.exe -b
 
-| WNF State Name [WnfDataScopeSystem Scope]                       | S | L | P | AC | N | CurSize | MaxSize | Changes |
+| WNF State Name [System Scope]                                   | S | L | P | AC | N | CurSize | MaxSize | Changes |
 ----------------------------------------------------------------------------------------------------------------------
-| 0x41C64E6DA3BC5045                                              | S | T | N | RO | U |       4 |       ? |       4 |
-| 0x41C64E6DA3BC5845                                              | S | T | N | RO | U |       4 |       ? |       4 |
+| 0x41C64E6DA3AC3845                                              | S | T | N | RW | A |       8 |       ? |       1 |
+| 0x41C64E6DA3AC4845                                              | S | T | N | RW | A |       8 |       ? |       1 |
+| 0x41C64E6DA3AC6845                                              | S | T | N | RW | A |       8 |       ? |       1 |
 
 --snip--
 ```
@@ -109,33 +122,33 @@ The meaning of each column in the table obtained from the results of `--dump` or
 If you want to retrieve information about a specific WNF State Name, execute `SharpWnfDump.exe` with `-i` (`--info`) option as follows:
 
 ```
-C:\dev>SharpWnfDump.exe -i WNF_SHEL_APPRESOLVER_SCAN
+PS C:\Dev> .\SharpWnfDump.exe -i WNF_SHEL_APPRESOLVER_SCAN
 
 | WNF State Name                                                  | S | L | P | AC | N | CurSize | MaxSize | Changes |
 ----------------------------------------------------------------------------------------------------------------------
-| WNF_SHEL_APPRESOLVER_SCAN                                       | S | W | N | RW | A |       4 |       4 |      26 |
-
+| WNF_SHEL_APPRESOLVER_SCAN                                       | S | W | N | RW | A |       4 |       4 |       1 |
 ```
 
 The `-i` (`--info`) option can be used with `-v` (`--value`), `-r` (`--read`), and `-s` (`--sid`) flag:
 
 ```
-C:\dev>SharpWnfDump.exe -i WNF_SHEL_APPRESOLVER_SCAN -s -v
+PS C:\Dev> .\SharpWnfDump.exe -i WNF_SHEL_APPRESOLVER_SCAN -s -v
 
 | WNF State Name                                                  | S | L | P | AC | N | CurSize | MaxSize | Changes |
 ----------------------------------------------------------------------------------------------------------------------
-| WNF_SHEL_APPRESOLVER_SCAN                                       | S | W | N | RW | A |       4 |       4 |      26 |
+| WNF_SHEL_APPRESOLVER_SCAN                                       | S | W | N | RW | A |       4 |       4 |       1 |
 
         D:(A;;CC;;;WD)(A;;CCDC;;;AU)(A;;CCDC;;;AC)
 
-                00000000 | 11 00 00 00                                     | ....
+                   00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 
+        00000000 | 01 00 00 00                                     | ....
 ```
 
 To read data from a specific WNF State Name, use `-r` (`--read`) flag as follows:
 
 ```
-C:\dev>SharpWnfDump.exe -r WNF_SHEL_APPRESOLVER_SCAN
+PS C:\Dev> .\SharpWnfDump.exe -r WNF_SHEL_APPRESOLVER_SCAN
 
 WNF_SHEL_APPRESOLVER_SCAN:
 
@@ -146,23 +159,25 @@ WNF_SHEL_APPRESOLVER_SCAN:
 To write data to a specific WNF State Name, use `-w` (`--write`) flag as follows (data for write should be provided with a file):
 
 ```
-C:\dev>echo hi>test.txt
-
-C:\dev>SharpWnfDump.exe -w WNF_SHEL_APPRESOLVER_SCAN test.txt
+PS C:\Dev> "hi" | Out-File -Encoding ascii -FilePath C:\Dev\test.txt
+PS C:\Dev> Get-Content -Path C:\Dev\test.txt
+hi
+PS C:\Dev> .\SharpWnfDump.exe -w WNF_SHEL_APPRESOLVER_SCAN C:\Dev\test.txt
 
 [>] Trying to write data.
-    |-> Target WNF Name : WNF_SHEL_APPRESOLVER_SCAN
-    |-> Data Source     : C:\dev\test.txt
-
+    [*] Target WNF Name : WNF_SHEL_APPRESOLVER_SCAN
+    [*] Data Source     : C:\Dev\test.txt
 [+] Data is written successfully.
 
+PS C:\Dev> .\SharpWnfDump.exe -i WNF_SHEL_APPRESOLVER_SCAN -r
 
-C:\dev>SharpWnfDump.exe -r WNF_SHEL_APPRESOLVER_SCAN
+| WNF State Name                                                  | S | L | P | AC | N | CurSize | MaxSize | Changes |
+----------------------------------------------------------------------------------------------------------------------
+| WNF_SHEL_APPRESOLVER_SCAN                                       | S | W | N | RW | A |       4 |       4 |       2 |
 
-WNF_SHEL_APPRESOLVER_SCAN:
+                   00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 
         00000000 | 68 69 0D 0A                                     | hi..
-
 ```
 
 
@@ -179,7 +194,7 @@ Typically, Well-Know State Names is contained in perf_nt_c.dll (it is in the Win
 To dump Well-Know State Names from DLL, execute `SharpWnfNameDumper.exe` with `-d` (`--dump`) option as follows:
 
 ```
-C:\dev>SharpWnfNameDumper.exe -d perf_nt_c.dll
+PS C:\Dev> .\SharpWnfNameDumper.exe -d perf_nt_c.dll
 
 [>] Output results in C# style.
 
@@ -194,7 +209,7 @@ public enum WELL_KNOWN_WNF_NAME : ulong
 If you want to dump description for Well-Known State Names, set `-v` flag:
 
 ```
-C:\dev>SharpWnfNameDumper.exe -d perf_nt_c.dll -v
+PS C:\Dev> .\SharpWnfNameDumper.exe -d perf_nt_c.dll -v
 
 [>] Output results in C# style.
 
@@ -211,7 +226,7 @@ public enum WELL_KNOWN_WNF_NAME : ulong
 To specify the output format, use `-f` (`--format`) option. `SharpWnfNameDumper.exe` supports C#, C (`-f c`) and Python (`-f py`) format (default format is C#):
 
 ```
-C:\dev>SharpWnfNameDumper.exe -d perf_nt_c.dll -f py
+PS C:\Dev> .\SharpWnfNameDumper.exe -d perf_nt_c.dll -f py
 
 [>] Output results in Python style.
 
@@ -225,7 +240,7 @@ g_WellKnownWnfNames = {
 To output the result to a file, use `-o` (`--output`) option to specify output file path:
 
 ```
-C:\dev>SharpWnfNameDumper.exe -d perf_nt_c.dll -o result.txt
+PS C:\Dev> .\SharpWnfNameDumper.exe -d perf_nt_c.dll -o result.txt
 
 [>] Output results in C# style.
 
@@ -242,7 +257,7 @@ public enum WELL_KNOWN_WNF_NAME : ulong
 To take diff from 2 DLLs, use `-D` (`--diff`) option:
 
 ```
-C:\dev>SharpWnfNameDumper.exe -D perf_nt_c_old.dll perf_nt_c_new.dll
+PS C:\Dev> .\SharpWnfNameDumper.exe -D perf_nt_c_old.dll perf_nt_c_new.dll
 
 [>] Output results in C# style.
 
@@ -273,33 +288,39 @@ Equivalent to [wnfclient-rtl.exe](https://github.com/ionescu007/wnfun/blob/maste
 For example, if you want to monitor the state of `WNF_SHEL_APPLICATION_STARTED`, execute `SharpWnfClient.exe` as follows:
 
 ```
-C:\dev>SharpWnfClient.exe WNF_SHEL_APPLICATION_STARTED
+PS C:\Dev> .\SharpWnfClient.exe WNF_SHEL_APPLICATION_STARTED
 
 [>] Received data from server.
-    |-> Timestamp : 393
-    |-> Buffer Size : 106 byte(s)
-    |-> Data :
-                00000000 | 61 00 3A 00 7B 00 31 00-61 00 63 00 31 00 34 00 | a.:.{.1. a.c.1.4.
-                00000010 | 65 00 37 00 37 00 2D 00-30 00 32 00 65 00 37 00 | e.7.7.-. 0.2.e.7.
-                00000020 | 2D 00 34 00 65 00 35 00-64 00 2D 00 62 00 37 00 | -.4.e.5. d.-.b.7.
-                00000030 | 34 00 34 00 2D 00 32 00-65 00 62 00 31 00 61 00 | 4.4.-.2. e.b.1.a.
-                00000040 | 65 00 35 00 31 00 39 00-38 00 62 00 37 00 7D 00 | e.5.1.9. 8.b.7.}.
-                00000050 | 5C 00 6E 00 6F 00 74 00-65 00 70 00 61 00 64 00 | \.n.o.t. e.p.a.d.
-                00000060 | 2E 00 65 00 78 00 65 00-00 00                   | ..e.x.e. ..
+    [*] Timestamp : 4
+    [*] Buffer Size : 92 byte(s)
+    [*] Data :
+
+                   00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+
+        00000000 | 61 00 3A 00 6D 00 69 00-63 00 72 00 6F 00 73 00 | a.:.m.i. c.r.o.s.
+        00000010 | 6F 00 66 00 74 00 2E 00-77 00 69 00 6E 00 64 00 | o.f.t... w.i.n.d.
+        00000020 | 6F 00 77 00 73 00 74 00-65 00 72 00 6D 00 69 00 | o.w.s.t. e.r.m.i.
+        00000030 | 6E 00 61 00 6C 00 5F 00-38 00 77 00 65 00 6B 00 | n.a.l._. 8.w.e.k.
+        00000040 | 79 00 62 00 33 00 64 00-38 00 62 00 62 00 77 00 | y.b.3.d. 8.b.b.w.
+        00000050 | 65 00 21 00 61 00 70 00-70 00 00 00             | e.!.a.p. p...
 ```
 
-Then, if you start Slack application, should see following result:
+Then, if you start notepad application, should see following result:
 
 ```
 [>] Received data from server.
-    |-> Timestamp : 394
-    |-> Buffer Size : 54 byte(s)
-    |-> Data :
-                00000000 | 61 00 3A 00 63 00 6F 00-6D 00 2E 00 73 00 71 00 | a.:.c.o. m...s.q.
-                00000010 | 75 00 69 00 72 00 72 00-65 00 6C 00 2E 00 73 00 | u.i.r.r. e.l...s.
-                00000020 | 6C 00 61 00 63 00 6B 00-2E 00 73 00 6C 00 61 00 | l.a.c.k. ..s.l.a.
-                00000030 | 63 00 6B 00 00 00                               | c.k...
+    [*] Timestamp : 5
+    [*] Buffer Size : 90 byte(s)
+    [*] Data :
 
+                   00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+
+        00000000 | 61 00 3A 00 6D 00 69 00-63 00 72 00 6F 00 73 00 | a.:.m.i. c.r.o.s.
+        00000010 | 6F 00 66 00 74 00 2E 00-77 00 69 00 6E 00 64 00 | o.f.t... w.i.n.d.
+        00000020 | 6F 00 77 00 73 00 6E 00-6F 00 74 00 65 00 70 00 | o.w.s.n. o.t.e.p.
+        00000030 | 61 00 64 00 5F 00 38 00-77 00 65 00 6B 00 79 00 | a.d._.8. w.e.k.y.
+        00000040 | 62 00 33 00 64 00 38 00-62 00 62 00 77 00 65 00 | b.3.d.8. b.b.w.e.
+        00000050 | 21 00 61 00 70 00 70 00-00 00                   | !.a.p.p. ..
 ```
 
 
@@ -315,13 +336,12 @@ Equivalent to [wnfserver.exe](https://github.com/ionescu007/wnfun/blob/master/wn
 To start new WNF State Name server, simply execute `SharpWnfServer.exe`. We should enter an interactive shell as follows:
 
 ```
-C:\dev>SharpWnfServer.exe
+PS C:\Dev> .\SharpWnfServer.exe
 
-[+] New WNF State Name is created successfully : 0x41C64E6DA67F7145
+[+] New WNF State Name is created successfully : 0x41C64E6DA3834945
 
-
-Encoded State Name: 0x41C64E6DA67F7145, Decoded State Name: 0x5C37131
-        Version: 1, Lifetime: Temporary, Scope: Machine, Permanent: NO, Sequence Number: 0xB86E, Owner Tag: 0x0
+Encoded State Name: 0x41C64E6DA3834945, Decoded State Name: 0x3F4931
+    Version: 1, Lifetime: Temporary, Scope: Machine, Permanent: NO, Sequence Number: 0x7E9, Owner Tag: 0x0
 
 Sending input data to WNF subscriber...
 
@@ -331,20 +351,22 @@ Sending input data to WNF subscriber...
 After executing `SharpWnfServer.exe`, execute `SharpWnfClient.exe` with WNF State Name provided with `SharpWnfServer.exe` from another terminal. You should receive "Hello, world!" as a message from `SharpWnfServer.exe`:
 
 ```
-C:\dev>SharpWnfClient.exe 0x41C64E6DA67F7145
+PS C:\Dev> .\SharpWnfClient.exe 0x41C64E6DA3834945
 
 [>] Received data from server.
-    |-> Timestamp : 1
-    |-> Buffer Size : 13 byte(s)
-    |-> Data :
-                00000000 | 48 65 6C 6C 6F 2C 20 77-6F 72 6C 64 21          | Hello,.w orld!
+    [*] Timestamp : 1
+    [*] Buffer Size : 13 byte(s)
+    [*] Data :
 
+                   00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+
+        00000000 | 48 65 6C 6C 6F 2C 20 77-6F 72 6C 64 21          | Hello,.w orld!
 ```
 
 To publish additional message to `SharpWnfClient.exe`, enter your message to the interactive shell of `SharpWnfServer.exe`:
 
 ```
-[INPUT]> This is wnf test
+[INPUT]> This is WNF test
 Sending input data to WNF subscriber...
 
 [INPUT]>
@@ -354,11 +376,13 @@ Then, you should see the message in the terminal for `SharpWnfClient.exe` as fol
 
 ```
 [>] Received data from server.
-    |-> Timestamp : 2
-    |-> Buffer Size : 16 byte(s)
-    |-> Data :
-                00000000 | 54 68 69 73 20 69 73 20-77 6E 66 20 74 65 73 74 | This.is. wnf.test
+    [*] Timestamp : 2
+    [*] Buffer Size : 16 byte(s)
+    [*] Data :
 
+                   00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+
+        00000000 | 54 68 69 73 20 69 73 20-57 4E 46 20 74 65 73 74 | This.is. WNF.test
 ```
 
 
@@ -371,7 +395,7 @@ Then, you should see the message in the terminal for `SharpWnfClient.exe` as fol
 This tool is based on [modexp](https://twitter.com/modexpblog)'s [wnfscan](https://github.com/odzhan/injection/blob/master/wnf/wnfscan.c), and dumps WNF subscription information from process.
 
 ```
-C:\dev>SharpWnfScan.exe
+PS C:\Dev> .\SharpWnfScan.exe -h
 
 SharpWnfScan - Tool for dumping WNF information from process.
 
@@ -382,35 +406,58 @@ Usage: SharpWnfScan.exe [Options]
         -P, --processname : Specifies the target process name.
         -n, --name        : Specifies a wnf state name for filtering.
         -a, --all         : Flag to dump information from all process.
-        -b, --brief       : Flag to exclude WNF_USER_SUBSCRIPTION information.
         -l, --list        : Flag to list WNF State Name on this system.
         -d, --debug       : Flag to enable SeDebugPrivilege. Administrative privilege is required.
+        -v, --verbose     : Flag to get verbose information.
 ```
 
 To dump a specific process, set `-p` option as follows:
 
 ```
-C:\dev>SharpWnfScan.exe -p 9236
+PS C:\Dev> .\SharpWnfScan.exe -p 5800
 
-Process Name : explorer.exe
-Process ID   : 9236
-Architecture : x64
+Process ID      : 5800
+Image File Name : C:\Windows\explorer.exe
+Architecture    : ARM64
 
-WNF_SUBSCRIPTION_TABLE @ 0x0000000000F6EEB0
+WNF_SUBSCRIPTION_TABLE @ 0x0000000001206660
 
-        WNF_NAME_SUBSCRIPTION @ 0x00000000157D79C0
-        StateName : 0x41C61439A3BC1075 (WNF_TZ_STORE_CHANGED)
+    WNF_NAME_SUBSCRIPTION @ 0x0000000001206B00
+    StateName : 0x0280032EA3BC0875 (WNF_CMFC_FEATURE_CONFIGURATION_CHANGED)
 
-                WNF_USER_SUBSCRIPTION @ 0x00000000156B3E50
-                Callback @ 0x00007FFAC69ECD40 (Windows.Globalization.dll!DllCanUnloadNow)
-                Context  @ 0x00007FFAC6B41840 (Windows.Globalization.dll!DllCanUnloadNow)
+    WNF_NAME_SUBSCRIPTION @ 0x000000000120AD10
+    StateName : 0x418B1929A3BC3835 (WNF_DWM_DUMP_REQUEST)
 
-        WNF_NAME_SUBSCRIPTION @ 0x00000000157D65C0
-        StateName : 0x41C61439A3BC0875 (WNF_TZ_LEGACY_STORE_CHANGED)
+    WNF_NAME_SUBSCRIPTION @ 0x0000000005099950
+    StateName : 0x41960A2EA3BC1835 (WNF_CDP_CDPUSERSVC_READY)
 
-                WNF_USER_SUBSCRIPTION @ 0x00000000156B3CF0
-                Callback @ 0x00007FFAC69ECD40 (Windows.Globalization.dll!DllCanUnloadNow)
-                Context  @ 0x00007FFAC6B41840 (Windows.Globalization.dll!DllCanUnloadNow)
+--snip--
+```
+
+If you want to get WNF_USER_SUBSCRIPTION information, set `-v` flag as follows:
+
+```
+PS C:\Dev> .\SharpWnfScan.exe -p 5800 -v
+
+Process ID      : 5800
+Image File Name : C:\Windows\explorer.exe
+Architecture    : ARM64
+
+WNF_SUBSCRIPTION_TABLE @ 0x0000000001206660
+
+    WNF_NAME_SUBSCRIPTION @ 0x0000000001206B00
+    StateName : 0x0280032EA3BC0875 (WNF_CMFC_FEATURE_CONFIGURATION_CHANGED)
+
+        WNF_USER_SUBSCRIPTION @ 0x0000000001206A40
+        Callback @ 0x00007FFE88478470 (ntdll!RtlNotifyFeatureUsage+0x1C0)
+        Context  @ 0x00007FFE886F0B20 (ntdll!NlsAnsiCodePage+0x2390)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000000000120AD10
+    StateName : 0x418B1929A3BC3835 (WNF_DWM_DUMP_REQUEST)
+
+        WNF_USER_SUBSCRIPTION @ 0x0000000001207FD0
+        Callback @ 0x00007FF7073027C0 (explorer)
+        Context  @ 0x0000000001208CC0 (N/A)
 
 --snip--
 ```
@@ -418,21 +465,19 @@ WNF_SUBSCRIPTION_TABLE @ 0x0000000000F6EEB0
 You can specifies target processes by name with `-P` option:
 
 ```
-C:\dev>SharpWnfScan.exe -P notepad
+PS C:\Dev> .\SharpWnfScan.exe -P notepad
 
-Process Name : notepad.exe
-Process ID   : 6812
-Architecture : x86
-Warning      : To get detailed symbol information of WOW64 process, should be built as 32 bit binary.
+Process ID      : 8720
+Image File Name : C:\Program Files\WindowsApps\Microsoft.WindowsNotepad_11.2401.26.0_arm64__8wekyb3d8bbwe\Notepad\Notepad.exe
+Architecture    : ARM64
 
-WNF_SUBSCRIPTION_TABLE @ 0x02960F08
+WNF_SUBSCRIPTION_TABLE @ 0x000001DE2B007560
 
-        WNF_NAME_SUBSCRIPTION @ 0x02986DC8
-        StateName : 0x7851E3FA3BC0875 (WNF_RPCF_FWMAN_RUNNING)
+    WNF_NAME_SUBSCRIPTION @ 0x000001DE2B02D640
+    StateName : 0x41C61629A3BC2835 (WNF_DX_MONITOR_CHANGE_NOTIFICATION)
 
-                WNF_USER_SUBSCRIPTION @ 0x02992778
-                Callback @ 0x766DFDB0 (rpcrt4.dll)
-                Context  @ 0x00000000 (N/A)
+    WNF_NAME_SUBSCRIPTION @ 0x000001DE2B03E040
+    StateName : 0x41950223A3BC1035 (WNF_NLS_USER_UILANG_CHANGED)
 
 --snip--
 ```
@@ -440,103 +485,112 @@ WNF_SUBSCRIPTION_TABLE @ 0x02960F08
 To filter with state name, set hex or well know wnf name string to `-n` option as follows:
 
 ```
-C:\dev>SharpWnfScan.exe -P notepad -n WNF_RPCF_FWMAN_RUNNING
+PS C:\Dev> .\SharpWnfScan.exe -P notepad -n WNF_RPCF_FWMAN_RUNNING
 
-Process Name : notepad.exe
-Process ID   : 10676
-Architecture : x64
+Process ID      : 8720
+Image File Name : C:\Program Files\WindowsApps\Microsoft.WindowsNotepad_11.2401.26.0_arm64__8wekyb3d8bbwe\Notepad\Notepad.exe
+Architecture    : ARM64
 
-WNF_SUBSCRIPTION_TABLE @ 0x000002AB85EF08F0
+WNF_SUBSCRIPTION_TABLE @ 0x000001DE2B007560
 
-        WNF_NAME_SUBSCRIPTION @ 0x000002AB85F2DF70
-        StateName : 0x07851E3FA3BC0875 (WNF_RPCF_FWMAN_RUNNING)
-
-                WNF_USER_SUBSCRIPTION @ 0x000002AB85F1E220
-                Callback @ 0x00007FFADA9673B0 (rpcrt4.dll!I_RpcBindingSetPrivateOption)
-                Context  @ 0x0000000000000000 (N/A)
+    WNF_NAME_SUBSCRIPTION @ 0x000001DE2B075040
+    StateName : 0x07851E3FA3BC0875 (WNF_RPCF_FWMAN_RUNNING)
 
 
+PS C:\Dev> .\SharpWnfScan.exe -P notepad -n 0x07851E3FA3BC0875
 
-C:\dev>SharpWnfScan.exe -P notepad -n 0x7851E3FA3BC0875
+Process ID      : 8720
+Image File Name : C:\Program Files\WindowsApps\Microsoft.WindowsNotepad_11.2401.26.0_arm64__8wekyb3d8bbwe\Notepad\Notepad.exe
+Architecture    : ARM64
 
-Process Name : notepad.exe
-Process ID   : 10676
-Architecture : x64
+WNF_SUBSCRIPTION_TABLE @ 0x000001DE2B007560
 
-WNF_SUBSCRIPTION_TABLE @ 0x000002AB85EF08F0
-
-        WNF_NAME_SUBSCRIPTION @ 0x000002AB85F2DF70
-        StateName : 0x07851E3FA3BC0875 (WNF_RPCF_FWMAN_RUNNING)
-
-                WNF_USER_SUBSCRIPTION @ 0x000002AB85F1E220
-                Callback @ 0x00007FFADA9673B0 (rpcrt4.dll!I_RpcBindingSetPrivateOption)
-                Context  @ 0x0000000000000000 (N/A)
-```
-
-To remove `WNF_USER_SUBSCRIPTION` information from output, use `-b` option:
-
-```
-C:\dev>SharpWnfScan.exe -P explorer -b
-
-Process Name  : explorer.exe
-Process ID    : 4320
-Architecture  : x64
-
-WNF_SUBSCRIPTION_TABLE @ 0x0000000000C6BA00
-
-        WNF_NAME_SUBSCRIPTION @ 0x0000000000CBB7C0
-        StateName : 0x41C6072CA3BC1075 (WNF_AI_PACKAGEINSTALL)
-
-        WNF_NAME_SUBSCRIPTION @ 0x0000000000C5D780
-        StateName : 0x418B1929A3BC3835 (WNF_DWM_DUMP_REQUEST)
-
-        WNF_NAME_SUBSCRIPTION @ 0x0000000004A30DE0
-        StateName : 0x41C61629A3BC1035 (WNF_DX_MODE_CHANGE_NOTIFICATION)
-
-        WNF_NAME_SUBSCRIPTION @ 0x00000000032BED40
-        StateName : 0x418F1E3EA3BC0835 (WNF_SPI_LOGICALDPIOVERRIDE)
-
-        WNF_NAME_SUBSCRIPTION @ 0x0000000004BC5990
-        StateName : 0x0E8A0125A3BC0835 (WNF_HOLO_USER_DISPLAY_CONTEXT)
-
-        WNF_NAME_SUBSCRIPTION @ 0x0000000004BC6490
-        StateName : 0x0F950324A3BC0835 (WNF_IMSN_MONITORMODECHANGED)
-
-        WNF_NAME_SUBSCRIPTION @ 0x0000000006FDBF40
-        StateName : 0x0D83063EA3BD0035 (WNF_SHEL_TOAST_PUBLISHED)
+    WNF_NAME_SUBSCRIPTION @ 0x000001DE2B075040
+    StateName : 0x07851E3FA3BC0875 (WNF_RPCF_FWMAN_RUNNING)
 ```
 
 To dump all processes at a time, use `-a` option:
 
 ```
-C:\dev>SharpWnfScan.exe -a
+PS C:\Dev> .\SharpWnfScan.exe -a
 
-Process Name  : gamingservices
-Process ID    : 5600
-Architecture  : N/A
-Error Message : Access is denied
+Process ID      : 1180
+Image File Name : C:\Windows\System32\svchost.exe
+Architecture    : ARM64
 
---snip--
+WNF_SUBSCRIPTION_TABLE @ 0x000002101A806560
 
-Process Name : chrome.exe
-Process ID   : 10248
-Architecture : x64
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A830120
+    StateName : 0x07851E3FA3BC0875 (WNF_RPCF_FWMAN_RUNNING)
 
-WNF_SUBSCRIPTION_TABLE @ 0x0000019D34FA6930
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A86C1C0
+    StateName : 0x41C64E6DA3B0E045 (N/A)
 
-        WNF_NAME_SUBSCRIPTION @ 0x0000019D34FC5A70
-        StateName : 0x418A073AA3BC88F5 (WNF_WIL_USER_FEATURE_STORE)
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A833C50
+    StateName : 0x41C64E6DA3BC6145 (N/A)
 
-                WNF_USER_SUBSCRIPTION @ 0x0000019D34FC59C0
-                Callback @ 0x00007FFADA72F720 (combase.dll!ObjectStublessClient32)
-                Context  @ 0x00007FFADA8A3F10 (combase.dll!Ordinal183essClient32)
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A846A50
+    StateName : 0x41C64E6DA3BD0945 (N/A)
 
-        WNF_NAME_SUBSCRIPTION @ 0x0000019D34FC5920
-        StateName : 0x418A073AA3BC7C75 (WNF_WIL_MACHINE_FEATURE_STORE)
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A86CA00
+    StateName : 0x41C64E6DA3BB8045 (N/A)
 
-                WNF_USER_SUBSCRIPTION @ 0x0000019D34FC5870
-                Callback @ 0x00007FFADA72F720 (combase.dll!ObjectStublessClient32)
-                Context  @ 0x00007FFADA8A3F10 (combase.dll!Ordinal183essClient32)
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A806A00
+    StateName : 0x0280032EA3BC0875 (WNF_CMFC_FEATURE_CONFIGURATION_CHANGED)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A86C4C0
+    StateName : 0x41C64E6DA3B1E045 (N/A)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A86C700
+    StateName : 0x41C64E6DA3A0F945 (N/A)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A830EE0
+    StateName : 0x4195003AA3BC0875 (WNF_WNS_CONNECTIVITY_STATUS)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A86C880
+    StateName : 0x41C6072FA3BC3875 (WNF_BI_APPLICATION_SERVICING_START_CHANNEL)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A86CC40
+    StateName : 0x41C6072FA3BC1875 (WNF_BI_USER_LOGOFF_CHANNEL)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A835E90
+    StateName : 0x41C6072FA3BC1075 (WNF_BI_USER_LOGON_CHANNEL)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A86CD00
+    StateName : 0x41C6072FA3BC2875 (WNF_BI_SESSION_DISCONNECT_CHANNEL)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A86CAC0
+    StateName : 0x41C6072FA3BC2075 (WNF_BI_SESSION_CONNECT_CHANNEL)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A86C940
+    StateName : 0x41840B3EA3BC2075 (WNF_SEB_NETWORK_STATE_CHANGES)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A853920
+    StateName : 0x41C6072FA3BC3075 (WNF_BI_APPLICATION_UNINSTALL_CHANNEL)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A836040
+    StateName : 0x41C6072FA3BC4875 (WNF_BI_LOCK_SCREEN_UPDATE_CHANNEL)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A86C580
+    StateName : 0x41C6072FA3BC4075 (WNF_BI_APPLICATION_SERVICING_STOP_CHANNEL)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A833B80
+    StateName : 0x41C6072FA3BC6075 (WNF_BI_QUIET_MODE_UPDATE_CHANNEL)
+
+    WNF_NAME_SUBSCRIPTION @ 0x000002101A86C400
+    StateName : 0x41C6072FA3BC5075 (WNF_BI_EVENT_DELETION)
+
+Process ID      : 2952
+Image File Name : C:\Windows\System32\svchost.exe
+Architecture    : ARM64
+
+WNF_SUBSCRIPTION_TABLE @ 0x0000023DD3A065C0
+
+    WNF_NAME_SUBSCRIPTION @ 0x0000023DD3AF8B80
+    StateName : 0x41C64E6DA3B1E045 (N/A)
+
+    WNF_NAME_SUBSCRIPTION @ 0x0000023DD3AF8C40
+    StateName : 0x41C64E6DA3BC6145 (N/A)
 
 --snip--
 ```
@@ -545,30 +599,21 @@ To enable `SeDebugPrivilege`, set `-d` flag as follows.
 This option requires administrative privilege:
 
 ```
-C:\dev>SharpWnfScan.exe -d -P lsass
+PS C:\Dev> .\SharpWnfScan.exe -d -P winlogon
 
-[>] Trying to enable SeDebugPrivilege.
 [+] SeDebugPrivilege is enabled successfully.
 
-Process Name : lsass.exe
-Process ID   : 1212
-Architecture : x64
+Process ID      : 680
+Image File Name : C:\Windows\System32\winlogon.exe
+Architecture    : ARM64
 
-WNF_SUBSCRIPTION_TABLE @ 0x0000022C22A13B30
+WNF_SUBSCRIPTION_TABLE @ 0x00000265F4E05F80
 
-        WNF_NAME_SUBSCRIPTION @ 0x0000022C2320AAF0
-        StateName : 0x418F1D23A3BC0875 (WNF_NSI_SERVICE_STATUS)
+    WNF_NAME_SUBSCRIPTION @ 0x00000265F4E48AE0
+    StateName : 0x41C64E6DA3BC6145 (N/A)
 
-                WNF_USER_SUBSCRIPTION @ 0x0000022C23508260
-                Callback @ 0x00007FFAD12C3C00 (winnsi.dll!NsiRpcSetParameterEx)
-                Context  @ 0x0000000000000000 (N/A)
-
-        WNF_NAME_SUBSCRIPTION @ 0x0000022C2340B1D0
-        StateName : 0x17951A3BA3BC0875 (WNF_VTSV_CDS_SYNC)
-
-                WNF_USER_SUBSCRIPTION @ 0x0000022C22AC9700
-                Callback @ 0x00007FFAA08FFCE0 (vaultsvc.dll!ServiceMainameterEx)
-                Context  @ 0x0000000000000000 (N/A)
+    WNF_NAME_SUBSCRIPTION @ 0x00000265F4E27AD0
+    StateName : 0x41C61629A3BC1035 (WNF_DX_MODE_CHANGE_NOTIFICATION)
 
 --snip--
 ```
@@ -576,25 +621,30 @@ WNF_SUBSCRIPTION_TABLE @ 0x0000022C22A13B30
 To list WNF State Names used in the target system, set `-l` flag as follows:
 
 ```
-C:\dev>SharpWnfScan.exe -l
+PS C:\Dev> .\SharpWnfScan.exe -l
 
 [>] Trying to list WNF State Names used in this system. Wait a moment.
-[+] Got 194 WNF State Names.
-    |-> 0x41C64E6DA3965045 (N/A)
-    |-> 0x41C64E6DA39F4845 (N/A)
+
+[1304 WNF State Names]
+
+[*] 0x07851E3FA3BC0875 (WNF_RPCF_FWMAN_RUNNING)
+[*] 0x41C64E6DA3B0E045 (N/A)
+[*] 0x41C64E6DA3BC6145 (N/A)
+[*] 0x41C64E6DA3BD0945 (N/A)
+[*] 0x41C64E6DA3BB8045 (N/A)
+[*] 0x0280032EA3BC0875 (WNF_CMFC_FEATURE_CONFIGURATION_CHANGED)
+[*] 0x41C64E6DA3B1E045 (N/A)
 
 --snip--
 
-    |-> 0x0D891E2AA3BC0875 (WNF_GPOL_SYSTEM_CHANGES)
-    |-> 0x0D83063EA3BC2475 (WNF_SHEL_OOBE_USER_LOGON_COMPLETE)
-[*] Access is denied by following 106 proccesses.
-    |-> svchost (PID : 3444)
-    |-> svchost (PID : 3012)
+[16 Access Denied Processes]
+
+[*] svchost (PID : 2352)
+[*] svchost (PID : 4952)
+[*] MsMpEng (PID : 3132)
     
 --snip--
 
-    |-> System (PID : 4)
-    |-> Idle (PID : 0)
 [*] Done.
 ```
 
@@ -608,7 +658,7 @@ C:\dev>SharpWnfScan.exe -l
 This tool is to investigate how attackers can abuse WNF for code injection technique:
 
 ```
-C:\dev>SharpWnfInject.exe -h
+PS C:\Dev> .\SharpWnfInject.exe -h
 
 SharpWnfInject - Tool to investigate WNF code injection technique.
 
@@ -619,51 +669,43 @@ Usage: SharpWnfInject.exe [Options]
         -p, --pid   : Specifies PID to inject.
         -i, --input : Specifies the file path to shellcode.
         -d, --debug : Flag to enable SeDebugPrivilege. Requires administrative privilege.
+
+[!] -n option is required.
 ```
 
 This tool overwrite callback function pointer in `WNF_USER_SUBSCRIPTION` for a specific WNF State Name.
 The code injection technique does not work for all WNF State Name.
-For example, this technique is known to be available for `WNF_SHEL_APPLICATION_STARTED` used by `explorer.exe` in Windows 10.
+For example, this technique is known to be available for `WNF_SHEL_WINDOWSTIP_CONTENT_PUBLISHED` used by `explorer.exe` in Windows 11 23H2.
 To test this technique, execute this tool as follows:
 
 ```
-C:\dev>SharpWnfInject.exe -p 3928 -n WNF_SHEL_APPLICATION_STARTED -i payload.bin
+PS C:\Dev> .\SharpWnfInject.exe -p 5800 -n WNF_SHEL_WINDOWSTIP_CONTENT_PUBLISHED -i .\notepad_arm64.bin
 
-[>] Trying to open the target process.
-[+] Target process is opened successfully.
-    |-> Process Name : explorer.exe
-    |-> Process ID   : 3928
-    |-> Architecture : x64
-[>] Trying to get WNF_SUBSCRIPTION_TABLE.
-[+] Got valid WNF_SUBSCRIPTION_TABLE.
-    |-> Address : 0x0000000000AAB820
-[>] Trying to get WNF_NAME_SUBSCRIPTION(s).
-[+] Got 100 WNF_NAME_SUBSCRIPTION(s).
-[>] Searching the WNF_NAME_SUBSCRIPTION for the specified WNF State Name.
-[+] Got WNF_NAME_SUBSCRIPTION for the specified WNF State Name.
-    |-> WNF State Name : 0x0D83063EA3BE0075 (WNF_SHEL_APPLICATION_STARTED)
-    |-> Address        : 0x0000000004832800
-[>] Trying to get WNF_USER_SUBSCRIPTION(s) for the target WNF_NAME_SUBSCRIPTION.
-[+] Got 1 WNF_USER_SUBSCRIPTION(s).
-[>] Trying to inject shellccode to the following WNF_USER_SUBSCRIPTION.
-    |-> Address  : 0x00000000047D4480
-    |-> Callback : 0x00007FFC4ED4EE90 (twinui.pcshell.dll)
-    |-> Context  : 0x0000000007C461F0 (N/A)
-[>] Trying to allocate shellcode buffer in remote process.
-[+] Shellcode buffer is allocated successfully.
-    |-> Shellcode buffer : 0x0000000002FB0000
-[>] Trying to write shellcode to remote process.
-[+] Shellcode are written successfully.
-    |-> Shellcode Length : 344 byte(s)
-[>] Trying to overwrite callback function pointer.
-[+] Callback function pointer is overwritten successfully.
-[+] WNF State Data is updated successfully.
-[>] Trying to revert callback function pointer.
-[+] Callback function pointer is reverted successfully.
-[+] Code injection is completed successfully.
+[*] Target WNF State Name is 0x0D83063EA3BE10F5 (WNF_SHEL_WINDOWSTIP_CONTENT_PUBLISHED).
+[+] Got a handle from the target Process
+    [*] Process Name    : explorer.exe
+    [*] Process ID      : 5800
+    [*] Image File Name : C:\Windows\explorer.exe
+    [*] Architecture    : ARM64
+[+] Pointer for WNF_SUBSCRIPTION_TABLE is at 0x00007FFE886F4E20.
+[+] WNF_SUBSCRIPTION_TABLE is at 0x0000000001206660.
+[*] WNF_NAME_SUBSCRIPTION is at 0x0000000001273540.
+[+] Got 1 WNF_USER_SUBSCRIPTION.
+[*] Target callback pointer is at 0x00000000051C2250.
+[*] Callback function is at 0x00007FFE54FD4D20 (twinui!DllGetClassObject+0x11AFF0).
+[+] Shellcode buffer is at 0x0000000003270000.
+[+] 344 bytes shellcode is written successfully.
+[+] Callback pointer is overwritten successfully.
+[>] Triggering shellcode.
+[+] WNF State Data is updated successfully. Shellcode might be executed.
+[+] Callback pointer is reverted successfully.
+[*] Done.
 ```
 
+![](./figures/SharpWnfInject.png)
+
 If you want to enable `SeDebugPrivilege`, set `-d` flag and execute with administrative privilege.
+Sample shellcodes to execute notepad are located at [Shellcode directory](./SharpWnfSuite/Shellcode).
 
 
 ## KernelPrimitive

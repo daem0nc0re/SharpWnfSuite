@@ -503,20 +503,22 @@ namespace SharpWnfScan.Library
 
         public static string GetSymbolPath(IntPtr hProcess, IntPtr pBuffer)
         {
+            IntPtr pInfoBuffer;
             var symbolBuilder = new StringBuilder();
             var mappedFileName = new UNICODE_STRING();
             var nInfoLength = (uint)(Marshal.SizeOf(typeof(UNICODE_STRING)) + 512);
-            IntPtr pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
             var symbolInfo = new SYMBOL_INFO
             {
                 SizeOfStruct = (uint)Marshal.SizeOf(typeof(SYMBOL_INFO)) - Win32Consts.MAX_SYM_NAME,
                 MaxNameLen = Win32Consts.MAX_SYM_NAME,
                 Name = new byte[Win32Consts.MAX_SYM_NAME]
             };
-            Marshal.StructureToPtr(mappedFileName, pInfoBuffer, false);
 
             if (!NativeMethods.SymInitialize(hProcess, null, true))
                 return null;
+
+            pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
+            Marshal.StructureToPtr(mappedFileName, pInfoBuffer, false);
 
             do
             {
