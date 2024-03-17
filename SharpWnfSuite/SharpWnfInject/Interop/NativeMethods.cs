@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace SharpWnfInject.Interop
 {
@@ -110,23 +109,6 @@ namespace SharpWnfInject.Interop
             IntPtr MemoryInformation,
             SIZE_T MemoryInformationLength,
             out SIZE_T ReturnLength);
-
-        [DllImport("ntdll.dll")]
-        public static extern NTSTATUS NtQueryWnfStateData(
-            in ulong StateName,
-            IntPtr TypeId,
-            IntPtr ExplicitScope,
-            out int ChangeStamp,
-            IntPtr Buffer,
-            ref int BufferSize);
-
-        [DllImport("ntdll.dll")]
-        public static extern NTSTATUS NtQueryWnfStateNameInformation(
-            in ulong StateName,
-            WNF_STATE_NAME_INFORMATION NameInfoClass,
-            IntPtr ExplicitScope,
-            ref int InfoBuffer,
-            int InfoBufferSize);
 
         [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtReadVirtualMemory(

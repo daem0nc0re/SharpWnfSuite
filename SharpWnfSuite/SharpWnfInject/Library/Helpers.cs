@@ -511,6 +511,7 @@ namespace SharpWnfInject.Library
                 MaxNameLen = Win32Consts.MAX_SYM_NAME,
                 Name = new byte[Win32Consts.MAX_SYM_NAME]
             };
+            NativeMethods.SymSetOptions(SYM_OPTIONS.SYMOPT_DEFERRED_LOADS);
 
             if (!NativeMethods.SymInitialize(hProcess, null, true))
                 return null;
