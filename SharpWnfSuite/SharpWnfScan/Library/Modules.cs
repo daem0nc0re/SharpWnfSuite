@@ -29,6 +29,7 @@ namespace SharpWnfScan.Library
             string imageFileName;
             bool bIs32BitProcess;
             Dictionary<ulong, IntPtr> nameSubscriptions;
+            Dictionary<IntPtr, string> symbolTables;
             string addressFormat = Environment.Is64BitProcess ? "X16" : "X8";
             var pSubscriptionTable = IntPtr.Zero;
             var objectAttributes = new OBJECT_ATTRIBUTES
@@ -36,6 +37,8 @@ namespace SharpWnfScan.Library
                 Length = Marshal.SizeOf(typeof(OBJECT_ATTRIBUTES))
             };
             var clientId = new CLIENT_ID { UniqueProcess = new IntPtr(pid) };
+            var nameSubscriptionEntries = new Dictionary<ulong, List<WNF_USER_SUBSCRIPTION_INFO>>();
+            var outputBuilder = new StringBuilder();
             NTSTATUS ntstatus = NativeMethods.NtOpenProcess(
                 out IntPtr hProcess,
                 ACCESS_MASK.PROCESS_QUERY_LIMITED_INFORMATION | ACCESS_MASK.PROCESS_VM_READ,
@@ -95,18 +98,56 @@ namespace SharpWnfScan.Library
             if (stateNameFilter == 0UL)
                 Console.WriteLine("WNF_SUBSCRIPTION_TABLE @ 0x{0}\n", pSubscriptionTable.ToString(addressFormat));
 
-            NativeMethods.SymSetOptions(SYM_OPTIONS.SYMOPT_DEFERRED_LOADS);
-
             foreach (var subscription in nameSubscriptions)
             {
                 Dictionary<IntPtr, KeyValuePair<IntPtr, IntPtr>> userSubscriptions;
-                var outputBuilder = new StringBuilder();
 
                 if ((stateNameFilter != 0UL) && (subscription.Key != stateNameFilter))
                     continue;
                 else if ((stateNameFilter != 0UL) && (subscription.Key == stateNameFilter))
                     outputBuilder.AppendFormat("WNF_SUBSCRIPTION_TABLE @ 0x{0}\n\n", pSubscriptionTable.ToString(addressFormat));
 
+                if (bVerbose)
+                {
+                    nameSubscriptionEntries.Add(subscription.Key, new List<WNF_USER_SUBSCRIPTION_INFO>());
+                    userSubscriptions = Utilities.GetUserSubscriptions(hProcess, subscription.Value);
+
+                    foreach (var entry in userSubscriptions)
+                    {
+                        nameSubscriptionEntries[subscription.Key].Add(new WNF_USER_SUBSCRIPTION_INFO
+                        {
+                            UserSubscription = entry.Key,
+                            Callback = entry.Value.Key,
+                            Context = entry.Value.Value
+                        });
+                    }
+                }
+            }
+
+            if (bVerbose)
+            {
+                var memories = new List<IntPtr>();
+
+                foreach (var entry in nameSubscriptionEntries)
+                {
+                    foreach (var info in entry.Value)
+                    {
+                        memories.Add(info.Callback);
+                        memories.Add(info.Context);
+                    }
+                }
+
+                symbolTables = Helpers.GetSymbols(hProcess, memories);
+            }
+            else
+            {
+                symbolTables = new Dictionary<IntPtr, string>();
+            }
+
+            NativeMethods.NtClose(hProcess);
+
+            foreach (var subscription in nameSubscriptions)
+            {
                 outputBuilder.AppendFormat("    WNF_NAME_SUBSCRIPTION @ 0x{0}\n", subscription.Value.ToString(addressFormat));
                 outputBuilder.AppendFormat("    StateName : 0x{0} ({1})\n\n",
                     subscription.Key.ToString("X16"),
@@ -114,24 +155,21 @@ namespace SharpWnfScan.Library
 
                 if (bVerbose)
                 {
-                    userSubscriptions = Utilities.GetUserSubscriptions(hProcess, subscription.Value);
-
-                    foreach (var entry in userSubscriptions)
+                    foreach (var entry in nameSubscriptionEntries[subscription.Key])
                     {
-                        outputBuilder.AppendFormat("        WNF_USER_SUBSCRIPTION @ 0x{0}\n", entry.Key.ToString(addressFormat));
+                        outputBuilder.AppendFormat("        WNF_USER_SUBSCRIPTION @ 0x{0}\n",
+                            entry.UserSubscription.ToString(addressFormat));
                         outputBuilder.AppendFormat("        Callback @ 0x{0} ({1})\n",
-                            entry.Value.Key.ToString(addressFormat),
-                            Helpers.GetSymbolPath(hProcess, entry.Value.Key) ?? "N/A");
+                            entry.Callback.ToString(addressFormat),
+                            symbolTables[entry.Callback] ?? "N/A");
                         outputBuilder.AppendFormat("        Context  @ 0x{0} ({1})\n\n",
-                            entry.Value.Value.ToString(addressFormat),
-                            Helpers.GetSymbolPath(hProcess, entry.Value.Value) ?? "N/A");
+                            entry.Context.ToString(addressFormat),
+                            symbolTables[entry.Context] ?? "N/A");
                     }
                 }
-
-                Console.Write(outputBuilder.ToString());
             }
 
-            NativeMethods.NtClose(hProcess);
+            Console.Write(outputBuilder.ToString());
         }
 
 
