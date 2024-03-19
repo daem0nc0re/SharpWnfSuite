@@ -82,6 +82,77 @@ namespace SharpWnfScan.Library
         }
 
 
+        public static Dictionary<IntPtr, string> GetMemorySymbols(IntPtr hProcess, List<IntPtr> memories)
+        {
+            IntPtr pInfoBuffer;
+            var mappedFileName = new UNICODE_STRING();
+            var nInfoLength = (uint)(Marshal.SizeOf(typeof(UNICODE_STRING)) + 512);
+            var symbolTable = new Dictionary<IntPtr, string>();
+            NativeMethods.SymSetOptions(SYM_OPTIONS.SYMOPT_DEFERRED_LOADS);
+
+            if (!NativeMethods.SymInitialize(hProcess, null, true))
+                return null;
+
+            pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
+            Marshal.StructureToPtr(mappedFileName, pInfoBuffer, false);
+
+            foreach (var pBuffer in memories)
+            {
+                if (symbolTable.ContainsKey(pBuffer))
+                    continue;
+                else
+                    symbolTable.Add(pBuffer, null);
+
+                var symbolBuilder = new StringBuilder();
+                var symbolInfo = new SYMBOL_INFO
+                {
+                    SizeOfStruct = (uint)Marshal.SizeOf(typeof(SYMBOL_INFO)) - Win32Consts.MAX_SYM_NAME,
+                    MaxNameLen = Win32Consts.MAX_SYM_NAME,
+                    Name = new byte[Win32Consts.MAX_SYM_NAME]
+                };
+                NTSTATUS ntstatus = NativeMethods.NtQueryVirtualMemory(
+                    hProcess,
+                    pBuffer,
+                    MEMORY_INFORMATION_CLASS.MemoryMappedFilenameInformation,
+                    pInfoBuffer,
+                    new SIZE_T(nInfoLength),
+                    out SIZE_T _);
+
+                if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                    continue;
+
+                mappedFileName = (UNICODE_STRING)Marshal.PtrToStructure(
+                    pInfoBuffer,
+                    typeof(UNICODE_STRING));
+
+                if (string.IsNullOrEmpty(mappedFileName.ToString()))
+                    continue;
+
+                symbolBuilder.Append(Path.GetFileNameWithoutExtension(mappedFileName.ToString()));
+
+                if (NativeMethods.SymFromAddr(
+                    hProcess,
+                    pBuffer.ToInt64(),
+                    out long nDisplacement,
+                    ref symbolInfo))
+                {
+                    symbolBuilder.AppendFormat("!{0}", Encoding.ASCII.GetString(symbolInfo.Name).Trim('\0'));
+
+                    if (nDisplacement != 0L)
+                        symbolBuilder.AppendFormat("+0x{0}", nDisplacement.ToString("X"));
+                }
+
+                if (symbolBuilder.Length > 0)
+                    symbolTable[pBuffer] = symbolBuilder.ToString();
+            } while (false) ;
+
+            NativeMethods.SymCleanup(hProcess);
+            Marshal.FreeHGlobal(pInfoBuffer);
+
+            return symbolTable;
+        }
+
+
         public static IntPtr GetPebBase(IntPtr hProcess, out IntPtr pPebWow32)
         {
             var pPeb = IntPtr.Zero;
@@ -498,77 +569,6 @@ namespace SharpWnfScan.Library
             }
 
             return headers;
-        }
-
-
-        public static Dictionary<IntPtr, string> GetSymbols(IntPtr hProcess, List<IntPtr> memories)
-        {
-            IntPtr pInfoBuffer;
-            var mappedFileName = new UNICODE_STRING();
-            var nInfoLength = (uint)(Marshal.SizeOf(typeof(UNICODE_STRING)) + 512);
-            var symbolTable = new Dictionary<IntPtr, string>();
-            NativeMethods.SymSetOptions(SYM_OPTIONS.SYMOPT_DEFERRED_LOADS);
-
-            if (!NativeMethods.SymInitialize(hProcess, null, true))
-                return null;
-
-            pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
-            Marshal.StructureToPtr(mappedFileName, pInfoBuffer, false);
-
-            foreach (var pBuffer in memories)
-            {
-                if (symbolTable.ContainsKey(pBuffer))
-                    continue;
-                else
-                    symbolTable.Add(pBuffer, null);
-
-                var symbolBuilder = new StringBuilder();
-                var symbolInfo = new SYMBOL_INFO
-                {
-                    SizeOfStruct = (uint)Marshal.SizeOf(typeof(SYMBOL_INFO)) - Win32Consts.MAX_SYM_NAME,
-                    MaxNameLen = Win32Consts.MAX_SYM_NAME,
-                    Name = new byte[Win32Consts.MAX_SYM_NAME]
-                };
-                NTSTATUS ntstatus = NativeMethods.NtQueryVirtualMemory(
-                    hProcess,
-                    pBuffer,
-                    MEMORY_INFORMATION_CLASS.MemoryMappedFilenameInformation,
-                    pInfoBuffer,
-                    new SIZE_T(nInfoLength),
-                    out SIZE_T _);
-
-                if (ntstatus != Win32Consts.STATUS_SUCCESS)
-                    continue;
-
-                mappedFileName = (UNICODE_STRING)Marshal.PtrToStructure(
-                    pInfoBuffer,
-                    typeof(UNICODE_STRING));
-
-                if (string.IsNullOrEmpty(mappedFileName.ToString()))
-                    continue;
-
-                symbolBuilder.Append(Path.GetFileNameWithoutExtension(mappedFileName.ToString()));
-
-                if (NativeMethods.SymFromAddr(
-                    hProcess,
-                    pBuffer.ToInt64(),
-                    out long nDisplacement,
-                    ref symbolInfo))
-                {
-                    symbolBuilder.AppendFormat("!{0}", Encoding.ASCII.GetString(symbolInfo.Name).Trim('\0'));
-
-                    if (nDisplacement != 0L)
-                        symbolBuilder.AppendFormat("+0x{0}", nDisplacement.ToString("X"));
-                }
-
-                if (symbolBuilder.Length > 0)
-                    symbolTable[pBuffer] = symbolBuilder.ToString();
-            } while (false);
-
-            NativeMethods.SymCleanup(hProcess);
-            Marshal.FreeHGlobal(pInfoBuffer);
-
-            return symbolTable;
         }
 
 

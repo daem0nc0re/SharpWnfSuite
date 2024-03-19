@@ -137,7 +137,7 @@ namespace SharpWnfScan.Library
                     }
                 }
 
-                symbolTables = Helpers.GetSymbols(hProcess, memories);
+                symbolTables = Helpers.GetMemorySymbols(hProcess, memories);
             }
             else
             {
