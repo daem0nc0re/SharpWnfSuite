@@ -46,7 +46,7 @@ namespace SharpWnfInject.Library
 
                 using (var objectAttributes = new OBJECT_ATTRIBUTES(
                     string.Format(@"\GLOBAL??\{0}", letter),
-                    OBJECT_ATTRIBUTES_FLAGS.OBJ_CASE_INSENSITIVE))
+                    OBJECT_ATTRIBUTES_FLAGS.CaseInsensitive))
                 {
                     ntstatus = NativeMethods.NtOpenSymbolicLinkObject(
                         out hSymlink,
