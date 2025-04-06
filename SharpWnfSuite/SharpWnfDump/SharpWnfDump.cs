@@ -21,6 +21,7 @@ namespace SharpWnfDump
                 options.AddFlag(false, "w", "write", "Writes data into the given state name.");
                 options.AddFlag(false, "v", "value", "Dump the value of each name.");
                 options.AddFlag(false, "s", "sid", "Show the security descriptor for each name.");
+                options.AddFlag(false, "u", "used", "Show only used state name information. Use with -d or -b option.");
                 options.AddArgument(false, "WNF_NAME", "WNF State Name. Use with -i, -r or -w option.");
                 options.AddArgument(false, "FILE_NAME", "Data source file path. Use with -w option.");
                 options.Parse(args);

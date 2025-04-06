@@ -8,7 +8,7 @@ namespace SharpWnfDump.Library
 {
     internal class Modules
     {
-        public static void BruteForceWnfNames(bool showData)
+        public static void BruteForceWnfNames(bool showData, bool bUsedOnly)
         {
             var wnfStateName = new WNF_STATE_NAME(1, WNF_STATE_NAME_LIFETIME.Temporary, 0, 0, 0, 0);
 
@@ -30,7 +30,7 @@ namespace SharpWnfDump.Library
 
                     if (Helpers.GetWnfSubscribersPresenceInfo(wnfStateName.Data) != 0)
                     {
-                        var dataDump = Helpers.DumpWnfData(wnfStateName.Data, IntPtr.Zero, false, showData);
+                        var dataDump = Helpers.DumpWnfData(wnfStateName.Data, IntPtr.Zero, false, showData, bUsedOnly);
                         outputBuilder.Append(dataDump);
                     }
                 }
@@ -100,7 +100,7 @@ namespace SharpWnfDump.Library
                 {
                     outputBuilder.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n", "WNF State Name");
                     outputBuilder.AppendLine(new string('-', 118));
-                    outputBuilder.Append(Helpers.DumpWnfData(stateName, pInfoBuffer, showSd, showData));
+                    outputBuilder.Append(Helpers.DumpWnfData(stateName, pInfoBuffer, showSd, showData, false));
                     Console.Write(outputBuilder.ToString());
                 }
 
@@ -113,7 +113,7 @@ namespace SharpWnfDump.Library
         }
 
 
-        public static void DumpWnfNames(bool showSd, bool showData)
+        public static void DumpWnfNames(bool showSd, bool showData, bool bUsedOnly)
         {
             var outputBuilder = new StringBuilder();
 
@@ -162,7 +162,7 @@ namespace SharpWnfDump.Library
                             try
                             {
                                 var stateName = Convert.ToUInt64(nameBuilder.ToString(), 16);
-                                outputBuilder.Append(Helpers.DumpWnfData(stateName, pInfoBuffer, showSd, showData));
+                                outputBuilder.Append(Helpers.DumpWnfData(stateName, pInfoBuffer, showSd, showData, bUsedOnly));
                             }
                             catch { }
                         }

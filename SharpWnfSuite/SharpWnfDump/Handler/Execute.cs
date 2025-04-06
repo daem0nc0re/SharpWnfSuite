@@ -44,9 +44,9 @@ namespace SharpWnfDump.Handler
             else if (options.GetFlag("dump") || options.GetFlag("brut"))
             {
                 if (options.GetFlag("dump"))
-                    Modules.DumpWnfNames(showSd, showData);
+                    Modules.DumpWnfNames(showSd, showData, options.GetFlag("used"));
                 else
-                    Modules.BruteForceWnfNames(showData);
+                    Modules.BruteForceWnfNames(showData, options.GetFlag("used"));
             }
             else
             {

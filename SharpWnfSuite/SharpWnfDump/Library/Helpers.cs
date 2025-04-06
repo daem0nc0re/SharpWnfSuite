@@ -13,7 +13,8 @@ namespace SharpWnfDump.Library
             ulong stateName,
             IntPtr pSecurityDescriptor,
             bool showSd,
-            bool showData)
+            bool showData,
+            bool bUsedOnly)
         {
             int nMaxSize = -1;
             var outputBuilder = new StringBuilder();
@@ -64,6 +65,9 @@ namespace SharpWnfDump.Library
 
                 if (bWritable)
                     exists = GetWnfSubscribersPresenceInfo(stateName);
+
+                if (bUsedOnly && (changeStamp == 0))
+                    continue;
 
                 outputBuilder.AppendFormat(
                     "| {0,-64}| {1} | {2} | {3} | {4} | {5} | {6,7} | {7,7} | {8,7} |\n",
