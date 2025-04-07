@@ -43,6 +43,22 @@ PS C:\Dev> .\SharpWnfDump.exe -d
 --snip--
 ```
 
+To show only state name used in system, set `-u` (`--used`) flag.
+This flag can be applied to `-d` and `-b` option:
+
+```
+PS C:\Dev> .\SharpWnfDump.exe -d -u
+
+| WNF State Name [WellKnown Lifetime]                             | S | L | P | AC | N | CurSize | MaxSize | Changes |
+----------------------------------------------------------------------------------------------------------------------
+| WNF_PNPA_DEVNODES_CHANGED                                       | S | W | N | RO | U |       0 |       0 |     140 |
+| WNF_AUDC_RENDER                                                 | S | W | N | RO | U |    4096 |    4096 |       7 |
+| WNF_AUDC_CAPTURE                                                | S | W | N | RO | U |    4096 |    4096 |       1 |
+| WNF_AUDC_SPATIAL_STATUS                                         | S | W | N | RO | U |    4096 |    4096 |       3 |
+
+--snip--
+```
+
 If you want to retrieve Security Descripter information, set `-s` (`--sid`) flag:
 
 ```
