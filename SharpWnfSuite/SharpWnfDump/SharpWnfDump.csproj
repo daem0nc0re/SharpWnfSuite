@@ -52,7 +52,13 @@
     <Compile Include="Interop\WellKnownStateName1511.cs" />
     <Compile Include="Interop\WellKnownStateName1607.cs" />
     <Compile Include="Interop\WellKnownStateName1703.cs" />
+    <Compile Include="Interop\WellKnownStateName1709.cs" />
+    <Compile Include="Interop\WellKnownStateName1803.cs" />
     <Compile Include="Interop\WellKnownStateName1809.cs" />
+    <Compile Include="Interop\WellKnownStateName1903To1909.cs" />
+    <Compile Include="Interop\WellKnownStateName2004To21H1.cs" />
+    <Compile Include="Interop\WellKnownStateName21H2.cs" />
+    <Compile Include="Interop\WellKnownStateName22H2.cs" />
     <Compile Include="Interop\WellKnownStateName23H2.cs" />
     <Compile Include="Interop\WellKnownStateName24H2.cs" />
     <Compile Include="Interop\Win32Consts.cs" />

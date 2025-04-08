@@ -276,7 +276,47 @@ namespace SharpWnfDump.Library
             var wnfStateName = new WNF_STATE_NAME { Data = stateName };
             byte[] tag = BitConverter.GetBytes(wnfStateName.GetOwnerTag());
             WNF_STATE_NAME_LIFETIME nameLifeTime = wnfStateName.GetNameLifeTime();
-            string wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME), stateName);
+            string wnfName = null;
+
+            if ((Globals.MajorVersion == 10) && (Globals.MinorVersion == 0))
+            {
+                if (Globals.BuildNumber == 10240)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1507), stateName);
+                else if (Globals.BuildNumber == 10586)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1511), stateName);
+                else if (Globals.BuildNumber == 14393)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1607), stateName);
+                else if (Globals.BuildNumber == 15063)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1703), stateName);
+                else if (Globals.BuildNumber == 16299)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1709), stateName);
+                else if (Globals.BuildNumber == 17134)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1803), stateName);
+                else if (Globals.BuildNumber == 17763)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1809), stateName);
+                else if (Globals.BuildNumber == 18362)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1903_TO_1909), stateName);
+                else if (Globals.BuildNumber == 18363)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1903_TO_1909), stateName);
+                else if (Globals.BuildNumber == 19041)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), stateName);
+                else if (Globals.BuildNumber == 19042)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), stateName);
+                else if (Globals.BuildNumber == 19043)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), stateName);
+                else if (Globals.BuildNumber == 19044)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_21H2), stateName);
+                else if (Globals.BuildNumber == 19045)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_22H2), stateName);
+                else if (Globals.BuildNumber == 22000)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_21H2), stateName);
+                else if (Globals.BuildNumber == 22621)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_22H2), stateName);
+                else if (Globals.BuildNumber == 22631)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_23H2), stateName);
+                else if (Globals.BuildNumber == 26100)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_24H2), stateName);
+            }
 
             if (string.IsNullOrEmpty(wnfName))
             {
