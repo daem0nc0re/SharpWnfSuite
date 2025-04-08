@@ -212,6 +212,65 @@ namespace SharpWnfDump.Library
         }
 
 
+        public static string GetOsVersionString(int nMajorVersion, int nMinorVersion, int nBuildNumber)
+        {
+            string versionString = null;
+
+            if (nMajorVersion == 6)
+            {
+                if (nMinorVersion == 0)
+                    versionString = "Windows Vista";
+                else if (nMinorVersion == 1)
+                    versionString = "Windows 7 or Windows Server 2008 R2";
+                else if (nMinorVersion == 2)
+                    versionString = "Windows 8 or Windows Server 2012";
+                else if (nMinorVersion == 3)
+                    versionString = "Windows 8.1 or Windows Server 2012 R2";
+            }
+            else if ((nMajorVersion == 10) && (nMinorVersion == 0))
+            {
+                if (nBuildNumber == 10240)
+                    versionString = "Windows 10 Version 1507";
+                else if (nBuildNumber == 10586)
+                    versionString = "Windows 10 Version 1511";
+                else if (nBuildNumber == 14393)
+                    versionString = "Windows 10 Version 1607";
+                else if (nBuildNumber == 15063)
+                    versionString = "Windows 10 Version 1703";
+                else if (nBuildNumber == 16299)
+                    versionString = "Windows 10 Version 1709";
+                else if (nBuildNumber == 17134)
+                    versionString = "Windows 10 Version 1803";
+                else if (nBuildNumber == 17763)
+                    versionString = "Windows 10 Version 1809";
+                else if (nBuildNumber == 18362)
+                    versionString = "Windows 10 Version 1903";
+                else if (nBuildNumber == 18363)
+                    versionString = "Windows 10 Version 1909";
+                else if (nBuildNumber == 19041)
+                    versionString = "Windows 10 Version 2004";
+                else if (nBuildNumber == 19042)
+                    versionString = "Windows 10 Version 20H2";
+                else if (nBuildNumber == 19043)
+                    versionString = "Windows 10 Version 21H1";
+                else if (nBuildNumber == 19044)
+                    versionString = "Windows 10 Version 21H2";
+                else if (nBuildNumber == 19045)
+                    versionString = "Windows 10 Version 22H2";
+                else if (nBuildNumber == 22000)
+                    versionString = "Windows 11 Version 21H2";
+                else if (nBuildNumber == 22621)
+                    versionString = "Windows 11 Version 22H2";
+                else if (nBuildNumber == 22631)
+                    versionString = "Windows 11 Version 23H2";
+                else if (nBuildNumber == 26100)
+                    versionString = "Windows 11 Version 24H2";
+            }
+
+            return versionString;
+        }
+
+
         public static string GetWnfName(ulong stateName)
         {
             var wnfStateName = new WNF_STATE_NAME { Data = stateName };

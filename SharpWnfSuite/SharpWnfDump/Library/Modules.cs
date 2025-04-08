@@ -11,6 +11,12 @@ namespace SharpWnfDump.Library
         public static void BruteForceWnfNames(bool showData, bool bUsedOnly)
         {
             var wnfStateName = new WNF_STATE_NAME(1, WNF_STATE_NAME_LIFETIME.Temporary, 0, 0, 0, 0);
+            string versionString = Helpers.GetOsVersionString(
+                Globals.MajorVersion,
+                Globals.MinorVersion,
+                Globals.BuildNumber);
+
+            Console.WriteLine("[*] OS version is {0}.\n", versionString ?? "unspecified");
 
             for (var dataScope = 0u; dataScope < (uint)WNF_DATA_SCOPE.Max; dataScope++)
             {
@@ -43,7 +49,13 @@ namespace SharpWnfDump.Library
         public static bool DumpKeyInfo(ulong stateName, bool showSd, bool showData)
         {
             int error;
-            var wnfStateName = new WNF_STATE_NAME { Data = stateName }; 
+            var wnfStateName = new WNF_STATE_NAME { Data = stateName };
+            string versionString = Helpers.GetOsVersionString(
+                Globals.MajorVersion,
+                Globals.MinorVersion,
+                Globals.BuildNumber);
+
+            Console.WriteLine("[*] OS version is {0}.", versionString ?? "unspecified");
 
             if (wnfStateName.GetNameLifeTime() == WNF_STATE_NAME_LIFETIME.Temporary)
             {
@@ -116,6 +128,12 @@ namespace SharpWnfDump.Library
         public static void DumpWnfNames(bool showSd, bool showData, bool bUsedOnly)
         {
             var outputBuilder = new StringBuilder();
+            string versionString = Helpers.GetOsVersionString(
+                Globals.MajorVersion,
+                Globals.MinorVersion,
+                Globals.BuildNumber);
+
+            Console.WriteLine("[*] OS version is {0}.\n", versionString ?? "unspecified");
 
             for (var idx = 0; idx < Globals.LifetimeKeyNames.Length; idx++)
             {
@@ -184,6 +202,12 @@ namespace SharpWnfDump.Library
         public static void OperationRead(ulong stateName)
         {
             string nameString = Helpers.GetWnfName(stateName);
+            string versionString = Helpers.GetOsVersionString(
+                Globals.MajorVersion,
+                Globals.MinorVersion,
+                Globals.BuildNumber);
+
+            Console.WriteLine("[*] OS version is {0}.", versionString ?? "unspecified");
 
             if (Helpers.ReadWnfData(
                 stateName,
@@ -216,7 +240,12 @@ namespace SharpWnfDump.Library
             byte[] dataBytes;
             string nameString = Helpers.GetWnfName(stateName);
             string fullFilePath = Path.GetFullPath(filePath);
+            string versionString = Helpers.GetOsVersionString(
+                Globals.MajorVersion,
+                Globals.MinorVersion,
+                Globals.BuildNumber);
 
+            Console.WriteLine("[*] OS version is {0}.", versionString ?? "unspecified");
             Console.WriteLine("[>] Trying to write data.");
             Console.WriteLine("    [*] Target WNF Name : {0}", nameString);
             Console.WriteLine("    [*] Data Source     : {0}", fullFilePath);
