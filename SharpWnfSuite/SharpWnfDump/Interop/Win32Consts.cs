@@ -12,7 +12,8 @@ namespace SharpWnfDump.Interop
         public static readonly IntPtr HKEY_LOCAL_MACHINE = new IntPtr(-2147483646);
         public const int KEY_READ = 0x20019;
         public const NTSTATUS STATUS_SUCCESS = 0;
-        public static readonly NTSTATUS STATUS_OPERATION_FAILED = Convert.ToInt32("0xC0000001", 16);
-        public static readonly NTSTATUS STATUS_BUFFER_TOO_SMALL = Convert.ToInt32("0xC0000023", 16);
+        public const NTSTATUS STATUS_BUFFER_OVERFLOW = unchecked((NTSTATUS)0x80000005u);
+        public const NTSTATUS STATUS_OPERATION_FAILED = unchecked((NTSTATUS)0xC0000001u);
+        public const NTSTATUS STATUS_BUFFER_TOO_SMALL = unchecked((NTSTATUS)0xC0000023u);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using SharpWnfDump.Interop;
@@ -108,6 +109,106 @@ namespace SharpWnfDump.Library
             } while (false);
 
             return outputBuilder.ToString();
+        }
+
+
+        public static bool GetOsVersionNumbers(out int nMajorVersion, out int nMinorVersion, out int nBuildNumber)
+        {
+            NTSTATUS ntstatus;
+            IntPtr hKey;
+            var bSuccess = true;
+            var valueNames = new List<string>
+            {
+                @"CurrentMajorVersionNumber",
+                @"CurrentMinorVersionNumber",
+                @"CurrentBuildNumber"
+            };
+            nMajorVersion = 0;
+            nMinorVersion = 0;
+            nBuildNumber = 0;
+
+            using (var objectAttributes = new OBJECT_ATTRIBUTES(
+                   @"\REGISTRY\MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion",
+                   OBJECT_ATTRIBUTES_FLAGS.CaseInsensitive))
+            {
+                ntstatus = NativeMethods.NtOpenKey(
+                    out hKey,
+                    ACCESS_MASK.KEY_QUERY_VALUE,
+                    in objectAttributes);
+            }
+
+            if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                return false;
+
+            foreach (var name in valueNames)
+            {
+                IntPtr pInfoBuffer;
+                var nInfoLength = (uint)Marshal.SizeOf(typeof(KEY_VALUE_FULL_INFORMATION));
+
+                using (var valueName = new UNICODE_STRING(name))
+                {
+                    do
+                    {
+                        pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
+                        ntstatus = NativeMethods.NtQueryValueKey(
+                            hKey,
+                            in valueName,
+                            KEY_VALUE_INFORMATION_CLASS.KeyValueFullInformation,
+                            pInfoBuffer,
+                            nInfoLength,
+                            out nInfoLength);
+
+                        if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                            Marshal.FreeHGlobal(pInfoBuffer);
+                    } while (ntstatus == Win32Consts.STATUS_BUFFER_OVERFLOW);
+
+                    if (ntstatus == Win32Consts.STATUS_SUCCESS)
+                    {
+                        var info = (KEY_VALUE_FULL_INFORMATION)Marshal.PtrToStructure(
+                            pInfoBuffer,
+                            typeof(KEY_VALUE_FULL_INFORMATION));
+
+                        if (string.Compare(name, @"CurrentMajorVersionNumber", true) == 0)
+                        {
+                            nMajorVersion = Marshal.ReadInt32(pInfoBuffer, (int)info.DataOffset);
+                        }
+                        else if (string.Compare(name, @"CurrentMinorVersionNumber", true) == 0)
+                        {
+                            nMinorVersion = Marshal.ReadInt32(pInfoBuffer, (int)info.DataOffset);
+                        }
+                        else
+                        {
+                            IntPtr pStringBuffer;
+
+                            if (Environment.Is64BitProcess)
+                                pStringBuffer = new IntPtr(pInfoBuffer.ToInt64() + info.DataOffset);
+                            else
+                                pStringBuffer = new IntPtr(pInfoBuffer.ToInt32() + (int)info.DataOffset);
+
+                            try
+                            {
+                                nBuildNumber = Convert.ToInt32(Marshal.PtrToStringUni(pStringBuffer), 10);
+                            }
+                            catch
+                            {
+                                bSuccess = false;
+                            }
+                        }
+
+
+                        Marshal.FreeHGlobal(pInfoBuffer);
+                    }
+                    else
+                    {
+                        bSuccess = false;
+                        break;
+                    }
+                }
+            }
+
+            NativeMethods.NtClose(hKey);
+
+            return bSuccess;
         }
 
 
