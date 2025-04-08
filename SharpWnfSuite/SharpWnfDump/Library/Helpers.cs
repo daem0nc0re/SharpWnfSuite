@@ -343,7 +343,44 @@ namespace SharpWnfDump.Library
 
             try
             {
-                value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME), name.ToUpper());
+                if (Globals.BuildNumber == 10240)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1507), name.ToUpper());
+                else if (Globals.BuildNumber == 10586)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1511), name.ToUpper());
+                else if (Globals.BuildNumber == 14393)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1607), name.ToUpper());
+                else if (Globals.BuildNumber == 15063)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1703), name.ToUpper());
+                else if (Globals.BuildNumber == 16299)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1709), name.ToUpper());
+                else if (Globals.BuildNumber == 17134)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1803), name.ToUpper());
+                else if (Globals.BuildNumber == 17763)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1809), name.ToUpper());
+                else if (Globals.BuildNumber == 18362)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1903_TO_1909), name.ToUpper());
+                else if (Globals.BuildNumber == 18363)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1903_TO_1909), name.ToUpper());
+                else if (Globals.BuildNumber == 19041)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), name.ToUpper());
+                else if (Globals.BuildNumber == 19042)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), name.ToUpper());
+                else if (Globals.BuildNumber == 19043)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), name.ToUpper());
+                else if (Globals.BuildNumber == 19044)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_21H2), name.ToUpper());
+                else if (Globals.BuildNumber == 19045)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_22H2), name.ToUpper());
+                else if (Globals.BuildNumber == 22000)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_21H2), name.ToUpper());
+                else if (Globals.BuildNumber == 22621)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_22H2), name.ToUpper());
+                else if (Globals.BuildNumber == 22631)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_23H2), name.ToUpper());
+                else if (Globals.BuildNumber == 26100)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_24H2), name.ToUpper());
+                else
+                    throw new NotSupportedException();
             }
             catch
             {

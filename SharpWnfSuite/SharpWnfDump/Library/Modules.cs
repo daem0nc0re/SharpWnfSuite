@@ -55,7 +55,7 @@ namespace SharpWnfDump.Library
                 Globals.MinorVersion,
                 Globals.BuildNumber);
 
-            Console.WriteLine("[*] OS version is {0}.", versionString ?? "unspecified");
+            Console.WriteLine("[*] OS version is {0}.\n", versionString ?? "unspecified");
 
             if (wnfStateName.GetNameLifeTime() == WNF_STATE_NAME_LIFETIME.Temporary)
             {
