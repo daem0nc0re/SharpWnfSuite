@@ -1,6 +1,5 @@
 ﻿using System;
 using SharpWnfDump.Handler;
-using SharpWnfDump.Interop;
 
 namespace SharpWnfDump
 {

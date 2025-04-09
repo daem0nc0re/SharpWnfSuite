@@ -13,8 +13,8 @@ namespace SharpWnfDump.Library
         public static string DumpWnfData(
             ulong stateName,
             IntPtr pSecurityDescriptor,
-            bool showSd,
-            bool showData,
+            bool bShowSd,
+            bool bShowData,
             bool bUsedOnly)
         {
             int nMaxSize = -1;
@@ -82,7 +82,7 @@ namespace SharpWnfDump.Library
                     nMaxSize == -1 ? "?" : nMaxSize.ToString("D"),
                     changeStamp);
 
-                if (showSd && pSecurityDescriptor != IntPtr.Zero)
+                if (bShowSd && pSecurityDescriptor != IntPtr.Zero)
                 {
                     NativeMethods.ConvertSecurityDescriptorToStringSecurityDescriptor(
                         pSecurityDescriptor,
@@ -94,7 +94,7 @@ namespace SharpWnfDump.Library
                     additionalInfoBuilder.AppendFormat("        {0}\n", sdString);
                 }
 
-                if (showData && bReadable && (nInfoLength != 0))
+                if (bShowData && bReadable && (nInfoLength != 0))
                 {
                     var hexDump = HexDump.Dump(pInfoBuffer, nInfoLength, 2);
                     additionalInfoBuilder.AppendLine();
@@ -431,7 +431,7 @@ namespace SharpWnfDump.Library
 
         public static bool ReadWnfData(
             ulong stateName,
-            out int changeStamp,
+            out int nChangeStamp,
             out IntPtr pInfoBuffer,
             out uint nInfoLength)
         {
@@ -445,7 +445,7 @@ namespace SharpWnfDump.Library
                     in stateName,
                     IntPtr.Zero,
                     IntPtr.Zero,
-                    out changeStamp,
+                    out nChangeStamp,
                     pInfoBuffer,
                     ref nInfoLength);
 
@@ -460,12 +460,12 @@ namespace SharpWnfDump.Library
         }
 
 
-        public static bool WriteWnfData(ulong stateName, IntPtr dataBuffer, int dataSize)
+        public static bool WriteWnfData(ulong stateName, IntPtr pDataBuffer, int nDataSize)
         {
             NTSTATUS ntstatus = NativeMethods.NtUpdateWnfStateData(
                 in stateName,
-                dataBuffer,
-                dataSize,
+                pDataBuffer,
+                nDataSize,
                 IntPtr.Zero,
                 IntPtr.Zero,
                 0,
