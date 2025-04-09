@@ -8,7 +8,7 @@ namespace SharpWnfDump.Library
 {
     internal class Modules
     {
-        public static void BruteForceWnfNames(bool showData, bool bUsedOnly)
+        public static void BruteForceWnfNames(bool bShowData, bool bUsedOnly)
         {
             var wnfStateName = new WNF_STATE_NAME(1, WNF_STATE_NAME_LIFETIME.Temporary, 0, 0, 0, 0);
             string versionString = Helpers.GetOsVersionString(
@@ -18,25 +18,30 @@ namespace SharpWnfDump.Library
 
             Console.WriteLine("[*] OS version is {0}.\n", versionString ?? "unspecified");
 
-            for (var dataScope = 0u; dataScope < (uint)WNF_DATA_SCOPE.Max; dataScope++)
+            for (var nDataScope = 0u; nDataScope < (uint)WNF_DATA_SCOPE.Max; nDataScope++)
             {
                 var outputBuilder = new StringBuilder();
-                wnfStateName.SetDataScope(dataScope);
+                wnfStateName.SetDataScope(nDataScope);
 
-                if (dataScope > 0)
+                if (nDataScope > 0)
                     outputBuilder.AppendLine();
 
                 outputBuilder.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n",
-                    string.Format("WNF State Name [{0} Scope]", ((WNF_DATA_SCOPE)dataScope).ToString()));
+                    string.Format("WNF State Name [{0} Scope]", ((WNF_DATA_SCOPE)nDataScope).ToString()));
                 outputBuilder.AppendLine(new string('-', 118));
 
-                for (var number = 0u; number < 0x200000u; number++)
+                for (var nSequenceNumber = 0u; nSequenceNumber < 0x200000u; nSequenceNumber++)
                 {
-                    wnfStateName.SetSequenceNumber(number);
+                    wnfStateName.SetSequenceNumber(nSequenceNumber);
 
                     if (Helpers.GetWnfSubscribersPresenceInfo(wnfStateName.Data) != 0)
                     {
-                        var dataDump = Helpers.DumpWnfData(wnfStateName.Data, IntPtr.Zero, false, showData, bUsedOnly);
+                        var dataDump = Helpers.DumpWnfData(
+                            wnfStateName.Data,
+                            IntPtr.Zero,
+                            false,
+                            bShowData,
+                            bUsedOnly);
                         outputBuilder.Append(dataDump);
                     }
                 }
@@ -48,7 +53,7 @@ namespace SharpWnfDump.Library
 
         public static bool DumpKeyInfo(ulong stateName, bool showSd, bool showData)
         {
-            int error;
+            int nErrorCode;
             var wnfStateName = new WNF_STATE_NAME { Data = stateName };
             string versionString = Helpers.GetOsVersionString(
                 Globals.MajorVersion,
@@ -63,16 +68,16 @@ namespace SharpWnfDump.Library
                 return false;
             }
 
-            error = NativeMethods.RegOpenKeyEx(
-                    Win32Consts.HKEY_LOCAL_MACHINE,
-                    Globals.LifetimeKeyNames[(uint)wnfStateName.GetNameLifeTime()],
-                    0,
-                    Win32Consts.KEY_READ,
-                    out IntPtr phkResult);
+            nErrorCode = NativeMethods.RegOpenKeyEx(
+                Win32Consts.HKEY_LOCAL_MACHINE,
+                Globals.LifetimeKeyNames[(uint)wnfStateName.GetNameLifeTime()],
+                0,
+                Win32Consts.KEY_READ,
+                out IntPtr phkResult);
 
-            if (error != Win32Consts.ERROR_SUCCESS)
+            if (nErrorCode != Win32Consts.ERROR_SUCCESS)
             {
-                Console.WriteLine("[-] Failed to open regitry key (Error = 0x{0}).", error.ToString("X8"));
+                Console.WriteLine("[-] Failed to open regitry key (Error = 0x{0}).", nErrorCode.ToString("X8"));
                 return false;
             }
 
@@ -81,7 +86,7 @@ namespace SharpWnfDump.Library
                 IntPtr pInfoBuffer;
                 int nInfoLength = 0;
                 var outputBuilder = new StringBuilder();
-                error = NativeMethods.RegQueryValueEx(
+                nErrorCode = NativeMethods.RegQueryValueEx(
                     phkResult,
                     stateName.ToString("X16"),
                     0,
@@ -89,14 +94,14 @@ namespace SharpWnfDump.Library
                     IntPtr.Zero,
                     ref nInfoLength);
 
-                if (error != Win32Consts.ERROR_SUCCESS)
+                if (nErrorCode != Win32Consts.ERROR_SUCCESS)
                 {
-                    Console.WriteLine("[-] Failed to query registry value (Error = 0x{0}).", error.ToString("X8"));
+                    Console.WriteLine("[-] Failed to query registry value (Error = 0x{0}).", nErrorCode.ToString("X8"));
                     break;
                 }
 
                 pInfoBuffer = Marshal.AllocHGlobal(nInfoLength);
-                error = NativeMethods.RegQueryValueEx(
+                nErrorCode = NativeMethods.RegQueryValueEx(
                     phkResult,
                     stateName.ToString("X16"),
                     0,
@@ -104,9 +109,9 @@ namespace SharpWnfDump.Library
                     pInfoBuffer,
                     ref nInfoLength);
 
-                if (error != Win32Consts.ERROR_SUCCESS)
+                if (nErrorCode != Win32Consts.ERROR_SUCCESS)
                 {
-                    Console.WriteLine("[-] Failed to query registry value (Error = 0x{0}).", error.ToString("X8"));
+                    Console.WriteLine("[-] Failed to query registry value (Error = 0x{0}).", nErrorCode.ToString("X8"));
                 }
                 else
                 {
@@ -125,7 +130,7 @@ namespace SharpWnfDump.Library
         }
 
 
-        public static void DumpWnfNames(bool showSd, bool showData, bool bUsedOnly)
+        public static void DumpWnfNames(bool bShowSd, bool bShowData, bool bUsedOnly)
         {
             var outputBuilder = new StringBuilder();
             string versionString = Helpers.GetOsVersionString(
@@ -137,21 +142,22 @@ namespace SharpWnfDump.Library
 
             for (var idx = 0; idx < Globals.LifetimeKeyNames.Length; idx++)
             {
-                int error = NativeMethods.RegOpenKeyEx(
+                int nErrorCode = NativeMethods.RegOpenKeyEx(
                     Win32Consts.HKEY_LOCAL_MACHINE,
                     Globals.LifetimeKeyNames[idx],
                     0,
                     Win32Consts.KEY_READ,
                     out IntPtr phkResult);
 
-                if (error != Win32Consts.ERROR_SUCCESS)
+                if (nErrorCode != Win32Consts.ERROR_SUCCESS)
                     continue;
 
                 if (idx > 0)
                     outputBuilder.AppendLine();
 
                 outputBuilder.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n",
-                    string.Format("WNF State Name [{0} Lifetime]", ((WNF_STATE_NAME_LIFETIME)idx).ToString()));
+                    string.Format("WNF State Name [{0} Lifetime]",
+                    ((WNF_STATE_NAME_LIFETIME)idx).ToString()));
                 outputBuilder.AppendLine(new string('-', 118));
 
                 for (var count = 0; true; count++)
@@ -159,13 +165,13 @@ namespace SharpWnfDump.Library
                     IntPtr pInfoBuffer;
                     var nNameLength = 255;
                     var nameBuilder = new StringBuilder(nNameLength);
-                    error = Win32Consts.ERROR_MORE_DATA;
+                    nErrorCode = Win32Consts.ERROR_MORE_DATA;
 
-                    for (var trial = 0; (error == Win32Consts.ERROR_MORE_DATA); trial++)
+                    for (var nTrial = 0; (nErrorCode == Win32Consts.ERROR_MORE_DATA); nTrial++)
                     {
-                        int nInfoLength = 0x1000 * trial;
+                        int nInfoLength = 0x1000 * nTrial;
                         pInfoBuffer = Marshal.AllocHGlobal(nInfoLength);
-                        error = NativeMethods.RegEnumValue(
+                        nErrorCode = NativeMethods.RegEnumValue(
                             phkResult,
                             count,
                             nameBuilder,
@@ -175,12 +181,18 @@ namespace SharpWnfDump.Library
                             pInfoBuffer,
                             ref nInfoLength);
 
-                        if (error == Win32Consts.ERROR_SUCCESS)
+                        if (nErrorCode == Win32Consts.ERROR_SUCCESS)
                         {
                             try
                             {
                                 var stateName = Convert.ToUInt64(nameBuilder.ToString(), 16);
-                                outputBuilder.Append(Helpers.DumpWnfData(stateName, pInfoBuffer, showSd, showData, bUsedOnly));
+                                var dataString = Helpers.DumpWnfData(
+                                    stateName,
+                                    pInfoBuffer,
+                                    bShowSd,
+                                    bShowData,
+                                    bUsedOnly);
+                                outputBuilder.Append(dataString);
                             }
                             catch { }
                         }
@@ -188,7 +200,7 @@ namespace SharpWnfDump.Library
                         Marshal.FreeHGlobal(pInfoBuffer);
                     }
 
-                    if (error != Win32Consts.ERROR_SUCCESS)
+                    if (nErrorCode != Win32Consts.ERROR_SUCCESS)
                         break;
                 }
 
