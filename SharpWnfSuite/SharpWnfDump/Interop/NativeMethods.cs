@@ -26,9 +26,6 @@ namespace SharpWnfDump.Interop
         public static extern bool IsValidSecurityDescriptor(IntPtr pSecurityDescriptor);
 
         [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern int RegCloseKey(IntPtr hKey);
-
-        [DllImport("advapi32.dll", SetLastError = true)]
         public static extern int RegEnumValue(
             IntPtr hKey,
             int dwIndex,
@@ -38,14 +35,6 @@ namespace SharpWnfDump.Interop
             IntPtr lpType,
             IntPtr lpData,
             ref int lpcbData);
-
-        [DllImport("advapi32.dll", CharSet = CharSet.Auto)]
-        public static extern int RegOpenKeyEx(
-            IntPtr hKey,
-            string lpSubKey,
-            int ulOptions,
-            int samDesired,
-            out IntPtr phkResult);
 
         [DllImport("advapi32.dll", SetLastError = true)]
         public static extern int RegQueryValueEx(

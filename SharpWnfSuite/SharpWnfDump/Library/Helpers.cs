@@ -39,18 +39,16 @@ namespace SharpWnfDump.Library
                 bool bReadable;
                 bool bWritable;
                 Char dataScopeTag;
-                WNF_DATA_SCOPE dataScope;
-                int exists = 2;
+                int nExists = 2;
                 var additionalInfoBuilder = new StringBuilder();
                 var wnfStateName = new WNF_STATE_NAME { Data = stateName };
+                WNF_DATA_SCOPE dataScope = wnfStateName.GetDataScope();
 
                 if (!wnfStateName.IsValid())
                 {
                     outputBuilder.Append("[!] WNF State Name is invalid.\n");
                     break;
                 }
-
-                dataScope = wnfStateName.GetDataScope();
 
                 if ((dataScope == WNF_DATA_SCOPE.Session) || (dataScope == WNF_DATA_SCOPE.PhysicalMachine))
                     dataScopeTag = dataScope.ToString().ToLower()[0];
@@ -62,10 +60,10 @@ namespace SharpWnfDump.Library
                     out int changeStamp,
                     out IntPtr pInfoBuffer,
                     out uint nInfoLength);
-                bWritable = IsWritable(stateName);
+                bWritable = IsWritableWnfStateName(stateName);
 
                 if (bWritable)
-                    exists = GetWnfSubscribersPresenceInfo(stateName);
+                    nExists = GetWnfSubscribersPresenceInfo(stateName);
 
                 if (bUsedOnly && (changeStamp == 0))
                     continue;
@@ -77,9 +75,9 @@ namespace SharpWnfDump.Library
                     wnfStateName.GetNameLifeTime().ToString()[0],
                     (wnfStateName.GetPermanentData() != 0) ? 'Y' : 'N',
                     bReadable && bWritable ? "RW" : (bReadable ? "RO" : (bWritable ? "WO" : "NA")),
-                    exists == 1 ? 'A' : (exists == 2 ? 'U' : 'I'),
+                    (nExists == 1) ? 'A' : (nExists == 2 ? 'U' : 'I'),
                     nInfoLength,
-                    nMaxSize == -1 ? "?" : nMaxSize.ToString("D"),
+                    (nMaxSize == -1) ? "?" : nMaxSize.ToString("D"),
                     changeStamp);
 
                 if (bShowSd && pSecurityDescriptor != IntPtr.Zero)
@@ -90,15 +88,14 @@ namespace SharpWnfDump.Library
                         SECURITY_INFORMATION.DACL_SECURITY_INFORMATION | SECURITY_INFORMATION.SACL_SECURITY_INFORMATION | SECURITY_INFORMATION.LABEL_SECURITY_INFORMATION,
                         out StringBuilder sdString,
                         IntPtr.Zero);
-                    additionalInfoBuilder.AppendLine();
-                    additionalInfoBuilder.AppendFormat("        {0}\n", sdString);
+                    additionalInfoBuilder.AppendFormat("\n        {0}\n", sdString);
                 }
 
                 if (bShowData && bReadable && (nInfoLength != 0))
                 {
                     var hexDump = HexDump.Dump(pInfoBuffer, nInfoLength, 2);
-                    additionalInfoBuilder.AppendLine();
-                    additionalInfoBuilder.Append(string.IsNullOrEmpty(hexDump) ? "Failed to get hexdump.\n" : hexDump);
+                    additionalInfoBuilder.AppendFormat("\n{0}",
+                        string.IsNullOrEmpty(hexDump) ? "Failed to get hexdump.\n" : hexDump);
                 }
 
                 if (additionalInfoBuilder.Length > 0)
@@ -398,7 +395,7 @@ namespace SharpWnfDump.Library
         }
 
 
-        public static bool IsWritable(ulong stateName)
+        public static bool IsWritableWnfStateName(ulong stateName)
         {
             NTSTATUS ntstatus = NativeMethods.NtUpdateWnfStateData(
                 in stateName,
@@ -422,10 +419,10 @@ namespace SharpWnfDump.Library
                 IntPtr.Zero,
                 pInfoBuffer,
                 4);
-            int present = Marshal.ReadInt32(pInfoBuffer);
+            int nPresent = Marshal.ReadInt32(pInfoBuffer);
             Marshal.FreeHGlobal(pInfoBuffer);
 
-            return (ntstatus == Win32Consts.STATUS_SUCCESS) ? present : 0;
+            return (ntstatus == Win32Consts.STATUS_SUCCESS) ? nPresent : 0;
         }
 
 
