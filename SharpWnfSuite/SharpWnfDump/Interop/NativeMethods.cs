@@ -25,17 +25,6 @@ namespace SharpWnfDump.Interop
         [DllImport("advapi32.dll", SetLastError = true)]
         public static extern bool IsValidSecurityDescriptor(IntPtr pSecurityDescriptor);
 
-        [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern int RegEnumValue(
-            IntPtr hKey,
-            int dwIndex,
-            StringBuilder lpValueName,
-            ref int lpcValueName,
-            IntPtr lpReserved,
-            IntPtr lpType,
-            IntPtr lpData,
-            ref int lpcbData);
-
         /*
          * ntdll.dll
          * 
@@ -45,6 +34,15 @@ namespace SharpWnfDump.Interop
          */
         [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtClose(IntPtr Handle);
+
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtEnumerateValueKey(
+            IntPtr KeyHandle,
+            uint Index,
+            KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
+            IntPtr KeyValueInformation,
+            uint Length,
+            out uint ResultLength);
 
         [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtOpenKey(

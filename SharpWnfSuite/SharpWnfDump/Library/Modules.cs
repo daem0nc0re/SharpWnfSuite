@@ -172,35 +172,55 @@ namespace SharpWnfDump.Library
                     ((WNF_STATE_NAME_LIFETIME)idx).ToString()));
                 outputBuilder.AppendLine(new string('-', 118));
 
-                for (var count = 0; true; count++)
+                for (var nValueIndex = 0u; ntstatus == Win32Consts.STATUS_SUCCESS; nValueIndex++)
                 {
-                    IntPtr pInfoBuffer;
-                    var nNameLength = 255;
-                    var nameBuilder = new StringBuilder(nNameLength);
-                    int nErrorCode = Win32Consts.ERROR_MORE_DATA;
+                    var nInfoLength = 0x1000u;
+                    var pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
 
-                    for (var nTrial = 0; (nErrorCode == Win32Consts.ERROR_MORE_DATA); nTrial++)
+                    do
                     {
-                        int nInfoLength = 0x1000 * nTrial;
-                        pInfoBuffer = Marshal.AllocHGlobal(nInfoLength);
-                        nErrorCode = NativeMethods.RegEnumValue(
+                        ntstatus = NativeMethods.NtEnumerateValueKey(
                             hKey,
-                            count,
-                            nameBuilder,
-                            ref nNameLength,
-                            IntPtr.Zero,
-                            IntPtr.Zero,
+                            nValueIndex,
+                            KEY_VALUE_INFORMATION_CLASS.KeyValueFullInformation,
                             pInfoBuffer,
-                            ref nInfoLength);
+                            nInfoLength,
+                            out nInfoLength);
 
-                        if (nErrorCode == Win32Consts.ERROR_SUCCESS)
+                        if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                            Marshal.FreeHGlobal(pInfoBuffer);
+                    } while (ntstatus == Win32Consts.STATUS_BUFFER_TOO_SMALL);
+
+                    if (ntstatus == Win32Consts.STATUS_SUCCESS)
+                    {
+                        var nNameOffset = Marshal.OffsetOf(typeof(KEY_VALUE_FULL_INFORMATION), "Name").ToInt32();
+                        var info = (KEY_VALUE_FULL_INFORMATION)Marshal.PtrToStructure(
+                            pInfoBuffer,
+                            typeof(KEY_VALUE_FULL_INFORMATION));
+
+                        if (info.NameLength >= 32)
                         {
+                            IntPtr pNameBuffer;
+                            IntPtr pDataBuffer;
+
+                            if (Environment.Is64BitProcess)
+                            {
+                                pNameBuffer = new IntPtr(pInfoBuffer.ToInt64() + nNameOffset);
+                                pDataBuffer = new IntPtr(pInfoBuffer.ToInt64() + info.DataOffset);
+                            }
+                            else
+                            {
+                                pNameBuffer = new IntPtr(pInfoBuffer.ToInt32() + nNameOffset);
+                                pDataBuffer = new IntPtr(pInfoBuffer.ToInt32() + (int)info.DataOffset);
+                            }
+
                             try
                             {
-                                var stateName = Convert.ToUInt64(nameBuilder.ToString(), 16);
+                                var nameString = Marshal.PtrToStringUni(pNameBuffer);
+                                var stateName = Convert.ToUInt64(nameString, 16);
                                 var dataString = Helpers.DumpWnfData(
                                     stateName,
-                                    pInfoBuffer,
+                                    pDataBuffer,
                                     bShowSd,
                                     bShowData,
                                     bUsedOnly);
@@ -211,9 +231,6 @@ namespace SharpWnfDump.Library
 
                         Marshal.FreeHGlobal(pInfoBuffer);
                     }
-
-                    if (nErrorCode != Win32Consts.ERROR_SUCCESS)
-                        break;
                 }
 
                 NativeMethods.NtClose(hKey);
