@@ -54,7 +54,6 @@ namespace SharpWnfDump.Library
 
         public static bool DumpKeyInfo(ulong stateName, bool bShowSd, bool bShowData)
         {
-            int nErrorCode;
             NTSTATUS ntstatus;
             IntPtr hKey;
             var wnfStateName = new WNF_STATE_NAME { Data = stateName };
@@ -87,48 +86,49 @@ namespace SharpWnfDump.Library
                 return false;
             }
 
-            do
+            using (var valueName = new UNICODE_STRING(stateName.ToString("X16")))
             {
                 IntPtr pInfoBuffer;
-                int nInfoLength = 0;
+                var nInfoLength = 0x1000u;
                 var outputBuilder = new StringBuilder();
-                nErrorCode = NativeMethods.RegQueryValueEx(
-                    hKey,
-                    stateName.ToString("X16"),
-                    0,
-                    IntPtr.Zero,
-                    IntPtr.Zero,
-                    ref nInfoLength);
 
-                if (nErrorCode != Win32Consts.ERROR_SUCCESS)
+                do
                 {
-                    Console.WriteLine("[-] Failed to query registry value (Error = 0x{0}).", nErrorCode.ToString("X8"));
-                    break;
-                }
+                    pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
+                    ntstatus = NativeMethods.NtQueryValueKey(
+                        hKey,
+                        in valueName,
+                        KEY_VALUE_INFORMATION_CLASS.KeyValueFullInformation,
+                        pInfoBuffer,
+                        nInfoLength,
+                        out nInfoLength);
 
-                pInfoBuffer = Marshal.AllocHGlobal(nInfoLength);
-                nErrorCode = NativeMethods.RegQueryValueEx(
-                    hKey,
-                    stateName.ToString("X16"),
-                    0,
-                    IntPtr.Zero,
-                    pInfoBuffer,
-                    ref nInfoLength);
+                    if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                        Marshal.FreeHGlobal(pInfoBuffer);
+                } while (ntstatus == Win32Consts.STATUS_BUFFER_OVERFLOW);
 
-                if (nErrorCode != Win32Consts.ERROR_SUCCESS)
+                if (ntstatus == Win32Consts.STATUS_SUCCESS)
                 {
-                    Console.WriteLine("[-] Failed to query registry value (Error = 0x{0}).", nErrorCode.ToString("X8"));
+                    IntPtr pDataBuffer;
+                    var info = (KEY_VALUE_FULL_INFORMATION)Marshal.PtrToStructure(
+                        pInfoBuffer,
+                        typeof(KEY_VALUE_FULL_INFORMATION));
+
+                    if (Environment.Is64BitProcess)
+                        pDataBuffer = new IntPtr(pInfoBuffer.ToInt64() + info.DataOffset);
+                    else
+                        pDataBuffer = new IntPtr(pInfoBuffer.ToInt32() + (int)info.DataOffset);
+
+                    outputBuilder.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n", "WNF State Name");
+                    outputBuilder.AppendLine(new string('-', 118));
+                    outputBuilder.Append(Helpers.DumpWnfData(stateName, pDataBuffer, bShowSd, bShowData, false));
+                    Console.Write(outputBuilder.ToString());
                 }
                 else
                 {
-                    outputBuilder.AppendFormat("| {0,-64}| S | L | P | AC | N | CurSize | MaxSize | Changes |\n", "WNF State Name");
-                    outputBuilder.AppendLine(new string('-', 118));
-                    outputBuilder.Append(Helpers.DumpWnfData(stateName, pInfoBuffer, bShowSd, bShowData, false));
-                    Console.Write(outputBuilder.ToString());
+                    Console.WriteLine("[-] Failed to query registry value (Error = 0x{0}).", ntstatus.ToString("X8"));
                 }
-
-                Marshal.FreeHGlobal(pInfoBuffer);
-            } while (false);
+            }
 
             NativeMethods.NtClose(hKey);
 
@@ -146,7 +146,7 @@ namespace SharpWnfDump.Library
 
             Console.WriteLine("[*] OS version is {0}.\n", versionString ?? "unspecified");
 
-            for (var idx = 0; idx < Globals.LifetimeKeyNames.Length; idx++)
+            for (var idx = 0; idx < Globals.LifetimeKeyNameKeys.Length; idx++)
             {
                 NTSTATUS ntstatus;
                 IntPtr hKey;

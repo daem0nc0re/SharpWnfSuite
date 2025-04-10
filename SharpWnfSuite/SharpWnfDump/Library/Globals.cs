@@ -2,12 +2,6 @@
 {
     internal class Globals
     {
-        public static readonly string[] LifetimeKeyNames = new string[]
-        {
-            @"SYSTEM\CurrentControlSet\Control\Notifications",
-            @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Notifications",
-            @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\VolatileNotifications"
-        };
         public static readonly string[] LifetimeKeyNameKeys = new string[]
         {
             @"\REGISTRY\MACHINE\SYSTEM\CurrentControlSet\Control\Notifications",

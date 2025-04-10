@@ -36,15 +36,6 @@ namespace SharpWnfDump.Interop
             IntPtr lpData,
             ref int lpcbData);
 
-        [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern int RegQueryValueEx(
-            IntPtr hKey,
-            string lpValueName,
-            int lpReserved,
-            IntPtr lpType,
-            IntPtr lpData,
-            ref int lpcbData);
-
         /*
          * ntdll.dll
          * 
