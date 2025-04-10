@@ -85,7 +85,7 @@ namespace SharpWnfDump.Library
                     NativeMethods.ConvertSecurityDescriptorToStringSecurityDescriptor(
                         pSecurityDescriptor,
                         Win32Consts.SDDL_REVISION_1,
-                        SECURITY_INFORMATION.DACL_SECURITY_INFORMATION | SECURITY_INFORMATION.SACL_SECURITY_INFORMATION | SECURITY_INFORMATION.LABEL_SECURITY_INFORMATION,
+                        SECURITY_INFORMATION.Owner | SECURITY_INFORMATION.Group | SECURITY_INFORMATION.Dacl | SECURITY_INFORMATION.Sacl | SECURITY_INFORMATION.Label,
                         out StringBuilder sdString,
                         IntPtr.Zero);
                     additionalInfoBuilder.AppendFormat("\n        {0}\n", sdString);
