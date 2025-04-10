@@ -216,7 +216,7 @@ namespace SharpWnfDump.Library
             if (nMajorVersion == 6)
             {
                 if (nMinorVersion == 0)
-                    versionString = "Windows Vista";
+                    versionString = "Windows Vista or Windows Server 2008";
                 else if (nMinorVersion == 1)
                     versionString = "Windows 7 or Windows Server 2008 R2";
                 else if (nMinorVersion == 2)
@@ -231,7 +231,7 @@ namespace SharpWnfDump.Library
                 else if (nBuildNumber == 10586)
                     versionString = "Windows 10 Version 1511";
                 else if (nBuildNumber == 14393)
-                    versionString = "Windows 10 Version 1607";
+                    versionString = "Windows 10 Version 1607 or Windows Server 2016";
                 else if (nBuildNumber == 15063)
                     versionString = "Windows 10 Version 1703";
                 else if (nBuildNumber == 16299)
@@ -239,7 +239,7 @@ namespace SharpWnfDump.Library
                 else if (nBuildNumber == 17134)
                     versionString = "Windows 10 Version 1803";
                 else if (nBuildNumber == 17763)
-                    versionString = "Windows 10 Version 1809";
+                    versionString = "Windows 10 Version 1809 or Windows Server 2019";
                 else if (nBuildNumber == 18362)
                     versionString = "Windows 10 Version 1903";
                 else if (nBuildNumber == 18363)
@@ -254,6 +254,8 @@ namespace SharpWnfDump.Library
                     versionString = "Windows 10 Version 21H2";
                 else if (nBuildNumber == 19045)
                     versionString = "Windows 10 Version 22H2";
+                else if (nBuildNumber == 20348)
+                    versionString = "Windows Server 2022";
                 else if (nBuildNumber == 22000)
                     versionString = "Windows 11 Version 21H2";
                 else if (nBuildNumber == 22621)
@@ -261,7 +263,7 @@ namespace SharpWnfDump.Library
                 else if (nBuildNumber == 22631)
                     versionString = "Windows 11 Version 23H2";
                 else if (nBuildNumber == 26100)
-                    versionString = "Windows 11 Version 24H2";
+                    versionString = "Windows 11 Version 24H2 or Windows Server 2025";
             }
 
             return versionString;
@@ -305,6 +307,8 @@ namespace SharpWnfDump.Library
                     wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_21H2), stateName);
                 else if (Globals.BuildNumber == 19045)
                     wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_22H2), stateName);
+                else if (Globals.BuildNumber == 20348)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_2022), stateName);
                 else if (Globals.BuildNumber == 22000)
                     wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_21H2), stateName);
                 else if (Globals.BuildNumber == 22621)
@@ -368,6 +372,8 @@ namespace SharpWnfDump.Library
                     value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_21H2), name.ToUpper());
                 else if (Globals.BuildNumber == 19045)
                     value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_22H2), name.ToUpper());
+                else if (Globals.BuildNumber == 20348)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_2022), name.ToUpper());
                 else if (Globals.BuildNumber == 22000)
                     value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_21H2), name.ToUpper());
                 else if (Globals.BuildNumber == 22621)

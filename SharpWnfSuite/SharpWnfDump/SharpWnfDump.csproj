@@ -57,6 +57,7 @@
     <Compile Include="Interop\WellKnownStateName1809.cs" />
     <Compile Include="Interop\WellKnownStateName1903To1909.cs" />
     <Compile Include="Interop\WellKnownStateName2004To21H1.cs" />
+    <Compile Include="Interop\WellKnownStateName2022.cs" />
     <Compile Include="Interop\WellKnownStateName21H2.cs" />
     <Compile Include="Interop\WellKnownStateName22H2.cs" />
     <Compile Include="Interop\WellKnownStateName23H2.cs" />
