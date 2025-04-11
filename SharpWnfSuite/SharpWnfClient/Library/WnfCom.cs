@@ -16,12 +16,6 @@ namespace SharpWnfClient.Library
         {
             public bool Destroyed;
             public IntPtr Event;
-
-            public NotifyContext(bool _destroyed, IntPtr _event)
-            {
-                this.Destroyed = _destroyed;
-                this.Event = _event;
-            }
         }
 
         /*
@@ -90,34 +84,36 @@ namespace SharpWnfClient.Library
         public bool Listen()
         {
             NTSTATUS ntstatus;
-            NotifyContext context;
-            IntPtr hEvent = IntPtr.Zero;
-            IntPtr pContextBuffer = IntPtr.Zero;
-            IntPtr pSubscription = IntPtr.Zero;
-            bool status = false;
+            IntPtr pContextBuffer;
+            var context = new NotifyContext { Destroyed = false };
+
+            if (this.StateName.Data == 0UL)
+            {
+                Console.WriteLine("\n[-] Server is not initialized.\n");
+                return false;
+            }
+
+            ntstatus = NativeMethods.NtCreateEvent(
+                out IntPtr hEvent,
+                ACCESS_MASK.EVENT_ALL_ACCESS,
+                IntPtr.Zero,
+                EVENT_TYPE.SynchronizationEvent,
+                BOOLEAN.FALSE);
+
+            if (ntstatus != Win32Consts.STATUS_SUCCESS)
+            {
+                Console.WriteLine("\n[-] Failed to create event.\n");
+                return false;
+            }
+
+            pContextBuffer = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(NotifyContext)));
+            context.Event = hEvent;
+            Marshal.StructureToPtr(context, pContextBuffer, true);
 
             do
             {
-                if (this.StateName.Data == 0UL)
-                {
-                    Console.WriteLine("\n[-] Server is not initialized.\n");
-                    break;
-                }
-
-                hEvent = NativeMethods.CreateEvent(IntPtr.Zero, false, false, IntPtr.Zero);
-
-                if (hEvent == IntPtr.Zero)
-                {
-                    Console.WriteLine("\n[-] Failed to create event.\n");
-                    break;
-                }
-
-                pContextBuffer = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(NotifyContext)));
-                context = new NotifyContext(false, hEvent);
-                Marshal.StructureToPtr(context, pContextBuffer, true);
-
                 ntstatus = NativeMethods.RtlSubscribeWnfStateChangeNotification(
-                    out pSubscription,
+                    out IntPtr pSubscription,
                     this.StateName.Data,
                     0,
                     this.Callback,
@@ -125,19 +121,19 @@ namespace SharpWnfClient.Library
                     IntPtr.Zero,
                     0,
                     0);
-                status = (ntstatus == Win32Consts.STATUS_SUCCESS);
 
-                if (!status)
+                if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                {
                     Console.WriteLine("\n[-] Failed to subscribe WNF (NTSTATUS = 0x{0})\n", ntstatus.ToString("X8"));
-            } while (false);
+                    break;
+                }
 
-            if (status)
-            {
                 do
                 {
                     try
                     {
-                        NativeMethods.WaitForSingleObject(hEvent, 1000);
+                        var timeout = LARGE_INTEGER.FromInt64(-(1000 * 10000)); // 1,000 ms
+                        NativeMethods.NtWaitForSingleObject(hEvent, BOOLEAN.FALSE, in timeout);
                         context = (NotifyContext)Marshal.PtrToStructure(pContextBuffer, typeof(NotifyContext));
                     }
                     catch
@@ -147,15 +143,12 @@ namespace SharpWnfClient.Library
                 } while (!context.Destroyed);
 
                 NativeMethods.RtlUnsubscribeWnfStateChangeNotification(pSubscription);
-            }
+            } while (false);
+            
+            NativeMethods.NtClose(hEvent);
+            Marshal.FreeHGlobal(pContextBuffer);
 
-            if (hEvent != IntPtr.Zero)
-                NativeMethods.CloseHandle(hEvent);
-
-            if (pContextBuffer != IntPtr.Zero)
-                Marshal.FreeHGlobal(pContextBuffer);
-
-            return status;
+            return (ntstatus == Win32Consts.STATUS_SUCCESS);
         }
 
 

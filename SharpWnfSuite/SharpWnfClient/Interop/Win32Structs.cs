@@ -28,6 +28,45 @@ namespace SharpWnfClient.Interop
         public short Sbz2;
     }
 
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
+    internal struct LARGE_INTEGER
+    {
+        [FieldOffset(0)]
+        public int Low;
+        [FieldOffset(4)]
+        public int High;
+        [FieldOffset(0)]
+        public long QuadPart;
+
+        public LARGE_INTEGER(int _low, int _high)
+        {
+            QuadPart = 0L;
+            Low = _low;
+            High = _high;
+        }
+
+        public LARGE_INTEGER(long _quad)
+        {
+            Low = 0;
+            High = 0;
+            QuadPart = _quad;
+        }
+
+        public long ToInt64()
+        {
+            return ((long)High << 32) | (uint)Low;
+        }
+
+        public static LARGE_INTEGER FromInt64(long value)
+        {
+            return new LARGE_INTEGER
+            {
+                Low = (int)(value),
+                High = (int)((value >> 32))
+            };
+        }
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     internal struct SECURITY_DESCRIPTOR
     {

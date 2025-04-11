@@ -30,15 +30,11 @@ namespace SharpWnfScan
             catch (InvalidOperationException ex)
             {
                 Console.WriteLine(ex.Message);
-
-                return;
             }
             catch (ArgumentException ex)
             {
                 options.GetHelp();
                 Console.WriteLine(ex.Message);
-
-                return;
             }
         }
     }
