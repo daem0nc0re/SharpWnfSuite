@@ -35,11 +35,11 @@ namespace SharpWnfServer.Library
         // Global Variables
         // 
         private WNF_STATE_NAME StateName;
-        private readonly IntPtr Callback;
-        private readonly int MajorVersion;
-        private readonly int MinorVersion;
-        private readonly int BuildNumber;
-        private readonly string OsVersion;
+        private IntPtr Callback { get; } = IntPtr.Zero;
+        private int MajorVersion { get; } = 0;
+        private int MinorVersion { get; } = 0;
+        private int BuildNumber { get; } = 0;
+        private string OsVersion { get; } = null;
 
         // 
         // Constructors
@@ -48,7 +48,10 @@ namespace SharpWnfServer.Library
         {
             this.StateName = new WNF_STATE_NAME();
             this.Callback = Marshal.GetFunctionPointerForDelegate(new CallbackDelegate(NotifyCallback));
-            GetOsVersionNumbers(out MajorVersion, out MinorVersion, out BuildNumber);
+            GetOsVersionNumbers(out int nMajorVersion, out int nMinorVersion, out int nBuildNumber);
+            MajorVersion = nMajorVersion;
+            MinorVersion = nMinorVersion;
+            BuildNumber = nBuildNumber;
             OsVersion = GetOsVersionString(MajorVersion, MinorVersion, BuildNumber);
             Console.WriteLine("[*] OS version is {0}.", OsVersion ?? "unspecified");
 
