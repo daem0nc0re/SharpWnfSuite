@@ -7,27 +7,17 @@ namespace SharpWnfServer.Interop
 
     internal class NativeMethods
     {
-        /*
-         * kernel32.dll
-         */
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool CloseHandle(IntPtr hObject);
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtClose(IntPtr Handle);
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern IntPtr CreateEvent(
-            IntPtr lpEventAttributes, 
-            bool bManualReset, 
-            bool bInitialState, 
-            IntPtr lpName);
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtCreateEvent(
+            out IntPtr EventHandle,
+            ACCESS_MASK DesiredAccess,
+            IntPtr /* POBJECT_ATTRIBUTES */ ObjectAttributes,
+            EVENT_TYPE EventType,
+            BOOLEAN InitialState);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern int WaitForSingleObject(
-            IntPtr hHandle, 
-            int dwMilliseconds);
-
-        /*
-         * ntdll.dll
-         */
         [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtCreateWnfStateName(
             out ulong StateName,
@@ -56,6 +46,12 @@ namespace SharpWnfServer.Interop
             IntPtr ExplicitScope,
             int MatchingChangeScope,
             int CheckStamp);
+
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtWaitForSingleObject(
+            IntPtr Handle,
+            BOOLEAN Alertable,
+            in LARGE_INTEGER Timeout);
 
         [DllImport("ntdll.dll")]
         public static extern NTSTATUS RtlSubscribeWnfStateChangeNotification(

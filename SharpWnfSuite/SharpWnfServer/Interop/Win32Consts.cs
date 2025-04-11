@@ -6,7 +6,7 @@ namespace SharpWnfServer.Interop
 
     internal class Win32Consts
     {
-        public const int STATUS_SUCCESS = 0;
-        public static readonly NTSTATUS STATUS_BUFFER_TOO_SMALL = Convert.ToInt32("0xC0000023", 16);
+        public const NTSTATUS STATUS_SUCCESS = 0;
+        public const NTSTATUS STATUS_BUFFER_TOO_SMALL = unchecked((NTSTATUS)0xC0000023u);
     }
 }

@@ -5,6 +5,10 @@ namespace SharpWnfServer.Interop
     [Flags]
     internal enum ACCESS_MASK : uint
     {
+        // For Events
+        EVENT_MODIFY_STATE = 0x00000002,
+        EVENT_ALL_ACCESS = 0x001F0003,
+
         DELETE = 0x00010000,
         READ_CONTROL = 0x00020000,
         WRITE_DAC = 0x00040000,
@@ -68,6 +72,18 @@ namespace SharpWnfServer.Interop
     {
         ACL_REVISION = 2,
         ACL_REVISION_DS = 4,
+    }
+
+    internal enum BOOLEAN : byte
+    {
+        FALSE,
+        TRUE
+    }
+
+    internal enum EVENT_TYPE
+    {
+        NotificationEvent,
+        SynchronizationEvent
     }
 
     [Flags]
