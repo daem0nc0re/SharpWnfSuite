@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Text;
 using System.Text.RegularExpressions;
-using SharpWnfScan.Interop;
 using SharpWnfScan.Library;
 
 namespace SharpWnfScan.Handler
@@ -24,6 +24,16 @@ namespace SharpWnfScan.Handler
 
             do
             {
+                var header = new StringBuilder();
+                header.AppendFormat("[*] OS version is {0}.\n", Globals.OsVersion ?? "unspecified");
+
+                if (!Globals.IsSupported)
+                {
+                    Console.Write(header.ToString());
+                    Console.WriteLine("[-] This OS is not supported.");
+                    break;
+                }
+
                 if (!string.IsNullOrEmpty(options.GetValue("name")))
                 {
                     if (rgx.IsMatch(options.GetValue("name")))
@@ -40,6 +50,7 @@ namespace SharpWnfScan.Handler
                         }
                         catch
                         {
+                            Console.Write(header.ToString());
                             Console.WriteLine("[!] Failed to resolve WNF State Name.");
                             break;
                         }
@@ -50,14 +61,17 @@ namespace SharpWnfScan.Handler
                 {
                     if (Utilities.EnableDebugPrivilege())
                     {
-                        Console.WriteLine("[+] SeDebugPrivilege is enabled successfully.\n");
+                        header.AppendLine("[+] SeDebugPrivilege is enabled successfully.");
                     }
                     else
                     {
+                        Console.Write(header.ToString());
                         Console.WriteLine("[-] Failed to enable SeDebugPrivilege.");
                         break;
                     }
                 }
+
+                Console.WriteLine(header.ToString());
 
                 if (options.GetFlag("all"))
                 {

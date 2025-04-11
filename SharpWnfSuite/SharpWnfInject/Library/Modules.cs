@@ -52,7 +52,7 @@ namespace SharpWnfInject.Library
             bool bIs32BitProcess;
             string imageFileName;
             string processName;
-            string wellKnownName = Helpers.GetWnfName(stateName);
+            string wellKnownName = Helpers.GetWellKnownWnfName(stateName);
             var objectAttributes = new OBJECT_ATTRIBUTES
             {
                 Length = Marshal.SizeOf(typeof(OBJECT_ATTRIBUTES))
@@ -90,7 +90,9 @@ namespace SharpWnfInject.Library
             imageFileName = Helpers.GetProcessImageFileName(hProcess);
             processName = string.IsNullOrEmpty(imageFileName) ? "(N/A)" : Path.GetFileName(imageFileName);
 
-            Console.WriteLine("[*] Target WNF State Name is 0x{0} ({1}).", stateName.ToString("X16"), wellKnownName);
+            Console.WriteLine("[*] Target WNF State Name is 0x{0} ({1}).",
+                stateName.ToString("X16"),
+                wellKnownName ?? "N/A");
             Console.WriteLine("[+] Got a handle from the target Process");
             Console.WriteLine("    [*] Process Name    : {0}", processName);
             Console.WriteLine("    [*] Process ID      : {0}", pid);
@@ -141,7 +143,7 @@ namespace SharpWnfInject.Library
                     Console.WriteLine("[+] WNF_SUBSCRIPTION_TABLE is at 0x{0}.", pSubscriptionTable.ToString(addressFormat));
                 }
 
-                if (Globals.g_IsWin11)
+                if (Globals.IsWin11)
                     nameSubscriptions = Utilities.GetNameSubscriptionsWin11(hProcess, pSubscriptionTable);
                 else
                     nameSubscriptions = Utilities.GetNameSubscriptions(hProcess, pSubscriptionTable);

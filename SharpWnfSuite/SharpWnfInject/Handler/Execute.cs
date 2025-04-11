@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Text.RegularExpressions;
-using SharpWnfInject.Interop;
 using SharpWnfInject.Library;
 
 namespace SharpWnfInject.Handler
@@ -24,6 +23,13 @@ namespace SharpWnfInject.Handler
             {
                 int pid;
                 ulong stateName;
+                Console.WriteLine("[*] OS version is {0}.", Globals.OsVersion ?? "unspecified");
+
+                if (!Globals.IsSupported)
+                {
+                    Console.WriteLine("[-] This OS is not supported.");
+                    break;
+                }
 
                 if (rgxHex.IsMatch(options.GetValue("name")))
                 {
@@ -41,9 +47,7 @@ namespace SharpWnfInject.Handler
                 {
                     try
                     {
-                        stateName = (ulong)Enum.Parse(
-                            typeof(WELL_KNOWN_WNF_NAME),
-                            options.GetValue("name").ToUpper());
+                        stateName = Helpers.GetWnfStateName(options.GetValue("name").ToUpper());
                     }
                     catch
                     {
@@ -53,7 +57,7 @@ namespace SharpWnfInject.Handler
                 }
                 else
                 {
-                    Console.WriteLine("[!] The specfied WNF State Name is invalid format.\n");
+                    Console.WriteLine("[!] The specfied WNF State Name is invalid format.");
                     break;
                 }
 
@@ -67,7 +71,6 @@ namespace SharpWnfInject.Handler
                     break;
                 }
 
-                Globals.g_IsWin11 = Helpers.IsWin11();
                 Modules.InjectShellcode(
                     pid,
                     stateName,

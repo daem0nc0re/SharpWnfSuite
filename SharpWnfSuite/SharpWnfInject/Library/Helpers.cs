@@ -82,6 +82,167 @@ namespace SharpWnfInject.Library
         }
 
 
+        public static bool GetOsVersionNumbers(out int nMajorVersion, out int nMinorVersion, out int nBuildNumber)
+        {
+            NTSTATUS ntstatus;
+            IntPtr hKey;
+            var bSuccess = true;
+            var valueNames = new List<string>
+            {
+                @"CurrentMajorVersionNumber",
+                @"CurrentMinorVersionNumber",
+                @"CurrentBuildNumber"
+            };
+            nMajorVersion = 0;
+            nMinorVersion = 0;
+            nBuildNumber = 0;
+
+            using (var objectAttributes = new OBJECT_ATTRIBUTES(
+                   @"\REGISTRY\MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion",
+                   OBJECT_ATTRIBUTES_FLAGS.CaseInsensitive))
+            {
+                ntstatus = NativeMethods.NtOpenKey(
+                    out hKey,
+                    ACCESS_MASK.KEY_QUERY_VALUE,
+                    in objectAttributes);
+            }
+
+            if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                return false;
+
+            foreach (var name in valueNames)
+            {
+                IntPtr pInfoBuffer;
+                var nInfoLength = (uint)Marshal.SizeOf(typeof(KEY_VALUE_FULL_INFORMATION));
+
+                using (var valueName = new UNICODE_STRING(name))
+                {
+                    do
+                    {
+                        pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
+                        ntstatus = NativeMethods.NtQueryValueKey(
+                            hKey,
+                            in valueName,
+                            KEY_VALUE_INFORMATION_CLASS.KeyValueFullInformation,
+                            pInfoBuffer,
+                            nInfoLength,
+                            out nInfoLength);
+
+                        if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                            Marshal.FreeHGlobal(pInfoBuffer);
+                    } while (ntstatus == Win32Consts.STATUS_BUFFER_OVERFLOW);
+
+                    if (ntstatus == Win32Consts.STATUS_SUCCESS)
+                    {
+                        var info = (KEY_VALUE_FULL_INFORMATION)Marshal.PtrToStructure(
+                            pInfoBuffer,
+                            typeof(KEY_VALUE_FULL_INFORMATION));
+
+                        if (string.Compare(name, @"CurrentMajorVersionNumber", true) == 0)
+                        {
+                            nMajorVersion = Marshal.ReadInt32(pInfoBuffer, (int)info.DataOffset);
+                        }
+                        else if (string.Compare(name, @"CurrentMinorVersionNumber", true) == 0)
+                        {
+                            nMinorVersion = Marshal.ReadInt32(pInfoBuffer, (int)info.DataOffset);
+                        }
+                        else
+                        {
+                            IntPtr pStringBuffer;
+
+                            if (Environment.Is64BitProcess)
+                                pStringBuffer = new IntPtr(pInfoBuffer.ToInt64() + info.DataOffset);
+                            else
+                                pStringBuffer = new IntPtr(pInfoBuffer.ToInt32() + (int)info.DataOffset);
+
+                            try
+                            {
+                                nBuildNumber = Convert.ToInt32(Marshal.PtrToStringUni(pStringBuffer), 10);
+                            }
+                            catch
+                            {
+                                bSuccess = false;
+                            }
+                        }
+
+
+                        Marshal.FreeHGlobal(pInfoBuffer);
+                    }
+                    else
+                    {
+                        bSuccess = false;
+                        break;
+                    }
+                }
+            }
+
+            NativeMethods.NtClose(hKey);
+
+            return bSuccess;
+        }
+
+
+        public static string GetOsVersionString(int nMajorVersion, int nMinorVersion, int nBuildNumber)
+        {
+            string versionString = null;
+
+            if (nMajorVersion == 6)
+            {
+                if (nMinorVersion == 0)
+                    versionString = "Windows Vista or Windows Server 2008";
+                else if (nMinorVersion == 1)
+                    versionString = "Windows 7 or Windows Server 2008 R2";
+                else if (nMinorVersion == 2)
+                    versionString = "Windows 8 or Windows Server 2012";
+                else if (nMinorVersion == 3)
+                    versionString = "Windows 8.1 or Windows Server 2012 R2";
+            }
+            else if ((nMajorVersion == 10) && (nMinorVersion == 0))
+            {
+                if (nBuildNumber == 10240)
+                    versionString = "Windows 10 Version 1507";
+                else if (nBuildNumber == 10586)
+                    versionString = "Windows 10 Version 1511";
+                else if (nBuildNumber == 14393)
+                    versionString = "Windows 10 Version 1607 or Windows Server 2016";
+                else if (nBuildNumber == 15063)
+                    versionString = "Windows 10 Version 1703";
+                else if (nBuildNumber == 16299)
+                    versionString = "Windows 10 Version 1709";
+                else if (nBuildNumber == 17134)
+                    versionString = "Windows 10 Version 1803";
+                else if (nBuildNumber == 17763)
+                    versionString = "Windows 10 Version 1809 or Windows Server 2019";
+                else if (nBuildNumber == 18362)
+                    versionString = "Windows 10 Version 1903";
+                else if (nBuildNumber == 18363)
+                    versionString = "Windows 10 Version 1909";
+                else if (nBuildNumber == 19041)
+                    versionString = "Windows 10 Version 2004";
+                else if (nBuildNumber == 19042)
+                    versionString = "Windows 10 Version 20H2";
+                else if (nBuildNumber == 19043)
+                    versionString = "Windows 10 Version 21H1";
+                else if (nBuildNumber == 19044)
+                    versionString = "Windows 10 Version 21H2";
+                else if (nBuildNumber == 19045)
+                    versionString = "Windows 10 Version 22H2";
+                else if (nBuildNumber == 20348)
+                    versionString = "Windows Server 2022";
+                else if (nBuildNumber == 22000)
+                    versionString = "Windows 11 Version 21H2";
+                else if (nBuildNumber == 22621)
+                    versionString = "Windows 11 Version 22H2";
+                else if (nBuildNumber == 22631)
+                    versionString = "Windows 11 Version 23H2";
+                else if (nBuildNumber == 26100)
+                    versionString = "Windows 11 Version 24H2 or Windows Server 2025";
+            }
+
+            return versionString;
+        }
+
+
         public static IntPtr GetPebBase(IntPtr hProcess, out IntPtr pPebWow32)
         {
             var pPeb = IntPtr.Zero;
@@ -561,29 +722,133 @@ namespace SharpWnfInject.Library
         }
 
 
-        public static string GetWnfName(ulong stateName)
+        public static string GetWellKnownWnfName(ulong stateName)
         {
-            string wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME), stateName);
             var wnfStateName = new WNF_STATE_NAME { Data = stateName };
-            var tag = BitConverter.GetBytes(wnfStateName.GetOwnerTag());
+            byte[] tag = BitConverter.GetBytes(wnfStateName.GetOwnerTag());
+            WNF_STATE_NAME_LIFETIME nameLifeTime = wnfStateName.GetNameLifeTime();
+            string wnfName = null;
 
-            if (string.IsNullOrEmpty(wnfName) && wnfStateName.IsValid())
+            if ((Globals.MajorVersion == 10) && (Globals.MinorVersion == 0))
             {
-                if (wnfStateName.GetNameLifeTime() == WNF_STATE_NAME_LIFETIME.WellKnown)
+                if (Globals.BuildNumber == 10240)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1507), stateName);
+                else if (Globals.BuildNumber == 10586)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1511), stateName);
+                else if (Globals.BuildNumber == 14393)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1607), stateName);
+                else if (Globals.BuildNumber == 15063)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1703), stateName);
+                else if (Globals.BuildNumber == 16299)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1709), stateName);
+                else if (Globals.BuildNumber == 17134)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1803), stateName);
+                else if (Globals.BuildNumber == 17763)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1809), stateName);
+                else if (Globals.BuildNumber == 18362)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1903_TO_1909), stateName);
+                else if (Globals.BuildNumber == 18363)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_1903_TO_1909), stateName);
+                else if (Globals.BuildNumber == 19041)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), stateName);
+                else if (Globals.BuildNumber == 19042)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), stateName);
+                else if (Globals.BuildNumber == 19043)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), stateName);
+                else if (Globals.BuildNumber == 19044)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_21H2), stateName);
+                else if (Globals.BuildNumber == 19045)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_22H2), stateName);
+                else if (Globals.BuildNumber == 20348)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_2022), stateName);
+                else if (Globals.BuildNumber == 22000)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_21H2), stateName);
+                else if (Globals.BuildNumber == 22621)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_22H2), stateName);
+                else if (Globals.BuildNumber == 22631)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_23H2), stateName);
+                else if (Globals.BuildNumber == 26100)
+                    wnfName = Enum.GetName(typeof(WELL_KNOWN_WNF_NAME_24H2), stateName);
+            }
+
+            if (string.IsNullOrEmpty(wnfName))
+            {
+                if (nameLifeTime == WNF_STATE_NAME_LIFETIME.WellKnown)
                 {
                     wnfName = string.Format("{0}.{1} 0x{2}",
                         Encoding.ASCII.GetString(tag).Trim('\0'),
                         wnfStateName.GetSequenceNumber().ToString("D3"),
                         stateName.ToString("X8"));
                 }
-                else
-                {
-                    wnfName = "N/A";
-                }
             }
 
             return wnfName;
         }
+
+
+        public static ulong GetWnfStateName(string name)
+        {
+            ulong value;
+
+            try
+            {
+                if (Globals.BuildNumber == 10240)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1507), name.ToUpper());
+                else if (Globals.BuildNumber == 10586)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1511), name.ToUpper());
+                else if (Globals.BuildNumber == 14393)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1607), name.ToUpper());
+                else if (Globals.BuildNumber == 15063)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1703), name.ToUpper());
+                else if (Globals.BuildNumber == 16299)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1709), name.ToUpper());
+                else if (Globals.BuildNumber == 17134)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1803), name.ToUpper());
+                else if (Globals.BuildNumber == 17763)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1809), name.ToUpper());
+                else if (Globals.BuildNumber == 18362)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1903_TO_1909), name.ToUpper());
+                else if (Globals.BuildNumber == 18363)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1903_TO_1909), name.ToUpper());
+                else if (Globals.BuildNumber == 19041)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), name.ToUpper());
+                else if (Globals.BuildNumber == 19042)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), name.ToUpper());
+                else if (Globals.BuildNumber == 19043)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), name.ToUpper());
+                else if (Globals.BuildNumber == 19044)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_21H2), name.ToUpper());
+                else if (Globals.BuildNumber == 19045)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_22H2), name.ToUpper());
+                else if (Globals.BuildNumber == 20348)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_2022), name.ToUpper());
+                else if (Globals.BuildNumber == 22000)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_21H2), name.ToUpper());
+                else if (Globals.BuildNumber == 22621)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_22H2), name.ToUpper());
+                else if (Globals.BuildNumber == 22631)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_23H2), name.ToUpper());
+                else if (Globals.BuildNumber == 26100)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_24H2), name.ToUpper());
+                else
+                    throw new NotSupportedException();
+            }
+            catch
+            {
+                try
+                {
+                    value = Convert.ToUInt64(name, 16);
+                }
+                catch
+                {
+                    value = 0;
+                }
+            }
+
+            return value;
+        }
+
+
 
         public static bool Is32BitProcess(IntPtr hProcess)
         {
