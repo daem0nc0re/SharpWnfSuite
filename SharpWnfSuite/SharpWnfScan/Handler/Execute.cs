@@ -36,7 +36,7 @@ namespace SharpWnfScan.Handler
 
                         try
                         {
-                            stateName = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME), wellKnownName);
+                            stateName = Helpers.GetWnfStateName(wellKnownName);
                         }
                         catch
                         {

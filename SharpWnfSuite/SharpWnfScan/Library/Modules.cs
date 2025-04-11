@@ -151,7 +151,7 @@ namespace SharpWnfScan.Library
                 outputBuilder.AppendFormat("    WNF_NAME_SUBSCRIPTION @ 0x{0}\n", subscription.Value.ToString(addressFormat));
                 outputBuilder.AppendFormat("    StateName : 0x{0} ({1})\n\n",
                     subscription.Key.ToString("X16"),
-                    Helpers.GetWnfName(subscription.Key));
+                    Helpers.GetWellKnownWnfName(subscription.Key) ?? "N/A");
 
                 if (bVerbose)
                 {
@@ -288,7 +288,7 @@ namespace SharpWnfScan.Library
 
                     outputBuilder.AppendFormat("[*] 0x{0} ({1})\n",
                         entry.Key.ToString("X16"),
-                        Helpers.GetWnfName(entry.Key));
+                        Helpers.GetWellKnownWnfName(entry.Key) ?? "N/A");
 
                     if (!bVerbose)
                         continue;
