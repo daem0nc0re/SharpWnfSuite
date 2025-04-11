@@ -2,6 +2,7 @@
 using System.Text;
 using System.Runtime.InteropServices;
 using SharpWnfClient.Interop;
+using System.Collections.Generic;
 
 namespace SharpWnfClient.Library
 {
@@ -9,18 +10,18 @@ namespace SharpWnfClient.Library
 
     internal class WnfCom : IDisposable
     {
-        /*
-         * Structs
-         */
+        // 
+        // Structs
+        // 
         private struct NotifyContext
         {
             public bool Destroyed;
             public IntPtr Event;
         }
 
-        /*
-         * Delegate Types
-         */
+        // 
+        // Delegate Types
+        // 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int CallbackDelegate(
             ulong StateName,
@@ -30,30 +31,43 @@ namespace SharpWnfClient.Library
             IntPtr Buffer,
             int BufferSize);
 
-        /*
-         * Global Variables
-         */
+        // 
+        // Global Variables
+        // 
         private WNF_STATE_NAME StateName;
         private readonly IntPtr Callback;
+        private readonly int MajorVersion;
+        private readonly int MinorVersion;
+        private readonly int BuildNumber;
+        private readonly string OsVersion;
 
-        /*
-         * Constructors
-         */
+        // 
+        // Constructors
+        // 
         public WnfCom()
         {
             this.StateName = new WNF_STATE_NAME();
             this.Callback = Marshal.GetFunctionPointerForDelegate(new CallbackDelegate(NotifyCallback));
+            GetOsVersionNumbers(out MajorVersion, out MinorVersion, out BuildNumber);
+            OsVersion = GetOsVersionString(MajorVersion, MinorVersion, BuildNumber);
+            Console.WriteLine("[*] OS version is {0}.", OsVersion ?? "unspecified");
+
+            if ((MajorVersion < 10) || string.IsNullOrEmpty(OsVersion))
+            {
+                Console.WriteLine("[!] Unsupported version.\n");
+                Environment.Exit(0);
+            }
         }
 
 
-        /*
-         * Destructor
-         */
+        // 
+        // Destructor
+        // 
         public void Dispose() { }
 
-        /*
-         * Public Methods
-         */
+        // 
+        // Public Methods
+        // 
         public ulong CreateServer()
         {
             IntPtr pSecurityDescriptor = GetWorldAllowedSecurityDescriptor();
@@ -250,16 +264,216 @@ namespace SharpWnfClient.Library
         }
 
 
-        /*
-         * Private Methods
-         */
+        // 
+        // Private Methods
+        // 
+        private static bool GetOsVersionNumbers(out int nMajorVersion, out int nMinorVersion, out int nBuildNumber)
+        {
+            NTSTATUS ntstatus;
+            IntPtr hKey;
+            var bSuccess = true;
+            var valueNames = new List<string>
+            {
+                @"CurrentMajorVersionNumber",
+                @"CurrentMinorVersionNumber",
+                @"CurrentBuildNumber"
+            };
+            nMajorVersion = 0;
+            nMinorVersion = 0;
+            nBuildNumber = 0;
+
+            using (var objectAttributes = new OBJECT_ATTRIBUTES(
+                   @"\REGISTRY\MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion",
+                   OBJECT_ATTRIBUTES_FLAGS.CaseInsensitive))
+            {
+                ntstatus = NativeMethods.NtOpenKey(
+                    out hKey,
+                    ACCESS_MASK.KEY_QUERY_VALUE,
+                    in objectAttributes);
+            }
+
+            if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                return false;
+
+            foreach (var name in valueNames)
+            {
+                IntPtr pInfoBuffer;
+                var nInfoLength = (uint)Marshal.SizeOf(typeof(KEY_VALUE_FULL_INFORMATION));
+
+                using (var valueName = new UNICODE_STRING(name))
+                {
+                    do
+                    {
+                        pInfoBuffer = Marshal.AllocHGlobal((int)nInfoLength);
+                        ntstatus = NativeMethods.NtQueryValueKey(
+                            hKey,
+                            in valueName,
+                            KEY_VALUE_INFORMATION_CLASS.KeyValueFullInformation,
+                            pInfoBuffer,
+                            nInfoLength,
+                            out nInfoLength);
+
+                        if (ntstatus != Win32Consts.STATUS_SUCCESS)
+                            Marshal.FreeHGlobal(pInfoBuffer);
+                    } while (ntstatus == Win32Consts.STATUS_BUFFER_OVERFLOW);
+
+                    if (ntstatus == Win32Consts.STATUS_SUCCESS)
+                    {
+                        var info = (KEY_VALUE_FULL_INFORMATION)Marshal.PtrToStructure(
+                            pInfoBuffer,
+                            typeof(KEY_VALUE_FULL_INFORMATION));
+
+                        if (string.Compare(name, @"CurrentMajorVersionNumber", true) == 0)
+                        {
+                            nMajorVersion = Marshal.ReadInt32(pInfoBuffer, (int)info.DataOffset);
+                        }
+                        else if (string.Compare(name, @"CurrentMinorVersionNumber", true) == 0)
+                        {
+                            nMinorVersion = Marshal.ReadInt32(pInfoBuffer, (int)info.DataOffset);
+                        }
+                        else
+                        {
+                            IntPtr pStringBuffer;
+
+                            if (Environment.Is64BitProcess)
+                                pStringBuffer = new IntPtr(pInfoBuffer.ToInt64() + info.DataOffset);
+                            else
+                                pStringBuffer = new IntPtr(pInfoBuffer.ToInt32() + (int)info.DataOffset);
+
+                            try
+                            {
+                                nBuildNumber = Convert.ToInt32(Marshal.PtrToStringUni(pStringBuffer), 10);
+                            }
+                            catch
+                            {
+                                bSuccess = false;
+                            }
+                        }
+
+
+                        Marshal.FreeHGlobal(pInfoBuffer);
+                    }
+                    else
+                    {
+                        bSuccess = false;
+                        break;
+                    }
+                }
+            }
+
+            NativeMethods.NtClose(hKey);
+
+            return bSuccess;
+        }
+
+
+        private static string GetOsVersionString(int nMajorVersion, int nMinorVersion, int nBuildNumber)
+        {
+            string versionString = null;
+
+            if (nMajorVersion == 6)
+            {
+                if (nMinorVersion == 0)
+                    versionString = "Windows Vista or Windows Server 2008";
+                else if (nMinorVersion == 1)
+                    versionString = "Windows 7 or Windows Server 2008 R2";
+                else if (nMinorVersion == 2)
+                    versionString = "Windows 8 or Windows Server 2012";
+                else if (nMinorVersion == 3)
+                    versionString = "Windows 8.1 or Windows Server 2012 R2";
+            }
+            else if ((nMajorVersion == 10) && (nMinorVersion == 0))
+            {
+                if (nBuildNumber == 10240)
+                    versionString = "Windows 10 Version 1507";
+                else if (nBuildNumber == 10586)
+                    versionString = "Windows 10 Version 1511";
+                else if (nBuildNumber == 14393)
+                    versionString = "Windows 10 Version 1607 or Windows Server 2016";
+                else if (nBuildNumber == 15063)
+                    versionString = "Windows 10 Version 1703";
+                else if (nBuildNumber == 16299)
+                    versionString = "Windows 10 Version 1709";
+                else if (nBuildNumber == 17134)
+                    versionString = "Windows 10 Version 1803";
+                else if (nBuildNumber == 17763)
+                    versionString = "Windows 10 Version 1809 or Windows Server 2019";
+                else if (nBuildNumber == 18362)
+                    versionString = "Windows 10 Version 1903";
+                else if (nBuildNumber == 18363)
+                    versionString = "Windows 10 Version 1909";
+                else if (nBuildNumber == 19041)
+                    versionString = "Windows 10 Version 2004";
+                else if (nBuildNumber == 19042)
+                    versionString = "Windows 10 Version 20H2";
+                else if (nBuildNumber == 19043)
+                    versionString = "Windows 10 Version 21H1";
+                else if (nBuildNumber == 19044)
+                    versionString = "Windows 10 Version 21H2";
+                else if (nBuildNumber == 19045)
+                    versionString = "Windows 10 Version 22H2";
+                else if (nBuildNumber == 20348)
+                    versionString = "Windows Server 2022";
+                else if (nBuildNumber == 22000)
+                    versionString = "Windows 11 Version 21H2";
+                else if (nBuildNumber == 22621)
+                    versionString = "Windows 11 Version 22H2";
+                else if (nBuildNumber == 22631)
+                    versionString = "Windows 11 Version 23H2";
+                else if (nBuildNumber == 26100)
+                    versionString = "Windows 11 Version 24H2 or Windows Server 2025";
+            }
+
+            return versionString;
+        }
+
+
         private ulong GetWnfStateName(string name)
         {
             ulong value;
 
             try
             {
-                value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME), name.ToUpper());
+                if (this.BuildNumber == 10240)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1507), name.ToUpper());
+                else if (this.BuildNumber == 10586)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1511), name.ToUpper());
+                else if (this.BuildNumber == 14393)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1607), name.ToUpper());
+                else if (this.BuildNumber == 15063)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1703), name.ToUpper());
+                else if (this.BuildNumber == 16299)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1709), name.ToUpper());
+                else if (this.BuildNumber == 17134)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1803), name.ToUpper());
+                else if (this.BuildNumber == 17763)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1809), name.ToUpper());
+                else if (this.BuildNumber == 18362)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1903_TO_1909), name.ToUpper());
+                else if (this.BuildNumber == 18363)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_1903_TO_1909), name.ToUpper());
+                else if (this.BuildNumber == 19041)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), name.ToUpper());
+                else if (this.BuildNumber == 19042)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), name.ToUpper());
+                else if (this.BuildNumber == 19043)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_2004_TO_21H1), name.ToUpper());
+                else if (this.BuildNumber == 19044)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_21H2), name.ToUpper());
+                else if (this.BuildNumber == 19045)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_22H2), name.ToUpper());
+                else if (this.BuildNumber == 20348)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_2022), name.ToUpper());
+                else if (this.BuildNumber == 22000)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_21H2), name.ToUpper());
+                else if (this.BuildNumber == 22621)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_22H2), name.ToUpper());
+                else if (this.BuildNumber == 22631)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_23H2), name.ToUpper());
+                else if (this.BuildNumber == 26100)
+                    value = (ulong)Enum.Parse(typeof(WELL_KNOWN_WNF_NAME_24H2), name.ToUpper());
+                else
+                    throw new NotSupportedException();
             }
             catch
             {
