@@ -31,6 +31,18 @@ namespace SharpWnfScan.Interop
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    internal struct KEY_VALUE_FULL_INFORMATION
+    {
+        public uint TitleIndex;
+        public REG_VALUE_TYPE Type;
+        public uint DataOffset;
+        public uint DataLength;
+        public uint NameLength;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
+        public ushort[] /* WCHAR[] */ Name;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     internal struct LIST_ENTRY32
     {
         public int Flink;

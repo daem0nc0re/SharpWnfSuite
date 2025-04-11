@@ -7,9 +7,11 @@ namespace SharpWnfScan.Interop
     internal class Win32Consts
     {
         public const int ERROR_SUCCESS = 0;
-        public static IntPtr HKEY_LOCAL_MACHINE = new IntPtr(-2147483646);
-        public const int KEY_READ = 0x20019;
         public const NTSTATUS STATUS_SUCCESS = 0;
+        public const NTSTATUS STATUS_BUFFER_OVERFLOW = unchecked((NTSTATUS)0x80000005u);
+        public const NTSTATUS STATUS_NO_MORE_ENTRIES = unchecked((NTSTATUS)0x8000001Au);
+        public const NTSTATUS STATUS_OPERATION_FAILED = unchecked((NTSTATUS)0xC0000001u);
+        public const NTSTATUS STATUS_BUFFER_TOO_SMALL = unchecked((NTSTATUS)0xC0000023u);
         public const ulong WNF_STATE_KEY = 0x41C64E6DA3BC0074;
         public const uint MAX_PATH = 260;
         public const uint MAX_SYM_NAME = 2000;

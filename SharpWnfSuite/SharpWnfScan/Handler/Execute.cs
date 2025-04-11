@@ -13,7 +13,6 @@ namespace SharpWnfScan.Handler
             string wellKnownName;
             Regex rgx = new Regex(@"^0x[0-9a-fA-F]+$");
             bool bVerbose = options.GetFlag("verbose");
-            Globals.IsWin11 = Helpers.IsWin11();
 
             if (options.GetFlag("help"))
             {

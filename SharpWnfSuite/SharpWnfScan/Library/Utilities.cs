@@ -378,12 +378,11 @@ namespace SharpWnfScan.Library
             int nListEntryOffset;
             string fieldName = "SubscriptionsListEntry";
             bool bIs32BitProcess = Helpers.Is32BitProcess(hProcess);
-            bool bIsWin11 = Helpers.IsWin11();
             var subscriptions = new Dictionary<IntPtr, KeyValuePair<IntPtr, IntPtr>>();
 
             if (!bIs32BitProcess)
             {
-                if (bIsWin11)
+                if (Globals.IsWin11)
                     nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64_WIN11));
                 else
                     nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION64));
@@ -393,7 +392,7 @@ namespace SharpWnfScan.Library
             }
             else
             {
-                if (bIsWin11)
+                if (Globals.IsWin11)
                     nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32_WIN11));
                 else
                     nNameSubscriptionSize = (uint)Marshal.SizeOf(typeof(WNF_NAME_SUBSCRIPTION32));
@@ -421,7 +420,7 @@ namespace SharpWnfScan.Library
 
                 if (!bIs32BitProcess)
                 {
-                    if (bIsWin11)
+                    if (Globals.IsWin11)
                     {
                         var nameSubscription = (WNF_NAME_SUBSCRIPTION64_WIN11)Marshal.PtrToStructure(
                           pInfoBuffer,
@@ -446,7 +445,7 @@ namespace SharpWnfScan.Library
                 }
                 else
                 {
-                    if (bIsWin11)
+                    if (Globals.IsWin11)
                     {
                         var nameSubscription = (WNF_NAME_SUBSCRIPTION32_WIN11)Marshal.PtrToStructure(
                           pInfoBuffer,

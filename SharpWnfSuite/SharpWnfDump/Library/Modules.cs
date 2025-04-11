@@ -13,12 +13,14 @@ namespace SharpWnfDump.Library
         public static void BruteForceWnfNames(bool bShowData, bool bUsedOnly)
         {
             var wnfStateName = new WNF_STATE_NAME(1, WNF_STATE_NAME_LIFETIME.Temporary, 0, 0, 0, 0);
-            string versionString = Helpers.GetOsVersionString(
-                Globals.MajorVersion,
-                Globals.MinorVersion,
-                Globals.BuildNumber);
 
-            Console.WriteLine("[*] OS version is {0}.\n", versionString ?? "unspecified");
+            Console.WriteLine("[*] OS version is {0}.\n", Globals.OsVersion ?? "unspecified");
+
+            if (!Globals.IsSupported)
+            {
+                Console.WriteLine("[-] This OS is not supported.");
+                return;
+            }
 
             for (var nDataScope = 0u; nDataScope < (uint)WNF_DATA_SCOPE.Max; nDataScope++)
             {
@@ -57,12 +59,14 @@ namespace SharpWnfDump.Library
             NTSTATUS ntstatus;
             IntPtr hKey;
             var wnfStateName = new WNF_STATE_NAME { Data = stateName };
-            string versionString = Helpers.GetOsVersionString(
-                Globals.MajorVersion,
-                Globals.MinorVersion,
-                Globals.BuildNumber);
 
-            Console.WriteLine("[*] OS version is {0}.\n", versionString ?? "unspecified");
+            Console.WriteLine("[*] OS version is {0}.\n", Globals.OsVersion ?? "unspecified");
+
+            if (!Globals.IsSupported)
+            {
+                Console.WriteLine("[-] This OS is not supported.");
+                return false;
+            }
 
             if (wnfStateName.GetNameLifeTime() == WNF_STATE_NAME_LIFETIME.Temporary)
             {
@@ -139,12 +143,14 @@ namespace SharpWnfDump.Library
         public static void DumpWnfNames(bool bShowSd, bool bShowData, bool bUsedOnly)
         {
             var outputBuilder = new StringBuilder();
-            string versionString = Helpers.GetOsVersionString(
-                Globals.MajorVersion,
-                Globals.MinorVersion,
-                Globals.BuildNumber);
 
-            Console.WriteLine("[*] OS version is {0}.\n", versionString ?? "unspecified");
+            Console.WriteLine("[*] OS version is {0}.\n", Globals.OsVersion ?? "unspecified");
+
+            if (!Globals.IsSupported)
+            {
+                Console.WriteLine("[-] This OS is not supported.");
+                return;
+            }
 
             for (var idx = 0; idx < Globals.LifetimeKeyNameKeys.Length; idx++)
             {
@@ -243,12 +249,14 @@ namespace SharpWnfDump.Library
         public static void OperationRead(ulong stateName)
         {
             string nameString = Helpers.GetWnfName(stateName);
-            string versionString = Helpers.GetOsVersionString(
-                Globals.MajorVersion,
-                Globals.MinorVersion,
-                Globals.BuildNumber);
 
-            Console.WriteLine("[*] OS version is {0}.", versionString ?? "unspecified");
+            Console.WriteLine("[*] OS version is {0}.", Globals.OsVersion ?? "unspecified");
+
+            if (!Globals.IsSupported)
+            {
+                Console.WriteLine("[-] This OS is not supported.");
+                return;
+            }
 
             if (Helpers.ReadWnfData(
                 stateName,
@@ -281,12 +289,15 @@ namespace SharpWnfDump.Library
             byte[] dataBytes;
             string nameString = Helpers.GetWnfName(stateName);
             string fullFilePath = Path.GetFullPath(filePath);
-            string versionString = Helpers.GetOsVersionString(
-                Globals.MajorVersion,
-                Globals.MinorVersion,
-                Globals.BuildNumber);
 
-            Console.WriteLine("[*] OS version is {0}.", versionString ?? "unspecified");
+            Console.WriteLine("[*] OS version is {0}.", Globals.OsVersion ?? "unspecified");
+
+            if (!Globals.IsSupported)
+            {
+                Console.WriteLine("[-] This OS is not supported.");
+                return;
+            }
+
             Console.WriteLine("[>] Trying to write data.");
             Console.WriteLine("    [*] Target WNF Name : {0}", nameString);
             Console.WriteLine("    [*] Data Source     : {0}", fullFilePath);

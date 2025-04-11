@@ -7,7 +7,6 @@ namespace SharpWnfDump.Interop
     internal class Win32Consts
     {
         public const int ERROR_SUCCESS = 0;
-        public const int ERROR_MORE_DATA = 0x000000EA;
         public const int SDDL_REVISION_1 = 1;
         public const NTSTATUS STATUS_SUCCESS = 0;
         public const NTSTATUS STATUS_BUFFER_OVERFLOW = unchecked((NTSTATUS)0x80000005u);

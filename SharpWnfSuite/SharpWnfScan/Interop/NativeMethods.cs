@@ -51,6 +51,12 @@ namespace SharpWnfScan.Interop
         public static extern NTSTATUS NtClose(IntPtr Handle);
 
         [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtOpenKey(
+            out IntPtr KeyHandle,
+            ACCESS_MASK DesiredAccess,
+            in OBJECT_ATTRIBUTES ObjectAttributes);
+
+        [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtOpenProcess(
             out IntPtr ProcessHandle,
             ACCESS_MASK DesiredAccess,
@@ -78,6 +84,15 @@ namespace SharpWnfScan.Interop
             out uint ReturnedLength);
 
         [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtQueryValueKey(
+            IntPtr KeyHandle,
+            in UNICODE_STRING ValueName,
+            KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
+            IntPtr KeyValueInformation,
+            uint Length,
+            out uint ResultLength);
+
+        [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtQueryVirtualMemory(
             IntPtr ProcessHandle,
             IntPtr BaseAddress,
@@ -93,11 +108,5 @@ namespace SharpWnfScan.Interop
             IntPtr Buffer,
             uint NumberOfBytesToRead,
             out uint NumberOfBytesReaded);
-
-        [DllImport("ntdll.dll")]
-        public static extern void RtlGetNtVersionNumbers(
-            out int MajorVersion,
-            out int MinorVersion,
-            out int BuildNumber);
     }
 }

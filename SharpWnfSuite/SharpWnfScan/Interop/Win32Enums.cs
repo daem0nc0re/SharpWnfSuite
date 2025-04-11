@@ -20,6 +20,17 @@ namespace SharpWnfScan.Interop
         PROCESS_SET_LIMITED_INFORMATION = 0x00002000,
         PROCESS_ALL_ACCESS = 0x001FFFFF,
 
+        // For Registries
+        KEY_QUERY_VALUE = 0x00000001,
+        KEY_SET_VALUE = 0x00000002,
+        KEY_CREATE_SUB_KEY = 0x00000004,
+        KEY_ENUMERATE_SUB_KEYS = 0x00000008,
+        KEY_NOTIFY = 0x00000010,
+        KEY_CREATE_LINK = 0x00000020,
+        KEY_WRITE = 0x00020006,
+        KEY_EXECUTE_READ = 0x00020019,
+        KEY_ALL_ACCESS = 0x000F003F,
+
         // For Symbolic Link
         SYMBOLIC_LINK_QUERY = 0x00000001,
         SYMBOLIC_LINK_SET = 0x00000002,
@@ -86,6 +97,17 @@ namespace SharpWnfScan.Interop
         M32R = 0x9041,
         ARM64 = 0xAA64,
         CEE = 0xC0EE
+    }
+
+    internal enum KEY_VALUE_INFORMATION_CLASS
+    {
+        KeyValueBasicInformation, // KEY_VALUE_BASIC_INFORMATION
+        KeyValueFullInformation, // KEY_VALUE_FULL_INFORMATION
+        KeyValuePartialInformation, // KEY_VALUE_PARTIAL_INFORMATION
+        KeyValueFullInformationAlign64,
+        KeyValuePartialInformationAlign64, // KEY_VALUE_PARTIAL_INFORMATION_ALIGN64
+        KeyValueLayerInformation, // KEY_VALUE_LAYER_INFORMATION
+        MaxKeyValueInfoClass
     }
 
     [Flags]
@@ -292,6 +314,22 @@ namespace SharpWnfScan.Interop
         ProcessEffectiveIoPriority, // q: IO_PRIORITY_HINT
         ProcessEffectivePagePriority, // q: ULONG
         MaxProcessInfoClass
+    }
+
+    internal enum REG_VALUE_TYPE
+    {
+        None = 0,
+        Sz,
+        ExpandSz,
+        Binary,
+        Dword,
+        DwordBigEndian,
+        Link,
+        MultiSz,
+        ResourceList,
+        FullResourceDescriptor,
+        ResourceRequirementsList,
+        Qword
     }
 
     [Flags]
