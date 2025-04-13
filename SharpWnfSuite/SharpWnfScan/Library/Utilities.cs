@@ -264,10 +264,10 @@ namespace SharpWnfScan.Library
             uint nPointerSize;
             uint nSubscriptionTableSize;
             Dictionary<string, IMAGE_SECTION_HEADER> sectionHeaders;
-            var pSubscriptionTable = IntPtr.Zero;
-            var modules = Helpers.GetProcessModules(
+            Dictionary<string, IntPtr> modules = Helpers.GetProcessModules(
                 hProcess,
                 out Dictionary<string, IntPtr> wow32Modules);
+            var pSubscriptionTable = IntPtr.Zero;
 
             if (wow32Modules.Count > 0)
             {
@@ -286,8 +286,12 @@ namespace SharpWnfScan.Library
                 pNtdll = modules["ntdll.dll"];
                 nPointerSize = Environment.Is64BitProcess ? 8u : 4u;
 
-                if (Environment.Is64BitProcess)
-                    nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64));
+                if (Environment.Is64BitProcess && Globals.IsWin11 && (Globals.BuildNumber < 26100))
+                    nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64_WIN11));
+                else if (Environment.Is64BitProcess && Globals.IsWin11)
+                    nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64_WIN11_24H2));
+                else if (Globals.IsWin11)
+                    nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32_WIN11));
                 else
                     nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32));
             }

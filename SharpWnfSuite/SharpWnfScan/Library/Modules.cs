@@ -85,7 +85,7 @@ namespace SharpWnfScan.Library
 
             if (pSubscriptionTable == IntPtr.Zero)
             {
-                Console.WriteLine("[-] Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE.");
+                Console.WriteLine("[-] Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE or no subscriptions.");
                 NativeMethods.NtClose(hProcess);
                 return;
             }

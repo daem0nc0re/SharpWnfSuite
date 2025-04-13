@@ -573,6 +573,23 @@ namespace SharpWnfScan.Interop
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    internal struct WNF_SUBSCRIPTION_TABLE64_WIN11_24H2
+    {
+        public WNF_CONTEXT_HEADER Header;
+        public long /* SRWLOCK */ NamesTableLock;
+        public RTL_RB_TREE64 NamesTableEntry;
+        public LIST_ENTRY64 SerializationGroupListHead;
+        public long /* SRWLOCK */ SerializationGroupLock;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
+        public int[] Unknown1;
+        public int SubscribedEventSet;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+        public int[] Unknown2;
+        public long Timer;
+        public ulong TimerDueTime;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     internal struct WNF_USER_SUBSCRIPTION32
     {
         public WNF_CONTEXT_HEADER Header;
