@@ -131,7 +131,7 @@ namespace SharpWnfInject.Library
                     Console.WriteLine("[+] Pointer for WNF_SUBSCRIPTION_TABLE is at 0x{0}.", pTablePointer.ToString(addressFormat));
                 }
 
-                pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, pTablePointer);
+                pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, pTablePointer, bIs32BitProcess);
 
                 if (pSubscriptionTable == IntPtr.Zero)
                 {
