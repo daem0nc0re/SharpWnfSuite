@@ -69,7 +69,7 @@ namespace SharpWnfScan.Library
                     if (Globals.SubscriptionTablePointerAddress64 == IntPtr.Zero)
                         break;
 
-                    pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress64);
+                    pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress64, false);
                 }
                 else
                 {
@@ -79,13 +79,13 @@ namespace SharpWnfScan.Library
                     if (Globals.SubscriptionTablePointerAddress32 == IntPtr.Zero)
                         break;
 
-                    pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress32);
+                    pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress32, true);
                 }
             } while (false);
 
             if (pSubscriptionTable == IntPtr.Zero)
             {
-                Console.WriteLine("[-] Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE or no subscriptions.");
+                Console.WriteLine("[-] Failed to get valid pointer for WNF_SUBSCRIPTION_TABLE or no subscription.");
                 NativeMethods.NtClose(hProcess);
                 return;
             }
@@ -237,7 +237,7 @@ namespace SharpWnfScan.Library
                         if (Globals.SubscriptionTablePointerAddress64 == IntPtr.Zero)
                             break;
 
-                        pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress64);
+                        pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress64, false);
                     }
                     else
                     {
@@ -247,7 +247,7 @@ namespace SharpWnfScan.Library
                         if (Globals.SubscriptionTablePointerAddress32 == IntPtr.Zero)
                             break;
 
-                        pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress32);
+                        pSubscriptionTable = Utilities.GetSubscriptionTable(hProcess, Globals.SubscriptionTablePointerAddress32, true);
                     }
                 } while (false);
 

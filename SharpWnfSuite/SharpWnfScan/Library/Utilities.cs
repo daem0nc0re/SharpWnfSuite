@@ -196,22 +196,36 @@ namespace SharpWnfScan.Library
         }
 
 
-        public static IntPtr GetSubscriptionTable(IntPtr hProcess, IntPtr pTablePointer)
+        public static IntPtr GetSubscriptionTable(IntPtr hProcess, IntPtr pTablePointer, bool bIs32BitProcess)
         {
             IntPtr pSubscriptionTable;
+            uint nSubscriptionTableSize;
             IntPtr pInfoBuffer = Marshal.AllocHGlobal(0x10);
+
+            if (!bIs32BitProcess && Globals.IsWin11 && (Globals.BuildNumber < 26100))
+                nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64_WIN11));
+            else if (!bIs32BitProcess && Globals.IsWin11)
+                nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64_WIN11_24H2));
+            else if (Globals.IsWin11)
+                nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32_WIN11));
+            else
+                nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32));
 
             do
             {
                 WNF_CONTEXT_HEADER header;
-                var nInfoLength = (uint)IntPtr.Size;
+                var nInfoLength = bIs32BitProcess ? 4u : 8u;
                 NTSTATUS ntstatus = NativeMethods.NtReadVirtualMemory(
                     hProcess,
                     pTablePointer,
                     pInfoBuffer,
                     nInfoLength,
                     out uint nReturnedLength);
-                pSubscriptionTable = Marshal.ReadIntPtr(pInfoBuffer);
+
+                if (bIs32BitProcess)
+                    pSubscriptionTable = new IntPtr(Marshal.ReadInt32(pInfoBuffer));
+                else
+                    pSubscriptionTable = new IntPtr(Marshal.ReadInt64(pInfoBuffer));
 
                 if ((ntstatus != Win32Consts.STATUS_SUCCESS) || (nInfoLength != nReturnedLength))
                 {
@@ -243,7 +257,7 @@ namespace SharpWnfScan.Library
                 }
 
                 if ((header.NodeTypeCode != Win32Consts.WNF_NODE_SUBSCRIPTION_TABLE) &&
-                    (header.NodeByteSize != Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE64))))
+                    (header.NodeByteSize != nSubscriptionTableSize))
                 {
                     pSubscriptionTable = IntPtr.Zero;
                 }
@@ -276,7 +290,11 @@ namespace SharpWnfScan.Library
 
                 pNtdll = wow32Modules["ntdll.dll"];
                 nPointerSize = 4u;
-                nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32));
+
+                if (Globals.IsWin11)
+                    nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32_WIN11));
+                else
+                    nSubscriptionTableSize = (uint)Marshal.SizeOf(typeof(WNF_SUBSCRIPTION_TABLE32));
             }
             else
             {
